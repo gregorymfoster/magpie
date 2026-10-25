@@ -1,0 +1,32 @@
+{
+ "report": "\nModel qwen2.5:1.5b on 3 title pages (heldout):\n  title 0%, author 0%, both 0%, unparseable 3\nRules on the same pages: title 100%, author 100%, both 100%",
+ "details": [
+  {
+   "file": "clean/frankenstein-standard.epub",
+   "truth": {
+    "title": "Frankenstein",
+    "author": "Mary Wollstonecraft Shelley"
+   },
+   "model": null,
+   "ms": 34
+  },
+  {
+   "file": "clean/the-hound-of-the-baskervilles-gutenberg.epub",
+   "truth": {
+    "title": "The Hound of the Baskervilles",
+    "author": "Arthur Conan Doyle"
+   },
+   "model": null,
+   "ms": 1
+  },
+  {
+   "file": "clean/the-marvelous-land-of-oz-indie.epub",
+   "truth": {
+    "title": "The Marvelous Land of Oz",
+    "author": "L. Frank Baum"
+   },
+   "model": null,
+   "ms": 1
+  }
+ ]
+}

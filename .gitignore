@@ -1,0 +1,7 @@
+node_modules/
+corpus/files/
+corpus/baseline/
+bench/out/
+tools/epubcheck-batch/*.class
+*.fixed.epub
+.DS_Store

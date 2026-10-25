@@ -1,0 +1,29 @@
+{
+  "name": "magpie",
+  "version": "0.0.1",
+  "description": "Fix the ebook library you already have. Runs in your browser; nothing is uploaded.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "corpus": "python3 corpus/generate.py",
+    "baseline": "python3 corpus/baseline.py",
+    "bench": "node --experimental-strip-types bench/run.ts",
+    "fix": "node --experimental-strip-types src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "fflate": "^0.8.3",
+    "parse5": "^8.0.1",
+    "saxes": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}

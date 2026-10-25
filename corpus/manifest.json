@@ -1,0 +1,5959 @@
+[
+ {
+  "file": "clean/pride-and-prejudice-gutenberg.epub",
+  "defects": [],
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1813,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pride-and-prejudice-gutenberg--0.epub",
+  "defects": [
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1813,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pride-and-prejudice-gutenberg--1.epub",
+  "defects": [
+   "media_type_wrong",
+   "mimetype_missing",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1813,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pride-and-prejudice-gutenberg--2.epub",
+  "defects": [
+   "meta_no_author",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1813,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pride-and-prejudice-gutenberg--3.epub",
+  "defects": [
+   "meta_filename_title",
+   "container_wrong_path",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "Pride and Prejudice",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1813,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/emma-standard.epub",
+  "defects": [],
+  "title": "Emma",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1815,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/emma-standard--0.epub",
+  "defects": [
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "toc"
+  ],
+  "title": "Emma",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1815,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/emma-standard--1.epub",
+  "defects": [
+   "mimetype_compressed",
+   "encoding_cp1252",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Emma",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1815,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/emma-standard--2.epub",
+  "defects": [
+   "meta_no_title",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Emma",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1815,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/emma-standard--3.epub",
+  "defects": [
+   "manifest_unlisted_file",
+   "toc_nav_missing",
+   "meta_no_language"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "Emma",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1815,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/persuasion-indie.epub",
+  "defects": [],
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9783289166537",
+  "year": 1817,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/persuasion-indie--0.epub",
+  "defects": [
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9783289166537",
+  "year": 1817,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/persuasion-indie--1.epub",
+  "defects": [
+   "duplicate_ids",
+   "encoding_cp1252",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9783289166537",
+  "year": 1817,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/persuasion-indie--2.epub",
+  "defects": [
+   "container_missing",
+   "manifest_missing_file",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9783289166537",
+  "year": 1817,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/persuasion-indie--3.epub",
+  "defects": [
+   "meta_no_title",
+   "cover_undeclared",
+   "toc_nav_missing"
+  ],
+  "categories": [
+   "cover",
+   "metadata",
+   "toc"
+  ],
+  "title": "Persuasion",
+  "author": "Jane Austen",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9783289166537",
+  "year": 1817,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/moby-dick-gutenberg.epub",
+  "defects": [],
+  "title": "Moby-Dick",
+  "author": "Herman Melville",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1851,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/moby-dick-gutenberg--0.epub",
+  "defects": [
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Moby-Dick",
+  "author": "Herman Melville",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1851,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/moby-dick-gutenberg--1.epub",
+  "defects": [
+   "cover_undeclared",
+   "mimetype_missing",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "manifest"
+  ],
+  "title": "Moby-Dick",
+  "author": "Herman Melville",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1851,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/moby-dick-gutenberg--2.epub",
+  "defects": [
+   "cover_undeclared",
+   "meta_no_title"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "Moby-Dick",
+  "author": "Herman Melville",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1851,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/moby-dick-gutenberg--3.epub",
+  "defects": [
+   "meta_no_title",
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Moby-Dick",
+  "author": "Herman Melville",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1851,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/frankenstein-standard.epub",
+  "defects": [],
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1818,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/frankenstein-standard--0.epub",
+  "defects": [
+   "container_missing"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1818,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/frankenstein-standard--1.epub",
+  "defects": [
+   "meta_no_modified",
+   "meta_no_language"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1818,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/frankenstein-standard--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "xhtml_unclosed_tags",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "toc",
+   "xhtml"
+  ],
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1818,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/frankenstein-standard--3.epub",
+  "defects": [
+   "manifest_unlisted_file",
+   "meta_no_modified",
+   "meta_filename_title"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Frankenstein",
+  "author": "Mary Wollstonecraft Shelley",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1818,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/dracula-indie.epub",
+  "defects": [],
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789850136343",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/dracula-indie--0.epub",
+  "defects": [
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789850136343",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/dracula-indie--1.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "meta_uid_mismatch",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789850136343",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/dracula-indie--2.epub",
+  "defects": [
+   "font_corrupt",
+   "xhtml_tag_soup",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "font",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789850136343",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/dracula-indie--3.epub",
+  "defects": [
+   "cover_undeclared",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "cover",
+   "manifest"
+  ],
+  "title": "Dracula",
+  "author": "Bram Stoker",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789850136343",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/a-study-in-scarlet-gutenberg.epub",
+  "defects": [],
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1887,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-study-in-scarlet-gutenberg--0.epub",
+  "defects": [
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1887,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-study-in-scarlet-gutenberg--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "cover",
+   "xhtml"
+  ],
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1887,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-study-in-scarlet-gutenberg--2.epub",
+  "defects": [
+   "meta_no_language",
+   "mimetype_trailing_newline",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1887,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-study-in-scarlet-gutenberg--3.epub",
+  "defects": [
+   "cover_undeclared",
+   "toc_ncx_broken",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "cover",
+   "toc",
+   "xhtml"
+  ],
+  "title": "A Study in Scarlet",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1887,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-sign-of-the-four-standard.epub",
+  "defects": [],
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1890,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-sign-of-the-four-standard--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1890,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-sign-of-the-four-standard--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "media_type_wrong",
+   "meta_no_language"
+  ],
+  "categories": [
+   "cover",
+   "manifest",
+   "metadata"
+  ],
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1890,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-sign-of-the-four-standard--2.epub",
+  "defects": [
+   "meta_no_title",
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1890,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-sign-of-the-four-standard--3.epub",
+  "defects": [
+   "cover_wrong_id",
+   "meta_uid_mismatch",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "The Sign of the Four",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1890,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-adventures-of-sherlock-holmes-indie.epub",
+  "defects": [],
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 3,
+  "isbn": "9789110149144",
+  "year": 1892,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-adventures-of-sherlock-holmes-indie--0.epub",
+  "defects": [
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 3,
+  "isbn": "9789110149144",
+  "year": 1892,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-adventures-of-sherlock-holmes-indie--1.epub",
+  "defects": [
+   "href_spaces",
+   "mimetype_compressed",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "toc"
+  ],
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 3,
+  "isbn": "9789110149144",
+  "year": 1892,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-adventures-of-sherlock-holmes-indie--2.epub",
+  "defects": [
+   "meta_no_language",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 3,
+  "isbn": "9789110149144",
+  "year": 1892,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-adventures-of-sherlock-holmes-indie--3.epub",
+  "defects": [
+   "mimetype_not_first",
+   "meta_no_language"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "The Adventures of Sherlock Holmes",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 3,
+  "isbn": "9789110149144",
+  "year": 1892,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-hound-of-the-baskervilles-gutenberg.epub",
+  "defects": [],
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 5,
+  "isbn": null,
+  "year": 1902,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-hound-of-the-baskervilles-gutenberg--0.epub",
+  "defects": [
+   "href_spaces"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 5,
+  "isbn": null,
+  "year": 1902,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-hound-of-the-baskervilles-gutenberg--1.epub",
+  "defects": [
+   "href_spaces",
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 5,
+  "isbn": null,
+  "year": 1902,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-hound-of-the-baskervilles-gutenberg--2.epub",
+  "defects": [
+   "duplicate_ids",
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 5,
+  "isbn": null,
+  "year": 1902,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-hound-of-the-baskervilles-gutenberg--3.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "meta_filename_title"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Hound of the Baskervilles",
+  "author": "Arthur Conan Doyle",
+  "language": "en",
+  "series": "Sherlock Holmes",
+  "series_index": 5,
+  "isbn": null,
+  "year": 1902,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/a-princess-of-mars-standard.epub",
+  "defects": [],
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-princess-of-mars-standard--0.epub",
+  "defects": [
+   "font_corrupt"
+  ],
+  "categories": [
+   "font"
+  ],
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-princess-of-mars-standard--1.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "container_missing",
+   "meta_no_title"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "toc"
+  ],
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-princess-of-mars-standard--2.epub",
+  "defects": [
+   "meta_no_title",
+   "spine_bad_idref",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-princess-of-mars-standard--3.epub",
+  "defects": [
+   "mimetype_compressed",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "A Princess of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-gods-of-mars-indie.epub",
+  "defects": [],
+  "title": "The Gods of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 2,
+  "isbn": "9785987132333",
+  "year": 1913,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-gods-of-mars-indie--0.epub",
+  "defects": [
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The Gods of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 2,
+  "isbn": "9785987132333",
+  "year": 1913,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-gods-of-mars-indie--1.epub",
+  "defects": [
+   "meta_unknown_author",
+   "href_spaces",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "The Gods of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 2,
+  "isbn": "9785987132333",
+  "year": 1913,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-gods-of-mars-indie--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "manifest_unlisted_file",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "The Gods of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 2,
+  "isbn": "9785987132333",
+  "year": 1913,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-gods-of-mars-indie--3.epub",
+  "defects": [
+   "meta_unknown_author",
+   "href_spaces",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "The Gods of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 2,
+  "isbn": "9785987132333",
+  "year": 1913,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-warlord-of-mars-gutenberg.epub",
+  "defects": [],
+  "title": "The Warlord of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1914,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-warlord-of-mars-gutenberg--0.epub",
+  "defects": [
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "The Warlord of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1914,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-warlord-of-mars-gutenberg--1.epub",
+  "defects": [
+   "mimetype_not_first",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Warlord of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1914,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-warlord-of-mars-gutenberg--2.epub",
+  "defects": [
+   "encoding_cp1252",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "xhtml"
+  ],
+  "title": "The Warlord of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1914,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-warlord-of-mars-gutenberg--3.epub",
+  "defects": [
+   "mimetype_compressed",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "The Warlord of Mars",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Barsoom",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1914,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-wonderful-wizard-of-oz-standard.epub",
+  "defects": [],
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1900,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-wonderful-wizard-of-oz-standard--0.epub",
+  "defects": [
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1900,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-wonderful-wizard-of-oz-standard--1.epub",
+  "defects": [
+   "duplicate_ids",
+   "meta_filename_title",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1900,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-wonderful-wizard-of-oz-standard--2.epub",
+  "defects": [
+   "container_wrong_path",
+   "cover_wrong_id",
+   "toc_nav_missing"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "toc"
+  ],
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1900,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-wonderful-wizard-of-oz-standard--3.epub",
+  "defects": [
+   "duplicate_ids",
+   "font_corrupt",
+   "meta_filename_title"
+  ],
+  "categories": [
+   "font",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Wonderful Wizard of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1900,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-marvelous-land-of-oz-indie.epub",
+  "defects": [],
+  "title": "The Marvelous Land of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 2,
+  "isbn": "9783978517428",
+  "year": 1904,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-marvelous-land-of-oz-indie--0.epub",
+  "defects": [
+   "meta_no_title"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "The Marvelous Land of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 2,
+  "isbn": "9783978517428",
+  "year": 1904,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-marvelous-land-of-oz-indie--1.epub",
+  "defects": [
+   "meta_no_language",
+   "font_corrupt"
+  ],
+  "categories": [
+   "font",
+   "metadata"
+  ],
+  "title": "The Marvelous Land of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 2,
+  "isbn": "9783978517428",
+  "year": 1904,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-marvelous-land-of-oz-indie--2.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "xhtml_html_entities",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Marvelous Land of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 2,
+  "isbn": "9783978517428",
+  "year": 1904,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-marvelous-land-of-oz-indie--3.epub",
+  "defects": [
+   "container_wrong_path",
+   "xhtml_html_entities",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "container",
+   "toc",
+   "xhtml"
+  ],
+  "title": "The Marvelous Land of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 2,
+  "isbn": "9783978517428",
+  "year": 1904,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/ozma-of-oz-gutenberg.epub",
+  "defects": [],
+  "title": "Ozma of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1907,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/ozma-of-oz-gutenberg--0.epub",
+  "defects": [
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Ozma of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1907,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/ozma-of-oz-gutenberg--1.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Ozma of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1907,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/ozma-of-oz-gutenberg--2.epub",
+  "defects": [
+   "duplicate_ids",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Ozma of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1907,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/ozma-of-oz-gutenberg--3.epub",
+  "defects": [
+   "mimetype_compressed",
+   "toc_ncx_broken",
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "container",
+   "toc",
+   "xhtml"
+  ],
+  "title": "Ozma of Oz",
+  "author": "L. Frank Baum",
+  "language": "en",
+  "series": "Oz",
+  "series_index": 3,
+  "isbn": null,
+  "year": 1907,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/anne-of-green-gables-standard.epub",
+  "defects": [],
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1908,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-green-gables-standard--0.epub",
+  "defects": [
+   "meta_no_modified"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1908,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-green-gables-standard--1.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "toc_ncx_broken",
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container",
+   "toc",
+   "xhtml"
+  ],
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1908,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-green-gables-standard--2.epub",
+  "defects": [
+   "duplicate_ids",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1908,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-green-gables-standard--3.epub",
+  "defects": [
+   "manifest_missing_file",
+   "font_corrupt"
+  ],
+  "categories": [
+   "font",
+   "manifest"
+  ],
+  "title": "Anne of Green Gables",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1908,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/anne-of-avonlea-indie.epub",
+  "defects": [],
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 2,
+  "isbn": "9781355208617",
+  "year": 1909,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-avonlea-indie--0.epub",
+  "defects": [
+   "container_missing"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 2,
+  "isbn": "9781355208617",
+  "year": 1909,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-avonlea-indie--1.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "toc_nav_missing",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "toc",
+   "xhtml"
+  ],
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 2,
+  "isbn": "9781355208617",
+  "year": 1909,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-avonlea-indie--2.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "meta_no_language"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 2,
+  "isbn": "9781355208617",
+  "year": 1909,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/anne-of-avonlea-indie--3.epub",
+  "defects": [
+   "meta_no_language",
+   "toc_nav_missing",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "Anne of Avonlea",
+  "author": "L. M. Montgomery",
+  "language": "en",
+  "series": "Anne of Green Gables",
+  "series_index": 2,
+  "isbn": "9781355208617",
+  "year": 1909,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/tarzan-of-the-apes-gutenberg.epub",
+  "defects": [],
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/tarzan-of-the-apes-gutenberg--0.epub",
+  "defects": [
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/tarzan-of-the-apes-gutenberg--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "mimetype_compressed",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "manifest"
+  ],
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/tarzan-of-the-apes-gutenberg--2.epub",
+  "defects": [
+   "meta_no_language",
+   "meta_no_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/tarzan-of-the-apes-gutenberg--3.epub",
+  "defects": [
+   "cover_wrong_id",
+   "xhtml_html_entities",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "cover",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Tarzan of the Apes",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1912,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-return-of-tarzan-standard.epub",
+  "defects": [],
+  "title": "The Return of Tarzan",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1913,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-return-of-tarzan-standard--0.epub",
+  "defects": [
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The Return of Tarzan",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1913,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-return-of-tarzan-standard--1.epub",
+  "defects": [
+   "spine_bad_idref",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "manifest",
+   "xhtml"
+  ],
+  "title": "The Return of Tarzan",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1913,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-return-of-tarzan-standard--2.epub",
+  "defects": [
+   "meta_no_author",
+   "xhtml_unclosed_tags",
+   "container_missing"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Return of Tarzan",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1913,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-return-of-tarzan-standard--3.epub",
+  "defects": [
+   "meta_no_modified",
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "The Return of Tarzan",
+  "author": "Edgar Rice Burroughs",
+  "language": "en",
+  "series": "Tarzan",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1913,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/great-expectations-indie.epub",
+  "defects": [],
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786940237287",
+  "year": 1861,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/great-expectations-indie--0.epub",
+  "defects": [
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786940237287",
+  "year": 1861,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/great-expectations-indie--1.epub",
+  "defects": [
+   "mimetype_not_first",
+   "meta_no_title"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786940237287",
+  "year": 1861,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/great-expectations-indie--2.epub",
+  "defects": [
+   "href_spaces",
+   "mimetype_compressed",
+   "toc_nav_missing"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "toc"
+  ],
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786940237287",
+  "year": 1861,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/great-expectations-indie--3.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "meta_no_title",
+   "meta_no_modified"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786940237287",
+  "year": 1861,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/a-tale-of-two-cities-gutenberg.epub",
+  "defects": [],
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1859,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-tale-of-two-cities-gutenberg--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1859,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-tale-of-two-cities-gutenberg--1.epub",
+  "defects": [
+   "mimetype_compressed",
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "container",
+   "cover"
+  ],
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1859,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-tale-of-two-cities-gutenberg--2.epub",
+  "defects": [
+   "meta_filename_title",
+   "container_missing",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "toc"
+  ],
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1859,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/a-tale-of-two-cities-gutenberg--3.epub",
+  "defects": [
+   "mimetype_not_first",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "A Tale of Two Cities",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1859,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/bleak-house-standard.epub",
+  "defects": [],
+  "title": "Bleak House",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1853,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/bleak-house-standard--0.epub",
+  "defects": [
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Bleak House",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1853,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/bleak-house-standard--1.epub",
+  "defects": [
+   "meta_no_title",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Bleak House",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1853,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/bleak-house-standard--2.epub",
+  "defects": [
+   "meta_no_title",
+   "spine_bad_idref",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Bleak House",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1853,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/bleak-house-standard--3.epub",
+  "defects": [
+   "cover_wrong_id",
+   "xhtml_html_entities",
+   "href_spaces"
+  ],
+  "categories": [
+   "cover",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Bleak House",
+  "author": "Charles Dickens",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1853,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/middlemarch-indie.epub",
+  "defects": [],
+  "title": "Middlemarch",
+  "author": "George Eliot",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786967960731",
+  "year": 1872,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/middlemarch-indie--0.epub",
+  "defects": [
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Middlemarch",
+  "author": "George Eliot",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786967960731",
+  "year": 1872,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/middlemarch-indie--1.epub",
+  "defects": [
+   "xhtml_unclosed_tags",
+   "duplicate_ids",
+   "font_corrupt"
+  ],
+  "categories": [
+   "font",
+   "xhtml"
+  ],
+  "title": "Middlemarch",
+  "author": "George Eliot",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786967960731",
+  "year": 1872,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/middlemarch-indie--2.epub",
+  "defects": [
+   "meta_no_modified",
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Middlemarch",
+  "author": "George Eliot",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786967960731",
+  "year": 1872,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/middlemarch-indie--3.epub",
+  "defects": [
+   "container_wrong_path",
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Middlemarch",
+  "author": "George Eliot",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786967960731",
+  "year": 1872,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/jane-eyre-gutenberg.epub",
+  "defects": [],
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/jane-eyre-gutenberg--0.epub",
+  "defects": [
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/jane-eyre-gutenberg--1.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "href_spaces",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/jane-eyre-gutenberg--2.epub",
+  "defects": [
+   "meta_no_language",
+   "manifest_missing_file",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/jane-eyre-gutenberg--3.epub",
+  "defects": [
+   "duplicate_ids",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Jane Eyre",
+  "author": "Charlotte Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/wuthering-heights-standard.epub",
+  "defects": [],
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/wuthering-heights-standard--0.epub",
+  "defects": [
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "toc"
+  ],
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/wuthering-heights-standard--1.epub",
+  "defects": [
+   "cover_undeclared",
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container",
+   "cover"
+  ],
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/wuthering-heights-standard--2.epub",
+  "defects": [
+   "font_corrupt",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "font",
+   "xhtml"
+  ],
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/wuthering-heights-standard--3.epub",
+  "defects": [
+   "toc_nav_missing",
+   "meta_no_modified"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "Wuthering Heights",
+  "author": "Emily Brontë",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1847,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-picture-of-dorian-gray-indie.epub",
+  "defects": [],
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789494813600",
+  "year": 1890,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-picture-of-dorian-gray-indie--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789494813600",
+  "year": 1890,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-picture-of-dorian-gray-indie--1.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "spine_bad_idref",
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789494813600",
+  "year": 1890,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-picture-of-dorian-gray-indie--2.epub",
+  "defects": [
+   "container_wrong_path",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789494813600",
+  "year": 1890,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-picture-of-dorian-gray-indie--3.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "meta_no_modified",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Picture of Dorian Gray",
+  "author": "Oscar Wilde",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789494813600",
+  "year": 1890,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-time-machine-gutenberg.epub",
+  "defects": [],
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1895,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-time-machine-gutenberg--0.epub",
+  "defects": [
+   "duplicate_ids"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1895,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-time-machine-gutenberg--1.epub",
+  "defects": [
+   "meta_filename_title",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1895,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-time-machine-gutenberg--2.epub",
+  "defects": [
+   "meta_no_author",
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1895,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-time-machine-gutenberg--3.epub",
+  "defects": [
+   "font_corrupt",
+   "meta_no_title"
+  ],
+  "categories": [
+   "font",
+   "metadata"
+  ],
+  "title": "The Time Machine",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1895,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-war-of-the-worlds-standard.epub",
+  "defects": [],
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1898,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-war-of-the-worlds-standard--0.epub",
+  "defects": [
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1898,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-war-of-the-worlds-standard--1.epub",
+  "defects": [
+   "meta_unknown_author",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1898,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-war-of-the-worlds-standard--2.epub",
+  "defects": [
+   "meta_no_modified",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1898,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-war-of-the-worlds-standard--3.epub",
+  "defects": [
+   "meta_no_title",
+   "mimetype_compressed",
+   "font_corrupt"
+  ],
+  "categories": [
+   "container",
+   "font",
+   "metadata"
+  ],
+  "title": "The War of the Worlds",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1898,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-invisible-man-indie.epub",
+  "defects": [],
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9781203838058",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-invisible-man-indie--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9781203838058",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-invisible-man-indie--1.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "toc_nav_missing",
+   "meta_filename_title"
+  ],
+  "categories": [
+   "metadata",
+   "toc",
+   "xhtml"
+  ],
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9781203838058",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-invisible-man-indie--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "container_wrong_path",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "toc"
+  ],
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9781203838058",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-invisible-man-indie--3.epub",
+  "defects": [
+   "container_wrong_path",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "container",
+   "cover"
+  ],
+  "title": "The Invisible Man",
+  "author": "H. G. Wells",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9781203838058",
+  "year": 1897,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/heart-of-darkness-gutenberg.epub",
+  "defects": [],
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1899,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/heart-of-darkness-gutenberg--0.epub",
+  "defects": [
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1899,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/heart-of-darkness-gutenberg--1.epub",
+  "defects": [
+   "spine_bad_idref",
+   "duplicate_ids",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1899,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/heart-of-darkness-gutenberg--2.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "manifest_unlisted_file",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1899,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/heart-of-darkness-gutenberg--3.epub",
+  "defects": [
+   "encoding_cp1252",
+   "container_wrong_path",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Heart of Darkness",
+  "author": "Joseph Conrad",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1899,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-call-of-the-wild-standard.epub",
+  "defects": [],
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1903,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-call-of-the-wild-standard--0.epub",
+  "defects": [
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1903,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-call-of-the-wild-standard--1.epub",
+  "defects": [
+   "meta_no_title",
+   "font_corrupt"
+  ],
+  "categories": [
+   "font",
+   "metadata"
+  ],
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1903,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-call-of-the-wild-standard--2.epub",
+  "defects": [
+   "manifest_unlisted_file",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1903,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-call-of-the-wild-standard--3.epub",
+  "defects": [
+   "mimetype_missing",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Call of the Wild",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1903,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/white-fang-indie.epub",
+  "defects": [],
+  "title": "White Fang",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785701322705",
+  "year": 1906,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/white-fang-indie--0.epub",
+  "defects": [
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "White Fang",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785701322705",
+  "year": 1906,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/white-fang-indie--1.epub",
+  "defects": [
+   "href_spaces",
+   "manifest_unlisted_file",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "manifest",
+   "xhtml"
+  ],
+  "title": "White Fang",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785701322705",
+  "year": 1906,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/white-fang-indie--2.epub",
+  "defects": [
+   "href_spaces",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "White Fang",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785701322705",
+  "year": 1906,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/white-fang-indie--3.epub",
+  "defects": [
+   "meta_no_modified",
+   "xhtml_unclosed_tags",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "White Fang",
+  "author": "Jack London",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785701322705",
+  "year": 1906,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-age-of-innocence-gutenberg.epub",
+  "defects": [],
+  "title": "The Age of Innocence",
+  "author": "Edith Wharton",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-age-of-innocence-gutenberg--0.epub",
+  "defects": [
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The Age of Innocence",
+  "author": "Edith Wharton",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-age-of-innocence-gutenberg--1.epub",
+  "defects": [
+   "mimetype_compressed",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Age of Innocence",
+  "author": "Edith Wharton",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-age-of-innocence-gutenberg--2.epub",
+  "defects": [
+   "container_missing",
+   "manifest_unlisted_file",
+   "meta_filename_title"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "The Age of Innocence",
+  "author": "Edith Wharton",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-age-of-innocence-gutenberg--3.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Age of Innocence",
+  "author": "Edith Wharton",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-scarlet-letter-standard.epub",
+  "defects": [],
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1850,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-scarlet-letter-standard--0.epub",
+  "defects": [
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1850,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-scarlet-letter-standard--1.epub",
+  "defects": [
+   "meta_uid_mismatch",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1850,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-scarlet-letter-standard--2.epub",
+  "defects": [
+   "container_wrong_path",
+   "spine_bad_idref",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1850,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-scarlet-letter-standard--3.epub",
+  "defects": [
+   "xhtml_unclosed_tags",
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Scarlet Letter",
+  "author": "Nathaniel Hawthorne",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1850,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/little-women-indie.epub",
+  "defects": [],
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 1,
+  "isbn": "9780809172924",
+  "year": 1868,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/little-women-indie--0.epub",
+  "defects": [
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 1,
+  "isbn": "9780809172924",
+  "year": 1868,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/little-women-indie--1.epub",
+  "defects": [
+   "mimetype_missing",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 1,
+  "isbn": "9780809172924",
+  "year": 1868,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/little-women-indie--2.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "container_missing",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 1,
+  "isbn": "9780809172924",
+  "year": 1868,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/little-women-indie--3.epub",
+  "defects": [
+   "meta_no_author",
+   "container_missing",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Little Women",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 1,
+  "isbn": "9780809172924",
+  "year": 1868,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/good-wives-gutenberg.epub",
+  "defects": [],
+  "title": "Good Wives",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1869,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/good-wives-gutenberg--0.epub",
+  "defects": [
+   "meta_no_author"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Good Wives",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1869,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/good-wives-gutenberg--1.epub",
+  "defects": [
+   "container_wrong_path",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Good Wives",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1869,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/good-wives-gutenberg--2.epub",
+  "defects": [
+   "mimetype_compressed",
+   "xhtml_unclosed_tags",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Good Wives",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1869,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/good-wives-gutenberg--3.epub",
+  "defects": [
+   "media_type_wrong",
+   "spine_bad_idref",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "manifest",
+   "toc"
+  ],
+  "title": "Good Wives",
+  "author": "Louisa May Alcott",
+  "language": "en",
+  "series": "Little Women",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1869,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/treasure-island-standard.epub",
+  "defects": [],
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1883,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/treasure-island-standard--0.epub",
+  "defects": [
+   "media_type_wrong"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1883,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/treasure-island-standard--1.epub",
+  "defects": [
+   "href_spaces",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1883,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/treasure-island-standard--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "duplicate_ids",
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container",
+   "toc",
+   "xhtml"
+  ],
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1883,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/treasure-island-standard--3.epub",
+  "defects": [
+   "toc_nav_missing",
+   "meta_no_modified",
+   "meta_no_title"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "Treasure Island",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1883,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/kidnapped-indie.epub",
+  "defects": [],
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788008806381",
+  "year": 1886,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/kidnapped-indie--0.epub",
+  "defects": [
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788008806381",
+  "year": 1886,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/kidnapped-indie--1.epub",
+  "defects": [
+   "font_corrupt",
+   "xhtml_unclosed_tags",
+   "meta_no_author"
+  ],
+  "categories": [
+   "font",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788008806381",
+  "year": 1886,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/kidnapped-indie--2.epub",
+  "defects": [
+   "meta_no_language",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788008806381",
+  "year": 1886,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/kidnapped-indie--3.epub",
+  "defects": [
+   "mimetype_missing",
+   "font_corrupt"
+  ],
+  "categories": [
+   "container",
+   "font"
+  ],
+  "title": "Kidnapped",
+  "author": "Robert Louis Stevenson",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788008806381",
+  "year": 1886,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-thirty-nine-steps-gutenberg.epub",
+  "defects": [],
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1915,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-thirty-nine-steps-gutenberg--0.epub",
+  "defects": [
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1915,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-thirty-nine-steps-gutenberg--1.epub",
+  "defects": [
+   "mimetype_not_first",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1915,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-thirty-nine-steps-gutenberg--2.epub",
+  "defects": [
+   "mimetype_compressed",
+   "media_type_wrong",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1915,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-thirty-nine-steps-gutenberg--3.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "The Thirty-Nine Steps",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1915,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/greenmantle-standard.epub",
+  "defects": [],
+  "title": "Greenmantle",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1916,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/greenmantle-standard--0.epub",
+  "defects": [
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "Greenmantle",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1916,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/greenmantle-standard--1.epub",
+  "defects": [
+   "manifest_missing_file",
+   "mimetype_compressed",
+   "toc_nav_missing"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "toc"
+  ],
+  "title": "Greenmantle",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1916,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/greenmantle-standard--2.epub",
+  "defects": [
+   "meta_unknown_author",
+   "meta_no_language",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Greenmantle",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1916,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/greenmantle-standard--3.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "Greenmantle",
+  "author": "John Buchan",
+  "language": "en",
+  "series": "Richard Hannay",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1916,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-secret-adversary-indie.epub",
+  "defects": [],
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Tommy and Tuppence",
+  "series_index": 1,
+  "isbn": "9788689021059",
+  "year": 1922,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-secret-adversary-indie--0.epub",
+  "defects": [
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Tommy and Tuppence",
+  "series_index": 1,
+  "isbn": "9788689021059",
+  "year": 1922,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-secret-adversary-indie--1.epub",
+  "defects": [
+   "encoding_cp1252",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "xhtml"
+  ],
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Tommy and Tuppence",
+  "series_index": 1,
+  "isbn": "9788689021059",
+  "year": 1922,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-secret-adversary-indie--2.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "container_missing"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Tommy and Tuppence",
+  "series_index": 1,
+  "isbn": "9788689021059",
+  "year": 1922,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-secret-adversary-indie--3.epub",
+  "defects": [
+   "encoding_cp1252",
+   "cover_undeclared",
+   "xhtml_unclosed_tags"
+  ],
+  "categories": [
+   "cover",
+   "xhtml"
+  ],
+  "title": "The Secret Adversary",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Tommy and Tuppence",
+  "series_index": 1,
+  "isbn": "9788689021059",
+  "year": 1922,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-mysterious-affair-at-styles-gutenberg.epub",
+  "defects": [],
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-mysterious-affair-at-styles-gutenberg--0.epub",
+  "defects": [
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-mysterious-affair-at-styles-gutenberg--1.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "meta_no_language"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-mysterious-affair-at-styles-gutenberg--2.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "cover_undeclared",
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "cover",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-mysterious-affair-at-styles-gutenberg--3.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Mysterious Affair at Styles",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-murder-on-the-links-standard.epub",
+  "defects": [],
+  "title": "The Murder on the Links",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1923,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-murder-on-the-links-standard--0.epub",
+  "defects": [
+   "meta_no_title"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "The Murder on the Links",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1923,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-murder-on-the-links-standard--1.epub",
+  "defects": [
+   "media_type_wrong",
+   "href_spaces",
+   "cover_undeclared"
+  ],
+  "categories": [
+   "cover",
+   "manifest"
+  ],
+  "title": "The Murder on the Links",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1923,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-murder-on-the-links-standard--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "meta_no_language"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "The Murder on the Links",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1923,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/the-murder-on-the-links-standard--3.epub",
+  "defects": [
+   "toc_nav_missing",
+   "meta_no_language"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "The Murder on the Links",
+  "author": "Agatha Christie",
+  "language": "en",
+  "series": "Hercule Poirot",
+  "series_index": 2,
+  "isbn": null,
+  "year": 1923,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/the-great-gatsby-indie.epub",
+  "defects": [],
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9780977367955",
+  "year": 1925,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-great-gatsby-indie--0.epub",
+  "defects": [
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9780977367955",
+  "year": 1925,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-great-gatsby-indie--1.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9780977367955",
+  "year": 1925,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-great-gatsby-indie--2.epub",
+  "defects": [
+   "mimetype_not_first",
+   "media_type_wrong",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9780977367955",
+  "year": 1925,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/the-great-gatsby-indie--3.epub",
+  "defects": [
+   "spine_bad_idref",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9780977367955",
+  "year": 1925,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/this-side-of-paradise-gutenberg.epub",
+  "defects": [],
+  "title": "This Side of Paradise",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/this-side-of-paradise-gutenberg--0.epub",
+  "defects": [
+   "href_spaces"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "This Side of Paradise",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/this-side-of-paradise-gutenberg--1.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "mimetype_trailing_newline",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "This Side of Paradise",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/this-side-of-paradise-gutenberg--2.epub",
+  "defects": [
+   "mimetype_compressed",
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "This Side of Paradise",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/this-side-of-paradise-gutenberg--3.epub",
+  "defects": [
+   "spine_bad_idref",
+   "mimetype_compressed",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "This Side of Paradise",
+  "author": "F. Scott Fitzgerald",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1920,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/siddhartha-standard.epub",
+  "defects": [],
+  "title": "Siddhartha",
+  "author": "Hermann Hesse",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1922,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/siddhartha-standard--0.epub",
+  "defects": [
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Siddhartha",
+  "author": "Hermann Hesse",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1922,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/siddhartha-standard--1.epub",
+  "defects": [
+   "mimetype_compressed",
+   "meta_unknown_author"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Siddhartha",
+  "author": "Hermann Hesse",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1922,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/siddhartha-standard--2.epub",
+  "defects": [
+   "mimetype_missing",
+   "toc_nav_missing",
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "toc"
+  ],
+  "title": "Siddhartha",
+  "author": "Hermann Hesse",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1922,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/siddhartha-standard--3.epub",
+  "defects": [
+   "container_missing",
+   "manifest_missing_file",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "toc"
+  ],
+  "title": "Siddhartha",
+  "author": "Hermann Hesse",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1922,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/die-verwandlung-indie.epub",
+  "defects": [],
+  "title": "Die Verwandlung",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789627561019",
+  "year": 1915,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/die-verwandlung-indie--0.epub",
+  "defects": [
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Die Verwandlung",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789627561019",
+  "year": 1915,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/die-verwandlung-indie--1.epub",
+  "defects": [
+   "meta_filename_title",
+   "href_spaces"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Die Verwandlung",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789627561019",
+  "year": 1915,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/die-verwandlung-indie--2.epub",
+  "defects": [
+   "duplicate_ids",
+   "container_wrong_path"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Die Verwandlung",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789627561019",
+  "year": 1915,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/die-verwandlung-indie--3.epub",
+  "defects": [
+   "toc_nav_missing",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "manifest",
+   "toc"
+  ],
+  "title": "Die Verwandlung",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": "9789627561019",
+  "year": 1915,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/der-prozess-gutenberg.epub",
+  "defects": [],
+  "title": "Der Prozess",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1925,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/der-prozess-gutenberg--0.epub",
+  "defects": [
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Der Prozess",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1925,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/der-prozess-gutenberg--1.epub",
+  "defects": [
+   "meta_unknown_author",
+   "cover_wrong_id",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "cover",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Der Prozess",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1925,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/der-prozess-gutenberg--2.epub",
+  "defects": [
+   "cover_wrong_id",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "cover"
+  ],
+  "title": "Der Prozess",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1925,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/der-prozess-gutenberg--3.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "manifest_unlisted_file",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "toc"
+  ],
+  "title": "Der Prozess",
+  "author": "Franz Kafka",
+  "language": "de",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1925,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/madame-bovary-standard.epub",
+  "defects": [],
+  "title": "Madame Bovary",
+  "author": "Gustave Flaubert",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1857,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/madame-bovary-standard--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "Madame Bovary",
+  "author": "Gustave Flaubert",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1857,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/madame-bovary-standard--1.epub",
+  "defects": [
+   "meta_no_author",
+   "manifest_missing_file",
+   "meta_no_modified"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Madame Bovary",
+  "author": "Gustave Flaubert",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1857,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/madame-bovary-standard--2.epub",
+  "defects": [
+   "mimetype_missing",
+   "meta_no_modified",
+   "media_type_wrong"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "metadata"
+  ],
+  "title": "Madame Bovary",
+  "author": "Gustave Flaubert",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1857,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/madame-bovary-standard--3.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Madame Bovary",
+  "author": "Gustave Flaubert",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1857,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/les-mis-rables-indie.epub",
+  "defects": [],
+  "title": "Les Misérables",
+  "author": "Victor Hugo",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785732826555",
+  "year": 1862,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-mis-rables-indie--0.epub",
+  "defects": [
+   "meta_filename_title"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "Les Misérables",
+  "author": "Victor Hugo",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785732826555",
+  "year": 1862,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-mis-rables-indie--1.epub",
+  "defects": [
+   "mimetype_trailing_newline",
+   "meta_no_modified",
+   "font_corrupt"
+  ],
+  "categories": [
+   "container",
+   "font",
+   "metadata"
+  ],
+  "title": "Les Misérables",
+  "author": "Victor Hugo",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785732826555",
+  "year": 1862,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-mis-rables-indie--2.epub",
+  "defects": [
+   "media_type_wrong",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "manifest",
+   "metadata"
+  ],
+  "title": "Les Misérables",
+  "author": "Victor Hugo",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785732826555",
+  "year": 1862,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-mis-rables-indie--3.epub",
+  "defects": [
+   "mimetype_not_first",
+   "meta_no_title"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "Les Misérables",
+  "author": "Victor Hugo",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": "9785732826555",
+  "year": 1862,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/le-comte-de-monte-cristo-gutenberg.epub",
+  "defects": [],
+  "title": "Le Comte de Monte-Cristo",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1844,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/le-comte-de-monte-cristo-gutenberg--0.epub",
+  "defects": [
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Le Comte de Monte-Cristo",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1844,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/le-comte-de-monte-cristo-gutenberg--1.epub",
+  "defects": [
+   "cover_undeclared",
+   "meta_no_author"
+  ],
+  "categories": [
+   "cover",
+   "metadata"
+  ],
+  "title": "Le Comte de Monte-Cristo",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1844,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/le-comte-de-monte-cristo-gutenberg--2.epub",
+  "defects": [
+   "xhtml_tag_soup",
+   "media_type_wrong",
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container",
+   "manifest",
+   "xhtml"
+  ],
+  "title": "Le Comte de Monte-Cristo",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1844,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/le-comte-de-monte-cristo-gutenberg--3.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "Le Comte de Monte-Cristo",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1844,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/les-trois-mousquetaires-standard.epub",
+  "defects": [],
+  "title": "Les Trois Mousquetaires",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1844,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-trois-mousquetaires-standard--0.epub",
+  "defects": [
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container"
+  ],
+  "title": "Les Trois Mousquetaires",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1844,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-trois-mousquetaires-standard--1.epub",
+  "defects": [
+   "manifest_missing_file",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "manifest",
+   "toc"
+  ],
+  "title": "Les Trois Mousquetaires",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1844,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-trois-mousquetaires-standard--2.epub",
+  "defects": [
+   "font_corrupt",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "font",
+   "xhtml"
+  ],
+  "title": "Les Trois Mousquetaires",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1844,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/les-trois-mousquetaires-standard--3.epub",
+  "defects": [
+   "mimetype_missing",
+   "toc_nav_missing",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "container",
+   "toc",
+   "xhtml"
+  ],
+  "title": "Les Trois Mousquetaires",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 1,
+  "isbn": null,
+  "year": 1844,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/vingt-ans-apr-s-indie.epub",
+  "defects": [],
+  "title": "Vingt ans après",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 2,
+  "isbn": "9780588326280",
+  "year": 1845,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/vingt-ans-apr-s-indie--0.epub",
+  "defects": [
+   "spine_bad_idref"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Vingt ans après",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 2,
+  "isbn": "9780588326280",
+  "year": 1845,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/vingt-ans-apr-s-indie--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "meta_uid_mismatch",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "metadata"
+  ],
+  "title": "Vingt ans après",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 2,
+  "isbn": "9780588326280",
+  "year": 1845,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/vingt-ans-apr-s-indie--2.epub",
+  "defects": [
+   "container_wrong_path",
+   "meta_no_modified",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Vingt ans après",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 2,
+  "isbn": "9780588326280",
+  "year": 1845,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/vingt-ans-apr-s-indie--3.epub",
+  "defects": [
+   "toc_nav_missing",
+   "container_missing"
+  ],
+  "categories": [
+   "container",
+   "toc"
+  ],
+  "title": "Vingt ans après",
+  "author": "Alexandre Dumas",
+  "language": "fr",
+  "series": "d'Artagnan Romances",
+  "series_index": 2,
+  "isbn": "9780588326280",
+  "year": 1845,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/don-quijote-de-la-mancha-gutenberg.epub",
+  "defects": [],
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes Saavedra",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1605,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/don-quijote-de-la-mancha-gutenberg--0.epub",
+  "defects": [
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "xhtml"
+  ],
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes Saavedra",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1605,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/don-quijote-de-la-mancha-gutenberg--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "media_type_wrong",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "cover",
+   "manifest"
+  ],
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes Saavedra",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1605,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/don-quijote-de-la-mancha-gutenberg--2.epub",
+  "defects": [
+   "cover_undeclared",
+   "font_corrupt",
+   "mimetype_trailing_newline"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "font"
+  ],
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes Saavedra",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1605,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/don-quijote-de-la-mancha-gutenberg--3.epub",
+  "defects": [
+   "meta_no_title",
+   "xhtml_html_entities",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Don Quijote de la Mancha",
+  "author": "Miguel de Cervantes Saavedra",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1605,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "heldout"
+ },
+ {
+  "file": "clean/la-regenta-standard.epub",
+  "defects": [],
+  "title": "La Regenta",
+  "author": "Leopoldo Alas",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1884,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/la-regenta-standard--0.epub",
+  "defects": [
+   "meta_filename_title"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "La Regenta",
+  "author": "Leopoldo Alas",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1884,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/la-regenta-standard--1.epub",
+  "defects": [
+   "xhtml_unclosed_tags",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "La Regenta",
+  "author": "Leopoldo Alas",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1884,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/la-regenta-standard--2.epub",
+  "defects": [
+   "meta_uid_mismatch",
+   "manifest_unlisted_file",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "La Regenta",
+  "author": "Leopoldo Alas",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1884,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/la-regenta-standard--3.epub",
+  "defects": [
+   "meta_no_author",
+   "meta_unknown_author",
+   "xhtml_tag_soup"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "La Regenta",
+  "author": "Leopoldo Alas",
+  "language": "es",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1884,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/i-promessi-sposi-indie.epub",
+  "defects": [],
+  "title": "I promessi sposi",
+  "author": "Alessandro Manzoni",
+  "language": "it",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788463529436",
+  "year": 1827,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/i-promessi-sposi-indie--0.epub",
+  "defects": [
+   "meta_no_title"
+  ],
+  "categories": [
+   "metadata"
+  ],
+  "title": "I promessi sposi",
+  "author": "Alessandro Manzoni",
+  "language": "it",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788463529436",
+  "year": 1827,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/i-promessi-sposi-indie--1.epub",
+  "defects": [
+   "cover_undeclared",
+   "toc_nav_missing",
+   "mimetype_compressed"
+  ],
+  "categories": [
+   "container",
+   "cover",
+   "toc"
+  ],
+  "title": "I promessi sposi",
+  "author": "Alessandro Manzoni",
+  "language": "it",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788463529436",
+  "year": 1827,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/i-promessi-sposi-indie--2.epub",
+  "defects": [
+   "meta_no_author",
+   "mimetype_not_first"
+  ],
+  "categories": [
+   "container",
+   "metadata"
+  ],
+  "title": "I promessi sposi",
+  "author": "Alessandro Manzoni",
+  "language": "it",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788463529436",
+  "year": 1827,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/i-promessi-sposi-indie--3.epub",
+  "defects": [
+   "xhtml_html_entities",
+   "manifest_missing_file"
+  ],
+  "categories": [
+   "manifest",
+   "xhtml"
+  ],
+  "title": "I promessi sposi",
+  "author": "Alessandro Manzoni",
+  "language": "it",
+  "series": null,
+  "series_index": null,
+  "isbn": "9788463529436",
+  "year": 1827,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/max-havelaar-gutenberg.epub",
+  "defects": [],
+  "title": "Max Havelaar",
+  "author": "Multatuli",
+  "language": "nl",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1860,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/max-havelaar-gutenberg--0.epub",
+  "defects": [
+   "manifest_unlisted_file"
+  ],
+  "categories": [
+   "manifest"
+  ],
+  "title": "Max Havelaar",
+  "author": "Multatuli",
+  "language": "nl",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1860,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/max-havelaar-gutenberg--1.epub",
+  "defects": [
+   "meta_filename_title",
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "Max Havelaar",
+  "author": "Multatuli",
+  "language": "nl",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1860,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/max-havelaar-gutenberg--2.epub",
+  "defects": [
+   "meta_no_author",
+   "meta_no_title",
+   "encoding_cp1252"
+  ],
+  "categories": [
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Max Havelaar",
+  "author": "Multatuli",
+  "language": "nl",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1860,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/max-havelaar-gutenberg--3.epub",
+  "defects": [
+   "xhtml_unclosed_tags",
+   "container_missing"
+  ],
+  "categories": [
+   "container",
+   "xhtml"
+  ],
+  "title": "Max Havelaar",
+  "author": "Multatuli",
+  "language": "nl",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1860,
+  "style": "gutenberg",
+  "epub_version": "2.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/pan-standard.epub",
+  "defects": [],
+  "title": "Pan",
+  "author": "Knut Hamsun",
+  "language": "nb",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1894,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pan-standard--0.epub",
+  "defects": [
+   "cover_wrong_id"
+  ],
+  "categories": [
+   "cover"
+  ],
+  "title": "Pan",
+  "author": "Knut Hamsun",
+  "language": "nb",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1894,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pan-standard--1.epub",
+  "defects": [
+   "cover_wrong_id",
+   "mimetype_missing"
+  ],
+  "categories": [
+   "container",
+   "cover"
+  ],
+  "title": "Pan",
+  "author": "Knut Hamsun",
+  "language": "nb",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1894,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pan-standard--2.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "meta_no_modified",
+   "meta_uid_mismatch"
+  ],
+  "categories": [
+   "metadata",
+   "toc"
+  ],
+  "title": "Pan",
+  "author": "Knut Hamsun",
+  "language": "nb",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1894,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "broken/pan-standard--3.epub",
+  "defects": [
+   "container_wrong_path",
+   "href_spaces"
+  ],
+  "categories": [
+   "container",
+   "manifest"
+  ],
+  "title": "Pan",
+  "author": "Knut Hamsun",
+  "language": "nb",
+  "series": null,
+  "series_index": null,
+  "isbn": null,
+  "year": 1894,
+  "style": "standard",
+  "epub_version": "3.0",
+  "split": "tuning"
+ },
+ {
+  "file": "clean/dead-souls-indie.epub",
+  "defects": [],
+  "title": "Dead Souls",
+  "author": "Nikolai Gogol",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786708983005",
+  "year": 1842,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/dead-souls-indie--0.epub",
+  "defects": [
+   "toc_ncx_broken"
+  ],
+  "categories": [
+   "toc"
+  ],
+  "title": "Dead Souls",
+  "author": "Nikolai Gogol",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786708983005",
+  "year": 1842,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/dead-souls-indie--1.epub",
+  "defects": [
+   "toc_ncx_broken",
+   "xhtml_html_entities"
+  ],
+  "categories": [
+   "toc",
+   "xhtml"
+  ],
+  "title": "Dead Souls",
+  "author": "Nikolai Gogol",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786708983005",
+  "year": 1842,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/dead-souls-indie--2.epub",
+  "defects": [
+   "container_wrong_path",
+   "toc_nav_missing"
+  ],
+  "categories": [
+   "container",
+   "toc"
+  ],
+  "title": "Dead Souls",
+  "author": "Nikolai Gogol",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786708983005",
+  "year": 1842,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "broken/dead-souls-indie--3.epub",
+  "defects": [
+   "media_type_wrong",
+   "meta_no_title",
+   "duplicate_ids"
+  ],
+  "categories": [
+   "manifest",
+   "metadata",
+   "xhtml"
+  ],
+  "title": "Dead Souls",
+  "author": "Nikolai Gogol",
+  "language": "en",
+  "series": null,
+  "series_index": null,
+  "isbn": "9786708983005",
+  "year": 1842,
+  "style": "indie",
+  "epub_version": "3.0",
+  "split": "heldout"
+ },
+ {
+  "file": "real/quick_start-deu.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/quick_start-tur.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/quick_start-eng.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/quick_start-swe.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/quick_start-ita.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/quick_start-fra.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/samples-invalid.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ },
+ {
+  "file": "real/samples-childrens-literature.epub",
+  "defects": null,
+  "style": "real",
+  "split": "real"
+ }
+]

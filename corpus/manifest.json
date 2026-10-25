@@ -5909,42 +5909,6 @@
   "split": "heldout"
  },
  {
-  "file": "real/quick_start-deu.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
-  "file": "real/quick_start-tur.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
-  "file": "real/quick_start-eng.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
-  "file": "real/quick_start-swe.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
-  "file": "real/quick_start-ita.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
-  "file": "real/quick_start-fra.epub",
-  "defects": null,
-  "style": "real",
-  "split": "real"
- },
- {
   "file": "real/samples-invalid.epub",
   "defects": null,
   "style": "real",

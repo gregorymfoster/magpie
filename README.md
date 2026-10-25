@@ -6,7 +6,7 @@ Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that c
 
 Magpie never touches DRM. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
 
-> **Status:** early. The fixers and the test bench exist; the app does not yet. Follow along, or help.
+> **Status:** early. The core, CLI and window work; the signed Mac app is on its way. Follow along, or help.
 
 ## What it fixes today
 
@@ -25,8 +25,12 @@ Try it:
 
 ```sh
 npm install
-npm run fix -- my-book.epub          # writes my-book.fixed.epub and prints what changed
+node cli/src/main.ts fix my-book.epub        # writes my-book.fixed.epub and prints what changed
+node cli/src/main.ts import ~/Downloads      # brings every EPUB into ~/Books/Magpie
+just dev                                     # the window, in a browser, against a real Library
 ```
+
+Working on Magpie? Read [CLAUDE.md](CLAUDE.md) (it's for people too), then run `just check`.
 
 ## How we know it works
 

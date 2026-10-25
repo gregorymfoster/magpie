@@ -1,0 +1,101 @@
+// The Node host: the Host interface over node:fs and node:sqlite. Runs the
+// CLI, the bench, every test and `magpie serve`, in the cloud with no Mac.
+//
+// Test switches, all optional:
+//   MAGPIE_HOME      stands in for ~ (config, ~/Books/Magpie, ~/Calibre Library)
+//   MAGPIE_VOLUMES   stands in for /Volumes, so a test can plug in a fake Kobo
+//   MAGPIE_OPENED    a file that `open` appends paths to instead of launching apps
+
+import { appendFile, copyFile, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { spawn } from "node:child_process";
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
+import type { Db, Host, SqlValue } from "@magpie/core";
+
+const VERSION = "0.1.0";
+
+export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
+  const home = env.MAGPIE_HOME ?? homedir();
+  return {
+    fs: {
+      read: async (p) => new Uint8Array(await readFile(p)),
+      async write(p, data) {
+        await mkdir(dirname(p), { recursive: true });
+        const tmp = `${p}.magpie-${process.pid}-${Math.random().toString(36).slice(2)}`;
+        await writeFile(tmp, data);
+        await rename(tmp, p);
+      },
+      async copy(from, to) {
+        await mkdir(dirname(to), { recursive: true });
+        await copyFile(from, to);
+      },
+      exists: async (p) => existsSync(p),
+      async list(dir) {
+        try {
+          return (await readdir(dir, { withFileTypes: true })).map((d) => ({ name: d.name, dir: d.isDirectory() }));
+        } catch {
+          return [];
+        }
+      },
+      mkdir: async (p) => void (await mkdir(p, { recursive: true })),
+      remove: (p) => rm(p, { recursive: true, force: true }),
+      async move(from, to) {
+        await mkdir(dirname(to), { recursive: true });
+        await rename(from, to);
+      },
+      async free(p) {
+        try {
+          let at = p;
+          while (!existsSync(at)) at = dirname(at);
+          const s = await statfs(at);
+          return s.bavail * s.bsize;
+        } catch {
+          return null;
+        }
+      },
+    },
+    sqlite: {
+      async open(path, opts) {
+        if (!opts?.readonly) await mkdir(dirname(path), { recursive: true });
+        return sqliteDb(new DatabaseSync(path, { readOnly: !!opts?.readonly }));
+      },
+    },
+    async open(path) {
+      if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, path + "\n");
+      const cmd = process.platform === "darwin" ? "open" : "xdg-open";
+      spawn(cmd, [path], { detached: true, stdio: "ignore" }).unref();
+    },
+    env: {
+      home,
+      config: env.MAGPIE_CONFIG ?? join(home, process.platform === "darwin" ? "Library/Application Support/Magpie" : ".config/magpie"),
+      temp: join(tmpdir(), "magpie"),
+      volumes: env.MAGPIE_VOLUMES ?? "/Volumes",
+      version: VERSION,
+    },
+  };
+}
+
+function sqliteDb(db: DatabaseSync): Db {
+  const bind = (params: SqlValue[] = []) => params as SQLInputValue[];
+  return {
+    all: async <T>(sql: string, params?: SqlValue[]) => db.prepare(sql).all(...bind(params)) as T[],
+    async run(sql, params) {
+      const r = db.prepare(sql).run(...bind(params));
+      return { changes: Number(r.changes), lastId: Number(r.lastInsertRowid) };
+    },
+    async batch(statements) {
+      db.exec("BEGIN");
+      try {
+        for (const s of statements) db.prepare(s.sql).run(...bind(s.params));
+        db.exec("COMMIT");
+      } catch (e) {
+        db.exec("ROLLBACK");
+        throw e;
+      }
+    },
+    exec: async (sql) => db.exec(sql),
+    close: async () => db.close(),
+  };
+}

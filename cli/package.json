@@ -1,0 +1,18 @@
+{
+  "name": "@magpie/cli",
+  "version": "0.1.0",
+  "description": "Magpie on the command line, and the Node host behind tests, the bench and `magpie serve`.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "magpie": "./src/main.ts"
+  },
+  "exports": {
+    "./node-host": "./src/node-host.ts",
+    "./serve": "./src/serve.ts"
+  },
+  "dependencies": {
+    "@magpie/core": "*"
+  }
+}

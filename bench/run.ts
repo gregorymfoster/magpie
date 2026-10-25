@@ -9,8 +9,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { fixEpub } from "../src/index.ts";
-import { Book, textOf, decodeUtf8 } from "../src/epub.ts";
+import { fixAndAccept } from "../core/src/fix.ts";
+import { Book, textOf, decodeUtf8 } from "../core/src/epub.ts";
 
 const ROOT = join(import.meta.dirname, "..");
 const CORPUS = join(ROOT, "corpus");
@@ -50,9 +50,14 @@ for (const r of rows) {
   mkdirSync(dirname(dst), { recursive: true });
   const t = performance.now();
   try {
-    const res = fixEpub(readFileSync(join(CORPUS, "files", r.file)));
+    const res = fixAndAccept(readFileSync(join(CORPUS, "files", r.file)));
     writeFileSync(dst, res.bytes);
-    runs.set(r.file, { ok: true, ms: performance.now() - t, changes: res.changes.length, error: res.errors.map((e) => `${e.fixer}: ${e.error}`).join("; ") || undefined });
+    runs.set(r.file, {
+      ok: true,
+      ms: performance.now() - t,
+      changes: res.report.changes.length,
+      error: res.report.errors.map((e) => `${e.fixer}: ${e.error}`).join("; ") || undefined,
+    });
   } catch (e) {
     runs.set(r.file, { ok: false, ms: performance.now() - t, changes: 0, error: String(e) });
   }
@@ -80,8 +85,19 @@ const systems: Record<string, { path: (f: string) => string; checks: Map<string,
 for (const v of ["calibre", "calibre-v3"]) {
   const runsFile = join(CORPUS, "baseline", `${v}-runs.jsonl`);
   if (!existsSync(runsFile)) continue;
-  const ok = new Set(readFileSync(runsFile, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((r) => r.ok).map((r) => r.file));
-  systems[v] = { path: (f) => join(CORPUS, "baseline", v, f), checks: readChecks(readFileSync(join(CORPUS, "baseline", `${v}.jsonl`), "utf8")), ran: (f) => ok.has(f) };
+  const ok = new Set(
+    readFileSync(runsFile, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((l) => JSON.parse(l))
+      .filter((r) => r.ok)
+      .map((r) => r.file),
+  );
+  systems[v] = {
+    path: (f) => join(CORPUS, "baseline", v, f),
+    checks: readChecks(readFileSync(join(CORPUS, "baseline", `${v}.jsonl`), "utf8")),
+    ran: (f) => ok.has(f),
+  };
 }
 systems.magpie = { path: (f) => join(OUT, "magpie", f), checks: magpieChecks, ran: (f) => runs.get(f)!.ok };
 
@@ -103,7 +119,7 @@ function inspect(bytes: Uint8Array): Inspect | null {
     const metaItem = coverMeta ? opf.itemById(coverMeta.getAttribute("content") ?? "") : undefined;
     const propItem = opf.items().find((i) => /\bcover-image\b/.test(i.getAttribute("properties") ?? ""));
     // Kindle reads the meta tag; an EPUB 3 file also needs the property for other readers.
-    const item = opf.epub3 ? (metaItem && propItem === metaItem ? metaItem : metaItem ?? undefined) : metaItem;
+    const item = opf.epub3 ? (metaItem && propItem === metaItem ? metaItem : (metaItem ?? undefined)) : metaItem;
     const declared = !!item && /^image\//.test(item.getAttribute("media-type") ?? "") && book.has(opf.itemPath(item));
     const headings: string[] = [];
     for (const ref of opf.itemrefs()) {
@@ -123,7 +139,13 @@ function inspect(bytes: Uint8Array): Inspect | null {
   }
 }
 
-const norm = (s = "") => s.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const norm = (s = "") =>
+  s
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 const cleanTwin = (r: Row) => rows.find((x) => x.split !== "real" && !x.defects?.length && x.title === r.title && x.style === r.style);
 const twinInfo = new Map<string, Inspect>();
 for (const r of rows) if (r.defects && !r.defects.length) twinInfo.set(r.file, inspect(readFileSync(join(CORPUS, "files", r.file)))!);
@@ -142,7 +164,17 @@ interface Verdict {
 
 function judge(sys: string, r: Row): Verdict {
   const s = systems[sys];
-  const fail: Verdict = { ran: false, strict: false, kindle: false, cover: false, metadata: false, content: false, ready: false, fixed: false, errorIds: ["NO-OUTPUT"] };
+  const fail: Verdict = {
+    ran: false,
+    strict: false,
+    kindle: false,
+    cover: false,
+    metadata: false,
+    content: false,
+    ready: false,
+    fixed: false,
+    errorIds: ["NO-OUTPUT"],
+  };
   if (!s.ran(r.file)) return fail;
   const checks = s.checks.get(s.path(r.file));
   if (!checks || checks === "crash") return { ...fail, ran: true, errorIds: ["EPUBCHECK-CRASH"] };
@@ -186,9 +218,19 @@ const broken = rows.filter((r) => r.defects?.length);
 const clean = rows.filter((r) => r.defects && !r.defects.length);
 const real = rows.filter((r) => r.split === "real");
 const allKeys: (keyof Verdict)[] = ["fixed", "ready", "strict", "kindle", "cover", "metadata", "content"];
-lines.push(`# Magpie bench\n\nGenerated ${new Date().toISOString()}. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, and every chapter in order. "fixed" is ready plus zero EPUBCheck errors.`);
-table("Broken files, held-out books (the number that counts)", broken.filter((r) => r.split === "heldout"), allKeys);
-table("Broken files, tuning books", broken.filter((r) => r.split === "tuning"), allKeys);
+lines.push(
+  `# Magpie bench\n\nGenerated ${new Date().toISOString()}. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, and every chapter in order. "fixed" is ready plus zero EPUBCheck errors.`,
+);
+table(
+  "Broken files, held-out books (the number that counts)",
+  broken.filter((r) => r.split === "heldout"),
+  allKeys,
+);
+table(
+  "Broken files, tuning books",
+  broken.filter((r) => r.split === "tuning"),
+  allKeys,
+);
 table("Clean files (should stay clean: anything below 100% is a regression)", clean, allKeys);
 table("Real-world files (no ground truth; EPUBCheck only)", real, ["strict", "kindle"]);
 
@@ -201,7 +243,9 @@ for (const d of [...new Set(single.map((r) => r.defects![0]))].sort()) {
 }
 
 const crashes = [...runs].filter(([, v]) => !v.ok || v.error);
-lines.push(`\n### Magpie runtime\n\nMedian ${median([...runs.values()].map((v) => v.ms)).toFixed(0)} ms per book. ${crashes.length} crash(es)${crashes.length ? ":\n" + crashes.map(([f, v]) => `- ${f}: ${v.error}`).join("\n") : "."}`);
+lines.push(
+  `\n### Magpie runtime\n\nMedian ${median([...runs.values()].map((v) => v.ms)).toFixed(0)} ms per book. ${crashes.length} crash(es)${crashes.length ? ":\n" + crashes.map(([f, v]) => `- ${f}: ${v.error}`).join("\n") : "."}`,
+);
 
 const unfixed = broken.filter((r) => !verdicts[r.file].magpie.fixed);
 lines.push(`\n### Magpie misses (${unfixed.length})\n`);
@@ -216,8 +260,18 @@ function median(a: number[]) {
   return s[Math.floor(s.length / 2)] ?? 0;
 }
 
-mkdirSync(RESULTS, { recursive: true });
-writeFileSync(join(RESULTS, "summary.md"), lines.join("\n") + "\n");
-writeFileSync(join(RESULTS, "verdicts.json"), JSON.stringify(verdicts, null, 1));
+// Committed results always carry the Calibre comparison; without Calibre
+// installed, results go to bench/out so the committed ones stay intact.
+const dest = systems.calibre ? RESULTS : OUT;
+mkdirSync(dest, { recursive: true });
+writeFileSync(join(dest, "summary.md"), lines.join("\n") + "\n");
+writeFileSync(join(dest, "verdicts.json"), JSON.stringify(verdicts, null, 1));
 console.log(lines.join("\n"));
 
+// The gate: every broken file fixed, every clean file left clean, nothing crashed.
+const regressions = [...unfixed, ...clean.filter((r) => !verdicts[r.file].magpie.fixed)];
+if (regressions.length || crashes.length) {
+  console.error(`\nbench FAILED: ${regressions.length} not fixed, ${crashes.length} crashed`);
+  process.exit(1);
+}
+console.error(`\nbench ok: wrote ${join(dest, "summary.md")}`);

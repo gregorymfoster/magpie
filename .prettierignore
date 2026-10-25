@@ -1,0 +1,9 @@
+node_modules
+corpus/files
+corpus/baseline
+bench/out
+bench/results
+*.md
+app/src-tauri/target
+ui/dist
+site

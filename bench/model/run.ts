@@ -10,8 +10,8 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { Book } from "../../src/epub.ts";
-import { frontMatter, guessTitle, guessAuthor } from "../../src/fixers/metadata.ts";
+import { Book } from "../../core/src/epub.ts";
+import { frontMatter, guessTitle, guessAuthor } from "../../core/src/identify/rules.ts";
 
 const { values: args } = parseArgs({
   options: {
@@ -24,7 +24,11 @@ const { values: args } = parseArgs({
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const rows = JSON.parse(readFileSync(join(ROOT, "corpus", "manifest.json"), "utf8")) as {
-  file: string; title: string; author: string; split: string; defects: string[] | null;
+  file: string;
+  title: string;
+  author: string;
+  split: string;
+  defects: string[] | null;
 }[];
 // One file per book: the clean copy, but with the OPF's title and author ignored, so only the pages count.
 const sample = rows.filter((r) => r.defects && !r.defects.length && (args.split === "all" || r.split === args.split)).slice(0, Number(args.n));
@@ -33,7 +37,13 @@ export const PROMPT = `You are a librarian. Below are the first pages of an eboo
 Reply with JSON only: {"title": string|null, "author": string|null, "series": string|null, "series_index": number|null, "language": string|null, "isbn": string|null}.
 Use null for anything the pages don't state. Do not guess from memory.`;
 
-const norm = (s?: string | null) => (s ?? "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const norm = (s?: string | null) =>
+  (s ?? "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
 async function ask(pagesText: string): Promise<{ title?: string; author?: string } | null> {
   const res = await fetch(`${args.url}/chat/completions`, {
@@ -43,7 +53,10 @@ async function ask(pagesText: string): Promise<{ title?: string; author?: string
       model: args.model,
       temperature: 0,
       response_format: { type: "json_object" },
-      messages: [{ role: "system", content: PROMPT }, { role: "user", content: pagesText.slice(0, 6000) }],
+      messages: [
+        { role: "system", content: PROMPT },
+        { role: "user", content: pagesText.slice(0, 6000) },
+      ],
     }),
   });
   if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
@@ -72,10 +85,16 @@ for (const r of sample) {
   }
   const ms = performance.now() - t0;
   if (!out) model.invalid++;
-  const mt = norm(out?.title) === norm(r.title), ma = norm(out?.author) === norm(r.author);
-  model.title += +mt; model.author += +ma; model.both += +(mt && ma);
-  const rt = norm(guessTitle(book, opf, pages)?.value) === norm(r.title), ra = norm(guessAuthor(pages)?.value) === norm(r.author);
-  rules.title += +rt; rules.author += +ra; rules.both += +(rt && ra);
+  const mt = norm(out?.title) === norm(r.title),
+    ma = norm(out?.author) === norm(r.author);
+  model.title += +mt;
+  model.author += +ma;
+  model.both += +(mt && ma);
+  const rt = norm(guessTitle(book, opf, pages)?.value) === norm(r.title),
+    ra = norm(guessAuthor(pages)?.value) === norm(r.author);
+  rules.title += +rt;
+  rules.author += +ra;
+  rules.both += +(rt && ra);
   details.push({ file: r.file, truth: { title: r.title, author: r.author }, model: out, ms: Math.round(ms) });
   process.stdout.write(mt && ma ? "." : "x");
 }

@@ -16,7 +16,7 @@ line or use Calibre's own build.
 A Calibre crash or timeout is recorded as such, and the scorer counts it as a
 failure rather than skipping it.
 """
-import json, os, subprocess, sys, time
+import json, os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -50,6 +50,9 @@ def main():
     rels = [r["file"] for r in rows]
     OUT.mkdir(exist_ok=True)
     epubcheck([FILES / r for r in rels], OUT / "original.jsonl")
+    if not shutil.which("ebook-convert"):
+        print("ebook-convert not found: scoring originals only, no Calibre columns", file=sys.stderr)
+        return
     for variant, extra in [("calibre", ()), ("calibre-v3", ("--epub-version", "3"))]:
         with ThreadPoolExecutor(os.cpu_count()) as ex:
             runs = list(ex.map(lambda r: convert(r, variant, extra), rels))

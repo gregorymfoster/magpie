@@ -5,3 +5,6 @@ bench/out/
 tools/epubcheck-batch/*.class
 *.fixed.epub
 .DS_Store
+ui/shots/
+ui/dist/
+test-results/

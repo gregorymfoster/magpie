@@ -1,28 +1,16 @@
 {
-  "name": "magpie",
-  "version": "0.0.1",
-  "description": "Fix the ebook library you already have. A desktop app; nothing is uploaded.",
+  "name": "magpie-monorepo",
+  "version": "0.1.0",
+  "description": "A calm, beautiful ebook manager for the Mac. Fixes the books you already have. Nothing is uploaded.",
   "license": "MIT",
   "type": "module",
   "private": true,
-  "scripts": {
-    "build": "tsc -p .",
-    "test": "node --test --experimental-strip-types test/*.test.ts",
-    "corpus": "python3 corpus/generate.py",
-    "baseline": "python3 corpus/baseline.py",
-    "bench": "node --experimental-strip-types bench/run.ts",
-    "fix": "node --experimental-strip-types src/cli.ts"
-  },
+  "workspaces": ["core", "cli", "ui", "app"],
   "engines": {
-    "node": ">=22.6"
-  },
-  "dependencies": {
-    "@xmldom/xmldom": "^0.9.12",
-    "fflate": "^0.8.3",
-    "parse5": "^8.0.1",
-    "saxes": "^6.0.0"
+    "node": ">=22.18"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/node": "^26.6.5",
     "typescript": "^7.0.2"
   }

@@ -1,7 +1,7 @@
 {
   "name": "magpie",
   "version": "0.0.1",
-  "description": "Fix the ebook library you already have. Runs in your browser; nothing is uploaded.",
+  "description": "Fix the ebook library you already have. A desktop app; nothing is uploaded.",
   "license": "MIT",
   "type": "module",
   "private": true,

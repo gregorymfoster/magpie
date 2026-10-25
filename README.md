@@ -2,11 +2,11 @@
 
 Fix the ebook library you already have.
 
-Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It runs entirely on your machine (in the browser tab, eventually), so your books never leave it. No account, no upload, no subscription.
+Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs entirely on your machine, so your books never leave it. No account, no upload, no subscription.
 
 Magpie never touches DRM. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
 
-> **Status:** early. The fixers and the test bench exist; the website does not yet. Follow along, or help.
+> **Status:** early. The fixers and the test bench exist; the app does not yet. Follow along, or help.
 
 ## What it fixes today
 
@@ -75,9 +75,9 @@ node --experimental-strip-types bench/model/run.ts --model qwen2.5:1.5b --n 50
 ## Roadmap
 
 1. **The oracle** (now): corpus, baseline, first fixers. Next: real-world files and the Send to Kindle log.
-2. **The fixer website**: one page, drop an EPUB, get a diagnosis and a fixed file. KEPUB for Kobo. A small WebGPU model for metadata the rules can't read.
-3. **Library mode**: point it at a folder or a Calibre library. Duplicates, series, bulk fixes.
-4. **The Mac app**: the same code in Tauri, plus PDF reflow and folder watching.
+2. **The fixer**: a desktop app (Tauri, Mac first). Drop an EPUB, get a diagnosis and a fixed file. KEPUB for Kobo. A small local model for metadata the rules can't read.
+3. **Library mode**: point it at a folder or a Calibre library. Duplicates, series, bulk fixes, folder watching.
+4. **Heavy jobs**: PDF reflow with a bigger local model, overnight batches.
 
 ## License
 

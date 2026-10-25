@@ -5,7 +5,7 @@
 //   node --experimental-strip-types bench/model/run.ts [--model qwen2.5:1.5b] [--url http://localhost:11434/v1] [--n 50] [--split heldout]
 //
 // Talks to any OpenAI-compatible endpoint: Ollama (default), LM Studio, llama.cpp
-// server, MLX. The browser (WebGPU) version will reuse the prompt and scorer.
+// server, MLX. The desktop app's bundled model will reuse the prompt and scorer.
 
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";

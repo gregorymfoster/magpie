@@ -260,6 +260,10 @@ const commands = {
     return ctx.queue().enqueue("calibre", `Bringing in ${items.length} books from Calibre`, items);
   },
 
+  async "jobs.get"(ctx: Context, a: { id: number }) {
+    return ctx.queue().get(a.id);
+  },
+
   async "jobs.cancel"(ctx: Context, a: { id: number }) {
     await ctx.queue().cancel(a.id);
   },

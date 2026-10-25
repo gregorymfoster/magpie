@@ -3,7 +3,8 @@
 
 import { useMemo, useState } from "react";
 import { BookOpen, Check, Info, Lock } from "lucide-react";
-import type { BookDetail, InfoPatch, Suggestion } from "@magpie/core";
+import type { BookDetail, Suggestion } from "@magpie/core";
+import { patchFor } from "@magpie/core/suggestions";
 import { useAction, useCall } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { Cover } from "../components/Cover.tsx";
@@ -42,7 +43,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const p = picks[d.id] ?? sugg.map((s) => s.confidence >= 0.8);
   const decide = (b: BookDetail, ticks: boolean[]) => ({
     id: b.id,
-    accept: patch(b.report.suggestions.filter((_, j) => ticks[j])),
+    accept: patchFor(b.report.suggestions.filter((_, j) => ticks[j])),
     dismiss: b.report.suggestions.filter((_, j) => !ticks[j]).map((s) => s.field),
   });
   const apply = async (decisions: ReturnType<typeof decide>[], label: string) => {
@@ -155,13 +156,4 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
       </div>
     </Sheet>
   );
-}
-
-function patch(accepted: Suggestion[]): InfoPatch {
-  const out: InfoPatch = {};
-  for (const s of accepted) {
-    if (s.field === "authors") out.authors = s.value.split(/\s+(?:&|and)\s+/);
-    else out.title = s.value;
-  }
-  return out;
 }

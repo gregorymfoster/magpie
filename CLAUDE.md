@@ -17,7 +17,7 @@ Faster loops while you work:
 
 ```
 core/   the whole app as a library: fixers, Library, jobs, Calibre, Kindle, Kobo
-cli/    Node host, `magpie` CLI, `magpie serve` (HTTP for the UI), `magpie mcp`
+cli/    Node host, `magpie` CLI, `magpie serve` (HTTP for the UI), `magpie mcp` (docs/ai.md)
 ui/     React window. Talks to the core only through ui/src/transport
 app/    Tauri shell: Rust host functions, menus, updater. Thin on purpose
 bench/  fixer scoring; corpus/ builds the corpus

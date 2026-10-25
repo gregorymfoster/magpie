@@ -6,7 +6,8 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./suggestions": "./src/suggestions.ts"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",

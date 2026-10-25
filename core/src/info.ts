@@ -20,6 +20,8 @@ export interface BookInfo {
 
 /** Fields a person can review or edit. */
 export type InfoField = "title" | "authors" | "series" | "seriesIndex" | "publisher" | "year" | "language" | "description" | "isbn";
+export { patchFor } from "./suggestions.ts";
+
 export type InfoPatch = Partial<BookInfo>;
 
 export interface Suggestion {

@@ -8,6 +8,7 @@ import { resolve } from "node:path";
 import { createCore, fix, fixAndAccept, newPlan, Book, COMMANDS, type Core } from "@magpie/core";
 import { nodeHost } from "./node-host.ts";
 import { serve } from "./serve.ts";
+import { mcp } from "./mcp.ts";
 
 const USAGE = `magpie: fix and manage ebooks
 
@@ -19,7 +20,10 @@ const USAGE = `magpie: fix and manage ebooks
   magpie call <command> ['<json args>'] [--library <dir>]
       Run any core command and print its JSON result. \`magpie commands\` lists them.
   magpie serve [--port 4319] [--library <dir>] [--ui <dist dir>]
-      The core over HTTP, for the UI in a browser and for Playwright.`;
+      The core over HTTP, for the UI in a browser and for Playwright.
+  magpie mcp [--library <dir>]
+      Your Library for Claude and other AI tools, as an MCP server on stdio.
+      Setup: docs/ai.md`;
 
 const argv = process.argv.slice(2);
 const flag = (name: string) => {
@@ -89,6 +93,16 @@ async function main() {
         return result;
       });
       console.log(JSON.stringify(out, null, 2));
+      return;
+    }
+    case "mcp": {
+      const library = flag("library");
+      const host = nodeHost();
+      const core = createCore(host);
+      if (library) await core.call("library.use", { path: resolve(library) });
+      await mcp(core, host.env.version);
+      await core.idle();
+      await core.close();
       return;
     }
     case "commands":

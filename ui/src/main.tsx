@@ -11,6 +11,8 @@ import "./styles.css";
 
 const transport = await connect();
 const queries = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, refetchOnWindowFocus: false, retry: false } } });
+// Another process (`magpie mcp`, `magpie call`) may have changed the Library while the window was in the background.
+window.addEventListener("focus", () => queries.invalidateQueries());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

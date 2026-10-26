@@ -4,12 +4,27 @@ import { useEffect, useRef, type ReactNode } from "react";
  * A Mac sheet: Esc closes it, Return presses its default (primary) button,
  * and a stray click outside never closes it.
  */
-export function Sheet({ wide, children, onClose, label }: { wide?: boolean; children: ReactNode; onClose?: () => void; label: string }) {
+export function Sheet({
+  wide,
+  className,
+  focusField = true,
+  children,
+  onClose,
+  label,
+}: {
+  wide?: boolean;
+  className?: string;
+  /** False keeps focus on the sheet itself, for a sheet whose keys (arrows, Space) aren't a field's. */
+  focusField?: boolean;
+  children: ReactNode;
+  onClose?: () => void;
+  label: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   // Focus moves into the sheet (its first field, or the sheet itself) and goes back where it was on close.
   useEffect(() => {
     const before = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>("input, select, textarea");
+    const first = focusField ? ref.current?.querySelector<HTMLElement>("input, select, textarea") : null;
     (first ?? ref.current)?.focus();
     return () => before?.focus?.();
   }, []);
@@ -45,7 +60,14 @@ export function Sheet({ wide, children, onClose, label }: { wide?: boolean; chil
   }, [onClose]);
   return (
     <div className="scrim">
-      <div ref={ref} className={"sheet" + (wide ? " wide" : "")} role="dialog" aria-modal="true" aria-label={label} tabIndex={-1}>
+      <div
+        ref={ref}
+        className={["sheet", wide && "wide", className].filter(Boolean).join(" ")}
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
+      >
         {children}
       </div>
     </div>

@@ -7,6 +7,8 @@ const SENTENCES: Record<string, string> = {
   "not-epub": "Magpie only reads EPUB books for now. MOBI, AZW3 and PDF are on the list.",
   drm: "Added, but it's locked with DRM by the store that sold it. Magpie lists it as it is and can't fix, edit or send it.",
   "locked-edit": "This book is locked with DRM, so Magpie leaves it exactly as the store made it. Its details can't be changed.",
+  "locked-preview": "This book is locked with DRM, so its pages can't be shown here. Read it with the app from the store that sold it.",
+  "preview-empty": "This book has no pages of text to show.",
   "locked-send": "Books locked with DRM can't be sent from Magpie. Read them with the app from the store that sold them.",
   empty: "This file is empty (0 bytes). Download it again from where it came from.",
   "too-large": "This book unpacks to more than 1.5 GB, which no real book does. Magpie stopped to be safe.",

@@ -11,6 +11,8 @@ import type { InfoPatch, Suggestion } from "./info.ts";
 import { Jobs, type Job, type JobResult } from "./jobs.ts";
 import { Library, type ListQuery, type LookupPrev } from "./library/library.ts";
 import { deviceName } from "./naming.ts";
+import { loadForPreview, preview } from "./preview.ts";
+import type { Book } from "./epub.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { toKepub } from "./send/kepub.ts";
@@ -45,6 +47,8 @@ class Context {
   /** The last unexpected error, for diagnostics; paths are left out like titles are. */
   lastError: string | null = null;
   listeners = new Set<(e: CoreEvent) => void>();
+  /** The book being previewed, unpacked once while someone turns its pages. Cleared by any change. */
+  previewing: { path: string; book: Book } | null = null;
   private changedTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(host: Host) {
@@ -57,6 +61,7 @@ class Context {
 
   /** Coalesce bursts (a 1,000-book import) into one refetch every quarter second. */
   changed() {
+    this.previewing = null;
     if (this.changedTimer) return;
     this.changedTimer = setTimeout(() => {
       this.changedTimer = null;
@@ -273,6 +278,18 @@ const commands = {
 
   async "books.get"(ctx: Context, a: { id: number }) {
     return ctx.lib().get(a.id);
+  },
+
+  /**
+   * One chapter of a book as a reader would lay it out, from the fixed book or
+   * its untouched original (to see what a fix changed). Never for a locked book.
+   */
+  async "books.preview"(ctx: Context, a: { id: number; chapter?: number; original?: boolean }) {
+    const d = await ctx.lib().get(a.id);
+    if (d.state === "locked") throw new UserError("locked-preview");
+    const path = a.original ? d.original : d.file;
+    if (ctx.previewing?.path !== path) ctx.previewing = { path, book: loadForPreview(await ctx.host.fs.read(path)) };
+    return preview(ctx.previewing.book, a.chapter ?? 0);
   },
 
   /** Bring files or folders in. Returns the job; progress arrives as events. */

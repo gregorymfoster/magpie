@@ -125,6 +125,61 @@ test("a book with DRM comes in untouched with a warning, and can't be fixed, edi
   await assert.rejects(core.call("books.edit", { id: emma.id, patch: { title: "Emma!" } }), /DRM/);
   await core.call("settings.set", { kindleAddress: "me@kindle.com" });
   await assert.rejects(core.call("send.kindle", { ids: [emma.id] }), /DRM/);
+  await assert.rejects(core.call("books.preview", { id: emma.id }), /DRM/);
+});
+
+test("preview gives one inert, self-contained page per chapter, named from the contents, for the fixed book and its original", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const nav = `<?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops"><body><nav epub:type="toc"><ol><li><a href="ch1.xhtml">One: The Ball</a></li></ol></nav></body></html>`;
+  const src = file(
+    "emma.epub",
+    epub({
+      pages: {
+        "ch1.xhtml": page(
+          '<h2>Chapter 1</h2><p onclick="steal()" style="background:url(pic.png)">Emma Woodhouse, <a href="https://example.com/x">handsome</a>.</p><img src="pic.png"/><img src="https://example.com/track.gif"/><script>steal()</script>',
+        ).replace("<title>t</title>", '<title>t</title><link rel="stylesheet" href="style.css"/>'),
+        "ch2.xhtml": page("<h2>Chapter 2</h2><p>Mr. Knightley.</p>"),
+      },
+      manifest: '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
+      extra: {
+        "style.css": "@import url(https://example.com/a.css); @font-face { font-family: B; src: url(f.woff) } p { text-indent: 1em }",
+        "pic.png": "PNG",
+        "f.woff": "WOFF",
+        "nav.xhtml": nav,
+        // the original's container points at a package that isn't there; the fix finds it
+        "META-INF/container.xml":
+          '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
+      },
+    }),
+  );
+  await core.call("books.import", { paths: [src] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+
+  const p = await core.call("books.preview", { id: b.id });
+  assert.equal(p.chapter, 0);
+  assert.equal(p.chapters.length, 2);
+  assert.equal(p.chapters[1].title, "Chapter 2", "a page the contents don't name is called by its heading");
+  assert.match(p.html, /^<!DOCTYPE html>\n<html/, "one doctype, and the XML declaration doesn't become a comment");
+  assert.match(p.html, /<style>[^<]*text-indent: 1em/, "the stylesheet is inlined");
+  assert.match(p.html, /src: url\("data:font\/woff;base64,/, "fonts become data URLs");
+  assert.match(p.html, /<img src="data:image\/png;base64,UE5H">/);
+  assert.match(p.html, /background:url\(&quot;data:image\/png/);
+  assert.doesNotMatch(p.html, /<script|onclick|example\.com|@import/, "nothing runs and nothing is fetched");
+  assert.match(p.html, /<a data-link="">handsome<\/a>/);
+
+  const last = await core.call("books.preview", { id: b.id, chapter: 99 });
+  assert.equal(last.chapter, 1, "a chapter past the end is the last one");
+  assert.match(last.html, /Mr\. Knightley/);
+
+  // The original has no package Magpie can find, so its pages come in zip order, named by their headings.
+  const before = await core.call("books.preview", { id: b.id, original: true });
+  assert.deepEqual(
+    before.chapters.map((c) => c.title),
+    ["Chapter 1", "Chapter 2"],
+  );
+  assert.equal((await core.call("books.preview", { id: b.id })).chapters[0].title, "One: The Ball");
 });
 
 test("suggested details wait for review, and accepting renames the file; undo puts it back", async () => {

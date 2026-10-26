@@ -16,6 +16,7 @@ import { ReviewSheet } from "./sheets/ReviewSheet.tsx";
 import { LookupSheet } from "./sheets/LookupSheet.tsx";
 import { SendSheet } from "./sheets/SendSheet.tsx";
 import { EditSheet } from "./sheets/EditSheet.tsx";
+import { PreviewSheet } from "./sheets/PreviewSheet.tsx";
 import { SettingsSheet, type Section } from "./sheets/SettingsSheet.tsx";
 import { onMenu } from "./shell.ts";
 import { plural } from "./format.ts";
@@ -26,6 +27,7 @@ type SheetState =
   | { type: "lookup" }
   | { type: "send"; ids: number[]; prefer?: string }
   | { type: "edit"; id: number }
+  | { type: "preview"; id: number }
   | { type: "settings"; section?: Section }
   | null;
 
@@ -127,6 +129,10 @@ function Window() {
             return setSheet({ type: "settings", section: "Updates" });
           case "edit":
             return ids.length === 1 && setSheet({ type: "edit", id: ids[0] });
+          case "preview": {
+            const b = ids.length === 1 && books.find((x) => x.id === ids[0]);
+            return b && b.state !== "locked" && setSheet({ type: "preview", id: b.id });
+          }
           case "selectAll":
             return setSel(items.map((b) => b.id));
           case "remove": {
@@ -160,7 +166,7 @@ function Window() {
         toast({ message: e instanceof Error ? e.message : String(e), error: true });
       }
     },
-    [sel, t, items, view, act, toast, importPaths],
+    [sel, t, items, books, view, act, toast, importPaths],
   );
 
   // Keyboard. In the app WebKit sees a shortcut before the menu bar does, so handling it here
@@ -170,8 +176,13 @@ function Window() {
       const typing = (e.target as HTMLElement)?.closest?.("input, textarea, select");
       if (sheet && e.key !== "Escape") return;
       if (e.key === "Escape") return setSel([]);
+      // Space is Quick Look in Finder, so it previews here too.
+      if (e.key === " " && !typing && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        return void run("preview");
+      }
       if (!(e.metaKey || e.ctrlKey)) return;
-      const map: Record<string, string> = { k: "find", o: "add", "1": "grid", "2": "list", i: "edit", ",": "settings" };
+      const map: Record<string, string> = { k: "find", o: "add", "1": "grid", "2": "list", i: "edit", y: "preview", ",": "settings" };
       if (!typing) Object.assign(map, { a: "selectAll", z: "undo", Backspace: "remove" });
       const id = e.shiftKey && e.key.toLowerCase() === "s" ? "send" : map[e.key];
       if (id) {
@@ -382,6 +393,7 @@ function Window() {
           />
         )}
         {sheet?.type === "edit" && <EditSheet id={sheet.id} onClose={() => setSheet(null)} />}
+        {sheet?.type === "preview" && <PreviewSheet id={sheet.id} onClose={() => setSheet(null)} />}
         {sheet?.type === "settings" && <SettingsSheet start={sheet.section} palette={palette} setPalette={setPalette} onClose={() => setSheet(null)} />}
       </div>
       <StatusBar books={books} state={state} />
@@ -395,6 +407,7 @@ function initialSheet(sel: number[]): SheetState {
   if (s === "settings") return { type: "settings", section: (url.get("section") as Section) ?? undefined };
   if (s === "send") return { type: "send", ids: sel };
   if (s === "edit" && sel.length) return { type: "edit", id: sel[0] };
+  if (s === "preview" && sel.length) return { type: "preview", id: sel[0] };
   return null;
 }
 

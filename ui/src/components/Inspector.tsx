@@ -1,11 +1,11 @@
-import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock } from "lucide-react";
+import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock, BookOpen } from "lucide-react";
 import type { BookSummary } from "@magpie/core";
 import { useCall } from "../api.tsx";
 import { Cover } from "./Cover.tsx";
 import { StatePill } from "./Books.tsx";
 import { authors, date, language, plural, size } from "../format.ts";
 
-export type Act = (a: "send" | "review" | "edit" | "remove" | "restore", ids?: number[]) => void;
+export type Act = (a: "send" | "review" | "edit" | "preview" | "remove" | "restore", ids?: number[]) => void;
 
 export function Inspector({ chosen, act }: { chosen: BookSummary[]; act: Act }) {
   if (!chosen.length)
@@ -74,9 +74,16 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
   return (
     <aside className="insp" aria-label="Inspector">
       <div className="ip">
-        <div className="cvw">
-          <Cover b={b} />
-        </div>
+        {b.state === "locked" || b.removedAt ? (
+          <div className="cvw">
+            <Cover b={b} />
+          </div>
+        ) : (
+          // Opening the cover opens the book on a reader, as in Finder's Quick Look.
+          <button className="cvw open" onClick={() => act("preview")} title="Preview on a reader (Space)" aria-label="Preview on a reader">
+            <Cover b={b} />
+          </button>
+        )}
         <h2 title={b.title}>{b.title}</h2>
         <div className="by" title={authors(b.authors)}>
           {authors(b.authors)}
@@ -101,6 +108,9 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
               <button className="btn" onClick={() => act("edit")} title="Edit details (⌘I)">
                 <PencilLine size={13} />
                 Edit
+              </button>
+              <button className="btn" onClick={() => act("preview")} title="Preview on a reader (Space)" aria-label="Preview on a reader">
+                <BookOpen size={13} />
               </button>
             </>
           )}

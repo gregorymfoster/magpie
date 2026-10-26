@@ -5,7 +5,9 @@ import { zipSync, strToU8 } from "fflate";
 export const page = (body: string) =>
   `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head><body>${body}</body></html>`;
 
-export function epub(opts: { opfMeta?: string; pages?: Record<string, string>; mimetypeLast?: boolean; extra?: Record<string, string> } = {}) {
+export function epub(
+  opts: { opfMeta?: string; pages?: Record<string, string>; mimetypeLast?: boolean; extra?: Record<string, string>; manifest?: string } = {},
+) {
   const pages = opts.pages ?? { "title.xhtml": page("<p>Title: Emma</p><p>Author: Jane Austen</p>"), "ch1.xhtml": page("<h2>Chapter 1</h2><p>Hi</p>") };
   const items = Object.keys(pages)
     .map((p, i) => `<item id="p${i}" href="${p}" media-type="application/xhtml+xml"/>`)
@@ -16,7 +18,7 @@ export function epub(opts: { opfMeta?: string; pages?: Record<string, string>; m
   const opf = `<?xml version="1.0"?><package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">${
     opts.opfMeta ??
     '<dc:identifier id="id">urn:uuid:1</dc:identifier><dc:title>Emma</dc:title><dc:creator>Jane Austen</dc:creator><dc:language>en</dc:language>'
-  }<meta property="dcterms:modified">2024-01-01T00:00:00Z</meta></metadata><manifest>${items}<item id="cov" href="cover.jpg" media-type="image/jpeg"/></manifest><spine>${spine}</spine></package>`;
+  }<meta property="dcterms:modified">2024-01-01T00:00:00Z</meta></metadata><manifest>${items}${opts.manifest ?? ""}<item id="cov" href="cover.jpg" media-type="image/jpeg"/></manifest><spine>${spine}</spine></package>`;
   const files: Record<string, Uint8Array> = {
     "META-INF/container.xml": strToU8(
       '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',

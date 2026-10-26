@@ -7,7 +7,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./suggestions": "./src/suggestions.ts"
+    "./suggestions": "./src/suggestions.ts",
+    "./readers": "./src/readers.ts"
   },
   "dependencies": {
     "@xmldom/xmldom": "^0.9.12",

@@ -30,6 +30,10 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Send.** Getting a book onto a reader. Kindle: a new Mail message to the Send to Kindle address, with the books attached, that the person sends. Kobo: a KEPUB copied to the mounted reader.
 
+**Preview.** A book laid out a screen at a time as a **reader** would show it, with that reader's text size, margins, spacing and fonts. For a fixed book it can show the original too, to see what the fix changed. Never for a locked book.
+
+**Reader.** A device the preview can imitate (`core/src/readers.ts`): a Kindle, a Kobo or an iPhone running Apple Books, with its real screen size.
+
 **Host.** Everything the core needs from the outside world. The Node host and the Tauri host.
 
 **Core.** `core/`. The whole app as a library, reached only through `core.call`.

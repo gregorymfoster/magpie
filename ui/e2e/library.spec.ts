@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
-import { books, call, classicFiles, emma, reset, unknownAuthor } from "./helpers.ts";
+import { books, call, classicFiles, emma, longBook, reset, unknownAuthor } from "./helpers.ts";
 
 test.beforeEach(async ({ page }) => reset(page));
 
@@ -145,4 +145,48 @@ test("Look Up asks first, says what is sent, and what Open Library finds waits f
   await review.getByRole("button", { name: "Accept 2 changes" }).click();
   await page.locator(".tile", { hasText: "Emma" }).click();
   await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("1815");
+});
+
+test("Space previews a book on a reader; pages turn into the next chapter, and Original shows the file before the fix", async ({ page }) => {
+  await call(page, "books.import", { paths: books({ "pp.epub": longBook() }) });
+  await expect.poll(async () => (await call(page, "books.list")).length).toBe(1);
+  await page.reload();
+  await page.locator(".tile", { hasText: "Pride and Prejudice" }).click();
+  await page.keyboard.press(" ");
+  const sheet = page.getByRole("dialog", { name: "Preview on a reader" });
+  await expect(sheet.locator(".pv-t")).toContainText("Pride and Prejudice");
+  const frame = sheet.frameLocator("iframe");
+  await expect(frame.locator("h2")).toHaveText("Chapter 1");
+  await expect(frame.locator("img")).toHaveAttribute("src", /^data:image\/svg\+xml;base64,/);
+  await expect(sheet.locator(".sh-f .note")).toContainText(/Page 1 of [2-9]/);
+  await page.keyboard.press("ArrowRight");
+  await expect(sheet.locator(".sh-f .note")).toContainText("Page 2 of");
+  await page.waitForTimeout(200); // late fonts can still change the count
+  const pages = Number((await sheet.locator(".sh-f .note").textContent())!.match(/of (\d+)/)![1]);
+
+  // Bigger text on a smaller reader takes more pages.
+  await sheet.getByRole("combobox", { name: "Reader" }).selectOption("kobo-clara");
+  await sheet.getByRole("button", { name: "Larger text" }).click();
+  await sheet.getByRole("button", { name: "Larger text" }).click();
+  await expect.poll(async () => Number((await sheet.locator(".sh-f .note").textContent())?.match(/of (\d+)/)?.[1] ?? 0)).toBeGreaterThan(pages);
+
+  await sheet.getByRole("combobox", { name: "Chapter" }).selectOption({ label: "Chapter 1" });
+  const note = sheet.locator(".sh-f .note");
+  for (let i = 0; i < 40; i++) {
+    await expect(note).toContainText("Page");
+    const before = (await note.textContent())!;
+    if (before.includes("part 2")) break;
+    await sheet.getByRole("button", { name: "Next page" }).click();
+    await expect(note).not.toHaveText(before);
+  }
+  await expect(frame.locator("h2")).toHaveText("Chapter 2");
+  await expect(sheet.locator(".sh-f .note")).toContainText("Page 1 of");
+  await page.keyboard.press("ArrowLeft");
+  await expect(frame.locator("h2")).toHaveText("Chapter 1");
+
+  await sheet.getByRole("button", { name: "Original" }).click();
+  await expect(sheet.getByRole("button", { name: "Original" })).toHaveAttribute("aria-pressed", "true");
+  await expect(frame.locator("h2")).toHaveText("Chapter 1");
+  await sheet.getByRole("button", { name: "Done" }).click();
+  await expect(sheet).toHaveCount(0);
 });

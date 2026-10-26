@@ -1,7 +1,7 @@
 // `just shots`: every screen, light and dark, into ui/shots/. For a look
 // without clicking; agents read these PNGs to check their own UI work.
 import { expect, test } from "@playwright/test";
-import { books, call, CLASSICS, classic, emma, reset, unknownAuthor } from "./helpers.ts";
+import { books, call, CLASSICS, classic, emma, longBook, reset, unknownAuthor } from "./helpers.ts";
 
 test.skip(!process.env.SHOTS, "only with SHOTS=1 (just shots)");
 
@@ -15,13 +15,16 @@ const SCREENS: [string, string][] = [
   ["settings", "/?sheet=settings"],
   ["settings-devices", "/?sheet=settings&section=Devices"],
   ["flannel", "/?sel=1&palette=flannel"],
+  ["preview-kindle", "/?sel=3&sheet=preview"],
+  ["preview-kobo-libra", "/?sel=3&sheet=preview&reader=kobo-libra"],
+  ["preview-iphone", "/?sel=3&sheet=preview&reader=iphone"],
 ];
 
 test("screens", async ({ page }) => {
   await reset(page);
   for (const theme of ["light", "dark"]) {
     for (const [name, path] of SCREENS) {
-      if (name === "library") await call(page, "books.import", { paths: books({ "emma.epub": emma(), "b.epub": unknownAuthor() }) });
+      if (name === "library") await call(page, "books.import", { paths: books({ "emma.epub": emma(), "b.epub": unknownAuthor(), "pp.epub": longBook() }) });
       await page.goto(`${path}${path.includes("?") ? "&" : "?"}theme=${theme}`);
       await page.waitForTimeout(400);
       await page.screenshot({ path: `ui/shots/${name}-${theme}.png` });

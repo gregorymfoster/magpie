@@ -1,4 +1,5 @@
-# The same gate as `just check`, on every push. The Mac job builds and tests the Rust host.
+# The same gate as `just check`, on every push. The Mac job builds and tests the Rust host,
+# only when something it builds has changed (macOS runners queue for up to 10 minutes).
 name: check
 
 on:
@@ -9,6 +10,10 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Playwright's own image has Chromium and its system libraries, so there is no apt step.
+    # `playwright install --with-deps` took 9 to 12 minutes on some runs. Keep the tag in step
+    # with @playwright/test in package.json.
+    container: mcr.microsoft.com/playwright:v1.63.0-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,7 +27,6 @@ jobs:
           path: models
           key: model-${{ hashFiles('core/src/organize/bert.ts') }}
       - run: node scripts/fetch-model.ts
-      - run: npx playwright install --with-deps chromium
       - run: just check
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -30,7 +34,27 @@ jobs:
           name: playwright
           path: ui/test-results
 
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before || github.event.pull_request.base.sha }}
+        run: |
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null && git diff --quiet "$BEFORE" HEAD -- app package-lock.json .github/workflows/check.yml; then
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          fi
+
   mac:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

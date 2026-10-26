@@ -6,7 +6,7 @@ It works through MCP, the standard way AI apps talk to tools on your computer. T
 
 ## What it can and can't do
 
-The assistant can search your books, read their details and what Magpie fixed, add books from files or folders, bring in a Calibre library, edit details, accept or turn down suggestions, remove and restore books, and send books to a Kindle or a plugged-in Kobo.
+The assistant can search your books, read their details and what Magpie fixed, add books from files or folders, bring in a Calibre library, edit details, look up missing details on Open Library (titles, authors and ISBNs only), accept or turn down suggestions, remove and restore books, and send books to a Kindle or a plugged-in Kobo.
 
 Every change it makes is a normal Magpie change, so it shows up in the window and **⌘Z undoes it**, whoever made it. It cannot empty Removed or change your settings. Send to Kindle only opens a Mail draft; you still press Send.
 

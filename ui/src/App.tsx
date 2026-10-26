@@ -3,7 +3,7 @@
 //   ?view=review&layout=list&sel=3,4&sheet=settings&palette=flannel&theme=dark
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookMarked, LayoutGrid, List as ListIcon, PanelRight, Plus, Search, Send, Wand2 } from "lucide-react";
+import { BookMarked, Globe, LayoutGrid, List as ListIcon, PanelRight, Plus, Search, Send, Wand2 } from "lucide-react";
 import type { BookSummary, Job } from "@magpie/core";
 import { useAction, useCall, useTransport } from "./api.tsx";
 import { Sidebar, type View } from "./components/Sidebar.tsx";
@@ -13,6 +13,7 @@ import { Toasts, useToast } from "./components/Toasts.tsx";
 import { FirstLaunch, LostLibrary } from "./components/FirstLaunch.tsx";
 import { JobSheet } from "./sheets/JobSheet.tsx";
 import { ReviewSheet } from "./sheets/ReviewSheet.tsx";
+import { LookupSheet } from "./sheets/LookupSheet.tsx";
 import { SendSheet } from "./sheets/SendSheet.tsx";
 import { EditSheet } from "./sheets/EditSheet.tsx";
 import { SettingsSheet, type Section } from "./sheets/SettingsSheet.tsx";
@@ -22,6 +23,7 @@ import { plural } from "./format.ts";
 type SheetState =
   | { type: "job"; id: number }
   | { type: "review" }
+  | { type: "lookup" }
   | { type: "send"; ids: number[]; prefer?: string }
   | { type: "edit"; id: number }
   | { type: "settings"; section?: Section }
@@ -326,6 +328,10 @@ function Window() {
               <Plus size={13} />
               Add
             </button>
+            <button className="btn" onClick={() => setSheet({ type: "lookup" })} title="Look up missing details on Open Library">
+              <Globe size={13} />
+              <span className="hide-sm">Look Up</span>
+            </button>
             {state.counts.review > 0 && (
               <button className="btn pri" onClick={() => setSheet({ type: "review" })}>
                 <Wand2 size={13} />
@@ -366,6 +372,7 @@ function Window() {
           <JobSheet job={job} reviewCount={state.counts.review} onClose={() => setSheet(null)} onReview={() => setSheet({ type: "review" })} />
         )}
         {sheet?.type === "review" && <ReviewSheet onClose={() => setSheet(null)} />}
+        {sheet?.type === "lookup" && <LookupSheet onClose={() => setSheet(null)} onJob={(j: Job) => setSheet({ type: "job", id: j.id })} />}
         {sheet?.type === "send" && (
           <SendSheet
             books={books.filter((b) => sheet.ids.includes(b.id))}

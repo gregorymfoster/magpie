@@ -30,6 +30,10 @@ const SENTENCES: Record<string, string> = {
   "device-full": "There isn't enough room on the reader for these books.",
   "calibre-missing": "Magpie couldn't find a Calibre library there. Choose the folder that holds metadata.db.",
   "calibre-file-missing": "Calibre lists this book, but its file isn't in the Calibre folder.",
+  offline: "Magpie couldn't reach Open Library. Check the internet connection and look up again; books already done are kept.",
+  "lookup-nothing": "Not enough to look up: the book has no usable title or ISBN.",
+  "lookup-no-match": "Open Library has no clear match. Check the title and author, or fill in the details yourself.",
+  "lookup-complete": "Nothing missing: the book already has a year, publisher, language and description.",
   "calibre-no-epub": "Calibre has this book only as MOBI, AZW3 or PDF, which Magpie can't read yet.",
 };
 

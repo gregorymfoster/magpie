@@ -26,6 +26,8 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Job.** Long work (an import, a Calibre import, sending to a Kobo) that survives a quit and resumes. Made of items, each with a **result**: added, duplicate, unreadable, skipped, sent, failed.
 
+**Look Up Details.** Asking Open Library for what a book is missing (year, publisher, language, description, an unreadable author), by title, author and ISBN only. What comes back is a suggestion like any other, marked as from Open Library. Not "hydrate", "enrich" or "fetch metadata".
+
 **Send.** Getting a book onto a reader. Kindle: a new Mail message to the Send to Kindle address, with the books attached, that the person sends. Kobo: a KEPUB copied to the mounted reader.
 
 **Host.** Everything the core needs from the outside world. The Node host and the Tauri host.

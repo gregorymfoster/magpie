@@ -3,20 +3,25 @@
 // saved, so quitting halfway loses at most one item and the job carries on
 // at next launch. Every item must be safe to run twice (importing the same
 // file twice finds the duplicate).
+//
+// Two lanes run side by side: lookups wait on the network at a polite pace
+// and can take an hour on a big Library, so they never hold up adding books.
 
 import type { Db } from "./host.ts";
 import { UserError, explain } from "./errors.ts";
 
-export type JobKind = "import" | "calibre" | "kobo";
+export type JobKind = "import" | "calibre" | "kobo" | "lookup";
 export type JobState = "queued" | "running" | "done" | "cancelled";
 
 export interface JobResult {
   /** What the item was, for a person: a file name or a book title. */
   label: string;
-  outcome: "added" | "duplicate" | "unreadable" | "skipped" | "sent" | "failed";
+  outcome: "added" | "duplicate" | "unreadable" | "skipped" | "sent" | "failed" | "found";
   /** A sentence, for anything other than added or sent. */
   message?: string;
   bookId?: number;
+  /** For the kind's finish hook (a lookup's undo step); not for display. */
+  undo?: unknown;
 }
 
 export interface Job {
@@ -32,18 +37,26 @@ export interface Job {
 }
 
 export type Runner = (item: unknown) => Promise<JobResult>;
+/** Runs once when a job of that kind ends, done or cancelled. */
+export type Finisher = (job: Job) => Promise<void>;
+
+const NET: JobKind[] = ["lookup"];
+type Lane = "local" | "net";
+const laneOf = (kind: JobKind): Lane => (NET.includes(kind) ? "net" : "local");
 
 export class Jobs {
   private db: Db;
   private runners: Record<JobKind, Runner>;
   private onProgress: (job: Job) => void;
-  private running: Promise<void> | null = null;
+  private finishers: Partial<Record<JobKind, Finisher>>;
+  private running: Record<Lane, Promise<void> | null> = { local: null, net: null };
   private cancelled = new Set<number>();
   private lastEmit = 0;
 
-  constructor(db: Db, runners: Record<JobKind, Runner>, onProgress: (job: Job) => void) {
+  constructor(db: Db, runners: Record<JobKind, Runner>, onProgress: (job: Job) => void, finishers: Partial<Record<JobKind, Finisher>> = {}) {
     this.db = db;
     this.runners = runners;
+    this.finishers = finishers;
     this.onProgress = onProgress;
   }
 
@@ -56,13 +69,14 @@ export class Jobs {
     ]);
     const job = await this.get(r.lastId);
     this.onProgress(job);
-    this.kick();
+    this.kick(laneOf(kind));
     return job;
   }
 
   /** Pick up anything a previous launch left unfinished. */
   resume() {
-    this.kick();
+    this.kick("local");
+    this.kick("net");
   }
 
   async cancel(id: number) {
@@ -86,17 +100,19 @@ export class Jobs {
 
   /** Resolves when the queue is empty. For tests and the CLI. */
   async idle(): Promise<void> {
-    while (this.running) await this.running;
+    while (this.running.local || this.running.net) await (this.running.local ?? this.running.net);
   }
 
-  private kick() {
-    if (this.running) return;
-    this.running = this.drain().finally(() => (this.running = null));
+  private kick(lane: Lane) {
+    if (this.running[lane]) return;
+    this.running[lane] = this.drain(lane).finally(() => (this.running[lane] = null));
   }
 
-  private async drain() {
+  private async drain(lane: Lane) {
+    const kinds = NET.map((k) => `'${k}'`).join(",");
+    const where = lane === "net" ? `kind IN (${kinds})` : `kind NOT IN (${kinds})`;
     for (;;) {
-      const [row] = await this.db.all("SELECT * FROM jobs WHERE state IN ('queued','running') ORDER BY id LIMIT 1");
+      const [row] = await this.db.all(`SELECT * FROM jobs WHERE state IN ('queued','running') AND ${where} ORDER BY id LIMIT 1`);
       if (!row) return;
       await this.runJob(row);
     }
@@ -128,7 +144,9 @@ export class Jobs {
     const state = this.cancelled.has(id) ? "cancelled" : "done";
     await this.db.run("UPDATE jobs SET state = ?, finished_at = ? WHERE id = ?", [state, new Date().toISOString(), id]);
     this.cancelled.delete(id);
-    this.onProgress(await this.get(id));
+    const job = await this.get(id);
+    await this.finishers[job.kind]?.(job).catch(() => {});
+    this.onProgress(job);
   }
 }
 

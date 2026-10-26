@@ -15,7 +15,7 @@ export default defineConfig({
     cwd: "./",
     url: "http://127.0.0.1:4319/api/health",
     reuseExistingServer: false,
-    env: { MAGPIE_HOME: home, MAGPIE_VOLUMES: `${home}/Volumes`, MAGPIE_OPENED: `${home}/opened.txt` },
+    env: { MAGPIE_HOME: home, MAGPIE_VOLUMES: `${home}/Volumes`, MAGPIE_OPENED: `${home}/opened.txt`, MAGPIE_WEB: `${home}/web.json` },
   },
   metadata: { home },
 });

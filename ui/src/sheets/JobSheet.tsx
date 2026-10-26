@@ -2,7 +2,7 @@
 // runs and a summary when it's done. Closing it early leaves the job running
 // in the sidebar footer.
 
-import { FileText, Lock } from "lucide-react";
+import { FileText, Globe, Lock } from "lucide-react";
 import type { Job, JobResult } from "@magpie/core";
 import { Sheet } from "../components/Sheet.tsx";
 import { jobProgress } from "../components/Progress.tsx";
@@ -15,30 +15,58 @@ const CHIP: Record<JobResult["outcome"], [string, string]> = {
   skipped: ["mut", "Skipped"],
   sent: ["ok", "Sent"],
   failed: ["bad", "Failed"],
+  found: ["ok", "Found"],
 };
 
 export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; onClose: () => void; onReview: () => void; reviewCount: number }) {
   const done = job.state === "done" || job.state === "cancelled";
   const n = (o: JobResult["outcome"]) => job.results.filter((r) => r.outcome === o).length;
   const sending = job.kind === "kobo";
-  const title = done ? (sending ? `Sent ${plural(n("sent"), "book")} to Kobo` : `Added ${plural(n("added"), "book")}`) : job.label;
+  const lookup = job.kind === "lookup";
+  const title = done
+    ? sending
+      ? `Sent ${plural(n("sent"), "book")} to Kobo`
+      : lookup
+        ? `Found details for ${plural(n("found"), "book")}`
+        : `Added ${plural(n("added"), "book")}`
+    : job.label;
   return (
     <Sheet label={title} onClose={onClose}>
       <div className="sh-h">
         <h2>{title}</h2>
         <p>
-          {sending
+          {lookup
             ? done
-              ? "Eject the Kobo before unplugging it. The books are in its library now."
-              : "Each book is converted to Kobo’s own format on the way, so page numbers and reading stats work."
-            : done
-              ? "Each file was checked and repaired before it joined your Library. Your originals are kept untouched."
-              : "Magpie copies each file in, repairs what it can, and keeps the original."}
+              ? "What Open Library found is waiting in Needs Review. Nothing is written into a book until you accept it."
+              : "Open Library is asked about one book a second, by title, author and ISBN. The books themselves never leave this Mac."
+            : sending
+              ? done
+                ? "Eject the Kobo before unplugging it. The books are in its library now."
+                : "Each book is converted to Kobo’s own format on the way, so page numbers and reading stats work."
+              : done
+                ? "Each file was checked and repaired before it joined your Library. Your originals are kept untouched."
+                : "Magpie copies each file in, repairs what it can, and keeps the original."}
         </p>
       </div>
       <div className="sh-b">
-        {done
-          ? !sending && (
+        {done ? (
+          lookup ? (
+            <div className="sum">
+              <div>
+                <b>{n("found")}</b>
+                <span>with details found</span>
+              </div>
+              <div>
+                <b>{reviewCount}</b>
+                <span>to check</span>
+              </div>
+              <div>
+                <b>{n("skipped") + n("failed")}</b>
+                <span>nothing found</span>
+              </div>
+            </div>
+          ) : (
+            !sending && (
               <div className="sum">
                 <div>
                   <b>{n("added")}</b>
@@ -54,7 +82,10 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
                 </div>
               </div>
             )
-          : jobProgress(job)}
+          )
+        ) : (
+          jobProgress(job)
+        )}
         <div className="files">
           {(done ? byConcern(job.results) : job.results.slice(-200).reverse()).map((r, i) => (
             <div key={i} className="file" title={r.message}>
@@ -77,8 +108,8 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
       </div>
       <div className="sh-f">
         <span className="note">
-          <Lock size={12} />
-          Files never leave this Mac.
+          {lookup ? <Globe size={12} /> : <Lock size={12} />}
+          {lookup ? "Only titles, authors and ISBNs are sent." : "Files never leave this Mac."}
         </span>
         {done && reviewCount > 0 && !sending && (
           <button className="btn" onClick={onReview}>

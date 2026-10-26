@@ -53,10 +53,11 @@ const jobSummary = (j: Job) => ({
   state: j.state,
   done: j.done,
   total: j.total,
-  results: j.results.map(({ bookId, ...r }) => ({ ...r, ...(bookId && { id: bookId }) })),
+  results: j.results.map(({ bookId, undo: _, ...r }) => ({ ...r, ...(bookId && { id: bookId }) })),
 });
 
 export function mcpServer(core: Core, version: string) {
+  const FIELDS = ["title", "authors", "year", "publisher", "language", "description"] as const;
   const server = new McpServer(
     { name: "magpie", title: "Magpie", version },
     {
@@ -134,6 +135,21 @@ export function mcpServer(core: Core, version: string) {
   );
 
   server.registerTool(
+    "look_up_details",
+    {
+      title: "Look up details online",
+      description:
+        "Ask Open Library for details these books are missing (year, publisher, language, description, a missing author). Sends only titles, authors and ISBNs, never the books. Nothing is written: what's found waits as suggestions for review_suggestions. Paced at about one request a second, so keep it to a handful of books; the user can look up the whole Library from Magpie's toolbar.",
+      inputSchema: { ids: z.array(z.number().int()).min(1).max(50) },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async ({ ids }) => {
+      const job = await core.call("books.lookup", { ids, again: true });
+      return text(job ? await finish(job) : "Nothing to look up.");
+    },
+  );
+
+  server.registerTool(
     "edit_book",
     {
       title: "Edit details",
@@ -151,14 +167,15 @@ export function mcpServer(core: Core, version: string) {
     "review_suggestions",
     {
       title: "Review suggestions",
-      description: "Accept or turn down the suggested title or author on books that need review (see get_book). Undoable.",
+      description:
+        "Accept or turn down suggested details (title, author, and from look_up_details year, publisher, language, description) on books that need review (see get_book). Undoable.",
       inputSchema: {
         decisions: z
           .array(
             z.object({
               id: z.number().int(),
-              accept: z.array(z.enum(["title", "authors"])).default([]),
-              dismiss: z.array(z.enum(["title", "authors"])).default([]),
+              accept: z.array(z.enum(FIELDS)).default([]),
+              dismiss: z.array(z.enum(FIELDS)).default([]),
             }),
           )
           .min(1),

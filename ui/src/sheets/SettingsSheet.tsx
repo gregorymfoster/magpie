@@ -163,7 +163,7 @@ function Privacy() {
     <>
       <Row
         title="Your books stay on this Mac"
-        sub="Magpie has no account and no server. It never uploads a book, a title or a reading habit. The only request it makes is checking GitHub for a newer version of itself."
+        sub="Magpie has no account and no server, and never uploads a book or a reading habit. It checks GitHub for a newer version of itself, and when you press Look Up it sends each book’s title, author and ISBN to Open Library. Nothing else leaves this Mac."
       />
       <Row
         title="Copy Diagnostics"

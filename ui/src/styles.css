@@ -1528,6 +1528,13 @@ button {
   color: var(--fg);
   overflow-wrap: anywhere;
 }
+.dt .new.long {
+  font: 13px/1.45 var(--ui);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .dt tr:not(.pick) .new {
   color: var(--fg3);
 }
@@ -1954,4 +1961,16 @@ textarea::placeholder {
 }
 .sheet:focus {
   outline: none;
+}
+.lookup-note {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--fg2);
+}
+.lookup-note svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--fg3);
 }

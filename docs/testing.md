@@ -12,4 +12,6 @@
 
 Things that never get tested by mocking: SQLite (use a temp Library), the file system (use a temp dir), the core from the UI (use `magpie serve`).
 
+Look Up Details is checked through `MAGPIE_WEB`: a JSON file of URL fragments and the answers Open Library would give (null for "offline"). Nothing in `just check` reaches the internet.
+
 Sending to a Kindle is checked through `MAGPIE_OPENED`: the Node host logs the Mail message it would have opened (address, subject, attachment paths) instead of asking Mail. Kobos are faked with a folder containing `.kobo` under `MAGPIE_VOLUMES`.

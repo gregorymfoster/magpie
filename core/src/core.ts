@@ -9,12 +9,13 @@ import { UserError, explain } from "./errors.ts";
 import { join, type Host } from "./host.ts";
 import type { InfoPatch, Suggestion } from "./info.ts";
 import { Jobs, type Job, type JobResult } from "./jobs.ts";
-import { Library, type ListQuery } from "./library/library.ts";
+import { Library, type ListQuery, type LookupPrev } from "./library/library.ts";
 import { deviceName } from "./naming.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { toKepub } from "./send/kepub.ts";
 import { KINDLE_LIMIT } from "./send/kindle.ts";
+import { descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wants, workUrl, type CatalogDoc } from "./identify/catalog.ts";
 
 export type CoreEvent =
   /** Books were added, changed or removed: refetch lists and counts. */
@@ -93,7 +94,16 @@ class Context {
   async openLibrary(path: string) {
     await this.closeLibrary();
     this.library = await Library.open(this.host, path);
-    this.jobs = new Jobs(this.library.jobsDb, runners(this), (job) => this.emit({ type: "job", job }));
+    this.jobs = new Jobs(this.library.jobsDb, runners(this), (job) => this.emit({ type: "job", job }), {
+      // A whole lookup run is one ⌘Z.
+      lookup: async (job) => {
+        await this.lib().recordLookups(
+          "Look Up Details",
+          job.results.flatMap((r) => (r.undo ? [r.undo as LookupPrev] : [])),
+        );
+        this.changed();
+      },
+    });
     this.jobs.resume();
     await this.saveConfig({ ...(await this.config()), libraryPath: path });
     this.emit({ type: "library.changed" });
@@ -138,10 +148,56 @@ function runners(ctx: Context) {
       await ctx.host.fs.write(join(device, "Magpie", deviceName(book.authors, book.title, "kepub.epub")), kepub);
       return { label: book.title, outcome: "sent", bookId: id } satisfies JobResult;
     },
+    lookup: async (item: unknown) => {
+      const { id } = item as { id: number };
+      const info = await ctx.lib().get(id);
+      const label = info.title;
+      if (info.state === "locked" || info.removedAt) return { label, outcome: "skipped", bookId: id } satisfies JobResult;
+      if (!wants(info)) return { label, outcome: "skipped", message: explain("lookup-complete"), bookId: id } satisfies JobResult;
+      const search = async (url: string | null) => (url ? (((await ctx.host.web.getJson(url)) as { docs?: CatalogDoc[] }).docs ?? []) : []);
+      let m;
+      try {
+        // By ISBN first; an ISBN Open Library doesn't know falls back to title and author.
+        m = match(info, await search(searchUrl(info)));
+        if (!m && info.isbn) m = match({ ...info, isbn: undefined }, await search(searchUrl({ ...info, isbn: undefined })));
+      } catch {
+        return { label, outcome: "failed", message: explain("offline"), bookId: id } satisfies JobResult;
+      }
+      if (!m && !searchUrl({ ...info, isbn: undefined }))
+        return { label, outcome: "skipped", message: explain("lookup-nothing"), bookId: id } satisfies JobResult;
+      if (!m) {
+        const step = await ctx.lib().lookedUp(id, []);
+        return { label, outcome: "skipped", message: explain("lookup-no-match"), bookId: id, undo: step } satisfies JobResult;
+      }
+      const description = info.description ? undefined : descriptionOf(await ctx.host.web.getJson(workUrl(m.doc.key)).catch(() => null));
+      const found = suggestionsFrom(info, m, description);
+      const step = await ctx.lib().lookedUp(id, found, recordOf(m));
+      ctx.changed();
+      const fields = found.map((s) => (s.field === "authors" ? "author" : s.field));
+      return {
+        label,
+        outcome: found.length ? "found" : "skipped",
+        message: found.length ? `Found ${list(fields)}.` : "Matched, but Open Library had nothing the book is missing.",
+        bookId: id,
+        undo: step,
+      } satisfies JobResult;
+    },
   };
 }
 
-/** Folders become every .epub inside them, at any depth. Hidden files are skipped. */
+const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+
+/** Books worth a lookup: not locked, missing something, and (unless `again`) never looked up. */
+async function lookupCandidates(ctx: Context, again: boolean): Promise<number[]> {
+  const out: number[] = [];
+  for (const b of (await ctx.lib().list({})).sort((x, y) => x.id - y.id)) {
+    if (b.state === "locked") continue;
+    const d = await ctx.lib().get(b.id);
+    if (wants(d) && (again || d.plan.found === undefined)) out.push(b.id);
+  }
+  return out;
+}
+
 /** Details a person (or an AI tool) typed, checked before they're written into a book. */
 function checkPatch(p: InfoPatch): InfoPatch {
   if (p.title !== undefined && !p.title.trim()) throw new UserError("empty-title");
@@ -152,6 +208,7 @@ function checkPatch(p: InfoPatch): InfoPatch {
   return p;
 }
 
+/** Folders become every .epub inside them, at any depth. Hidden files are skipped. */
 async function expand(host: Host, paths: string[]): Promise<{ path: string }[]> {
   const out: { path: string }[] = [];
   const walk = async (dir: string) => {
@@ -270,6 +327,28 @@ const commands = {
       throw new UserError("calibre-missing");
     });
     return ctx.queue().enqueue("calibre", `Bringing in ${items.length} books from Calibre`, items);
+  },
+
+  /**
+   * Look Up Details: ask Open Library for what books are missing (year,
+   * publisher, language, description, a missing author). Sends only titles,
+   * authors and ISBNs. Results wait in Needs Review; the whole run is one undo.
+   * With no ids, every book that is missing something and hasn't been looked up.
+   */
+  async "books.lookup"(ctx: Context, a: { ids?: number[]; again?: boolean } = {}) {
+    const ids = a.ids ?? (await lookupCandidates(ctx, !!a.again));
+    if (!ids.length) return null;
+    const label = ids.length === 1 ? `Looking up ${(await ctx.lib().get(ids[0])).title}` : `Looking up ${ids.length} books`;
+    return ctx.queue().enqueue(
+      "lookup",
+      label,
+      ids.map((id) => ({ id })),
+    );
+  },
+
+  /** How many books a Look Up Details for everything would check. */
+  async "books.lookupCount"(ctx: Context) {
+    return { count: (await lookupCandidates(ctx, false)).length };
   },
 
   async "jobs.get"(ctx: Context, a: { id: number }) {

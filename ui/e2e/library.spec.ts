@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { books, call, classicFiles, emma, reset, unknownAuthor } from "./helpers.ts";
 
 test.beforeEach(async ({ page }) => reset(page));
@@ -118,4 +118,31 @@ test("the keyboard moves through books like Finder, and Return opens Edit Detail
   await page.keyboard.press("Escape");
   await expect(page.locator(`[data-book="${first}"]`)).toBeFocused();
   await expect(page.locator('.tile[tabindex="0"]')).toHaveCount(1);
+});
+
+test("Look Up asks first, says what is sent, and what Open Library finds waits for review", async ({ page }) => {
+  const home = test.info().config.metadata.home as string;
+  writeFileSync(
+    `${home}/web.json`,
+    JSON.stringify({
+      "title=Emma&author=Jane+Austen": { docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815 }] },
+      "/works/OL66562W.json": { description: "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends." },
+    }),
+  );
+  await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
+  await page.reload();
+  await page.getByRole("button", { name: "Look Up" }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByRole("heading", { name: "Look up details for 1 book?" })).toBeVisible();
+  await expect(sheet).toContainText("Only each book’s title, author and ISBN are sent");
+  await sheet.getByRole("button", { name: "Look Up" }).click();
+  await expect(sheet.getByRole("heading", { name: "Found details for 1 book" })).toBeVisible();
+  await sheet.getByRole("button", { name: /Review 1 suggested/ }).click();
+  const review = page.getByRole("dialog", { name: "Check suggested details" });
+  await expect(review).toContainText("Published");
+  await expect(review).toContainText("1815");
+  await expect(review).toContainText("Open Library, matched by title and author");
+  await review.getByRole("button", { name: "Accept 2 changes" }).click();
+  await page.locator(".tile", { hasText: "Emma" }).click();
+  await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("1815");
 });

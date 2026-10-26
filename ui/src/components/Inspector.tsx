@@ -136,7 +136,13 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
                 <div key={`s${i}`}>
                   <AlertCircle size={12} style={{ color: "var(--warn)" }} />
                   <span>
-                    Suggested {s.field === "authors" ? "author" : s.field}: “{s.value}”, from {s.source}.
+                    {s.field === "description" ? (
+                      <>Suggested a description, from {s.source}.</>
+                    ) : (
+                      <>
+                        Suggested {s.field === "authors" ? "author" : s.field}: “{s.value}”, from {s.source}.
+                      </>
+                    )}
                   </span>
                 </div>
               ))}

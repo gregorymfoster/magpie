@@ -37,6 +37,13 @@ export interface Host {
    * message it won't send, so this goes through Mail itself.)
    */
   mail(draft: MailDraft): Promise<void>;
+  /**
+   * The one way out to the internet: a GET that returns parsed JSON, used only
+   * by Look Up Details (Open Library), and only when a person asks. Hosts pace
+   * these to about one a second so a big Library is a polite neighbour.
+   * Rejects when offline or on a non-2xx answer.
+   */
+  web: { getJson(url: string): Promise<unknown> };
   env: HostEnv;
 }
 
@@ -78,6 +85,17 @@ export const join = (...parts: string[]) =>
     .filter(Boolean)
     .join("/")
     .replace(/\/{2,}/g, "/");
+
+/** Wraps a call so that starts are at least `gap` ms apart, queued in order. Hosts use it for web.getJson. */
+export function paced<A extends unknown[], R>(fn: (...a: A) => Promise<R>, gap = 1000): (...a: A) => Promise<R> {
+  let next = 0;
+  return async (...a) => {
+    const at = Math.max(Date.now(), next);
+    next = at + gap;
+    if (at > Date.now()) await new Promise((r) => setTimeout(r, at - Date.now()));
+    return fn(...a);
+  };
+}
 
 export const basename = (p: string) => p.slice(p.lastIndexOf("/") + 1);
 export const parentOf = (p: string) => p.slice(0, Math.max(0, p.lastIndexOf("/"))) || "/";

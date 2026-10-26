@@ -7,7 +7,11 @@ export function patchFor(accepted: Suggestion[]): InfoPatch {
   const out: InfoPatch = {};
   for (const s of accepted) {
     if (s.field === "authors") out.authors = s.value.split(/\s+(?:&|and)\s+/);
-    else out.title = s.value;
+    else if (s.field === "year") out.year = Number(s.value);
+    else out[s.field] = s.value;
   }
   return out;
 }
+
+/** "author" for authors, the field name otherwise: how a suggestion's field reads in a sentence. */
+export const fieldWord = (f: Suggestion["field"]) => (f === "authors" ? "author" : f);

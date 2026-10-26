@@ -8,16 +8,18 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { unzipSync, strFromU8 } from "fflate";
-import { createCore, type CoreEvent } from "../src/index.ts";
+import { createCore, patchFor, type CoreEvent } from "../src/index.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
 import { epub, page } from "./fixtures.ts";
 
-function setup() {
+function setup(web?: Record<string, unknown>) {
   const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
   const volumes = join(home, "Volumes");
   mkdirSync(volumes);
   const opened = join(home, "opened.txt");
-  const core = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: volumes, MAGPIE_OPENED: opened }));
+  const MAGPIE_WEB = join(home, "web.json");
+  writeFileSync(MAGPIE_WEB, JSON.stringify(web ?? {}));
+  const core = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: volumes, MAGPIE_OPENED: opened, MAGPIE_WEB }));
   const file = (name: string, bytes: Uint8Array) => {
     const p = join(home, "Downloads", name);
     mkdirSync(join(home, "Downloads"), { recursive: true });
@@ -401,4 +403,139 @@ test("edits are checked, a Kobo must be a connected reader, and a missing file g
     await assert.rejects(core.call("books.edit", { id: b.id, patch }), (e: Error) => !/Copy Diagnostics/.test(e.message));
   await core.call("books.edit", { id: b.id, patch: { year: 1815, seriesIndex: 2.5, language: "pt-BR" } });
   await assert.rejects(core.call("send.kobo", { ids: [b.id], device: join(home, "Downloads") }), /isn't connected/);
+});
+
+// Open Library, as the fixture answers it. Keys are URL fragments; the first that matches answers.
+const OPEN_LIBRARY = {
+  "isbn=9780345535689": {
+    docs: [
+      {
+        key: "/works/OL16489877W",
+        title: "The great work of your life",
+        author_name: ["Stephen Cope"],
+        first_publish_year: 2012,
+        publisher: ["Bantam"],
+        language: ["eng"],
+        isbn: ["0345535685", "9780345535689"],
+        subject: ["Vocation", "Hinduism"],
+      },
+    ],
+  },
+  "title=Emma&author=Jane+Austen": {
+    docs: [
+      {
+        key: "/works/OL66562W",
+        title: "Emma",
+        author_name: ["Jane Austen"],
+        first_publish_year: 1815,
+        publisher: ["Penguin", "Dover"],
+        language: ["eng"],
+        subject: ["Fiction"],
+      },
+      { key: "/works/OL1W", title: "Emma's Secret", author_name: ["Someone Else"], first_publish_year: 2001 },
+    ],
+  },
+  "title=Emma&fields": { docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815 }] },
+  "/works/OL66562W.json": {
+    description: "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends.\r\n\r\n----------\r\nContains: [x](y)",
+  },
+  "/works/OL16489877W.json": { description: { value: "A guide to finding the work you were born to do, through the Bhagavad Gita." } },
+};
+
+const withIsbn = () =>
+  epub({
+    opfMeta:
+      '<dc:identifier id="id">urn:isbn:978-0-345-53568-9</dc:identifier><dc:title>The Great Work of Your Life</dc:title><dc:creator>Stephen Cope</dc:creator><dc:language>en</dc:language>',
+  });
+
+test("Look Up Details fills what books are missing from Open Library, waits for review, and is one undo", async () => {
+  const { core, file } = setup(OPEN_LIBRARY);
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub()), file("cope.epub", withIsbn())] });
+  await core.idle();
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 2 });
+  const job = await core.call("books.lookup", {});
+  await core.idle();
+  const done = await core.call("jobs.get", { id: job!.id });
+  assert.deepEqual(
+    done.results.map((r) => [r.label, r.outcome, r.message]),
+    [
+      ["Emma", "found", "Found year and description."],
+      ["The Great Work of Your Life", "found", "Found year, publisher and description."],
+    ],
+  );
+  const [emma, cope] = await Promise.all((await core.call("books.list", { sort: "title" })).map((b) => core.call("books.get", { id: b.id })));
+  assert.equal(emma.state, "review");
+  assert.deepEqual(
+    emma.report.suggestions.map((s) => [s.field, s.value, s.confidence, s.source]),
+    [
+      ["year", "1815", 0.9, "Open Library, matched by title and author"],
+      [
+        "description",
+        "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends.",
+        0.9,
+        "Open Library, matched by title and author",
+      ],
+    ],
+    "the language is already there, and a publisher is only taken from an exact edition (ISBN)",
+  );
+  assert.deepEqual(emma.plan.catalog?.subjects, ["Fiction"]);
+  assert.equal(emma.plan.catalog?.firstYear, 1815);
+  assert.equal(emma.year, undefined, "nothing is written before review");
+  assert.deepEqual(
+    cope.report.suggestions.map((s) => [s.field, s.value, s.confidence]),
+    [
+      ["year", "2012", 0.95],
+      ["publisher", "Bantam", 0.95],
+      ["description", "A guide to finding the work you were born to do, through the Bhagavad Gita.", 0.95],
+    ],
+  );
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 0 }, "looked-up books aren't asked about again");
+
+  // The whole run is one ⌘Z.
+  assert.equal((await core.call("app.state")).undo, "Look Up Details");
+  await core.call("history.undo");
+  assert.equal((await core.call("books.get", { id: emma.id })).report.suggestions.length, 0);
+  assert.equal((await core.call("books.get", { id: cope.id })).state, "fixed");
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 2 });
+
+  // Again, then accept: the year is written into the book.
+  await core.call("books.lookup", { ids: [emma.id] });
+  await core.idle();
+  const again = await core.call("books.get", { id: emma.id });
+  await core.call("books.review", { decisions: [{ id: emma.id, accept: patchFor(again.report.suggestions), dismiss: [] }] });
+  const accepted = await core.call("books.get", { id: emma.id });
+  assert.equal(accepted.year, 1815);
+  assert.equal(accepted.state, "fixed");
+  assert.match(strFromU8(unzipSync(readFileSync(accepted.file))["content.opf"]), /<dc:date>1815<\/dc:date>/);
+});
+
+test("Look Up Details is careful: the book's own pages win, an unclear match suggests nothing, offline gets a sentence, DRM is skipped", async () => {
+  const { core, file } = setup({
+    ...OPEN_LIBRARY,
+    "title=Nobody": { docs: [{ key: "/works/X", title: "Nobody Knows", author_name: ["A"] }] },
+    "title=Offline": null,
+  });
+  await core.call("app.state");
+  const nobody = epub({ opfMeta: '<dc:identifier id="id">urn:uuid:7</dc:identifier><dc:title>Nobody</dc:title><dc:creator>B. Writer</dc:creator>' });
+  const offline = epub({ opfMeta: '<dc:identifier id="id">urn:uuid:8</dc:identifier><dc:title>Offline</dc:title><dc:creator>C. Writer</dc:creator>' });
+  await core.call("books.import", { paths: [file("unknown.epub", unknownAuthor()), file("nobody.epub", nobody), file("offline.epub", offline)] });
+  await core.idle();
+  const job = await core.call("books.lookup", {});
+  await core.idle();
+  const results = (await core.call("jobs.get", { id: job!.id })).results;
+  assert.deepEqual(
+    results.map((r) => [r.label, r.outcome]),
+    [
+      ["Emma", "found"],
+      ["Nobody", "skipped"],
+      ["Offline", "failed"],
+    ],
+  );
+  assert.match(results[1].message!, /no clear match/);
+  assert.match(results[2].message!, /couldn't reach Open Library/);
+  const [emma] = await core.call("books.list", { search: "Emma" });
+  const authors = (await core.call("books.get", { id: emma.id })).report.suggestions.find((s) => s.field === "authors")!;
+  assert.equal(authors.source.includes("Open Library"), false, "the title page's Author: line beats an unchecked title-only match");
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 1 }, "only the offline one is left to try");
 });

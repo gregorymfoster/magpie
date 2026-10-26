@@ -5,6 +5,8 @@
 //   MAGPIE_HOME      stands in for ~ (config, ~/Books/Magpie, ~/Calibre Library)
 //   MAGPIE_VOLUMES   stands in for /Volumes, so a test can plug in a fake Kobo
 //   MAGPIE_OPENED    a file that `open` and `mail` append to instead of launching apps
+//   MAGPIE_WEB       a JSON file of { "url fragment": answer } standing in for the internet;
+//                    an answer of null is "offline", and an unlisted URL fails too
 
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -12,7 +14,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import type { Db, Host, SqlValue } from "@magpie/core";
+import { paced, type Db, type Host, type SqlValue } from "@magpie/core";
 
 const VERSION = "0.1.3";
 
@@ -94,6 +96,20 @@ export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
           .on("error", reject)
           .on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`)))),
       );
+    },
+    web: {
+      getJson: env.MAGPIE_WEB
+        ? async (url) => {
+            const answers: Record<string, unknown> = JSON.parse(await readFile(env.MAGPIE_WEB!, "utf8"));
+            const hit = Object.keys(answers).find((k) => url.includes(k));
+            if (hit === undefined || answers[hit] === null) throw new Error(`offline: ${url}`);
+            return answers[hit];
+          }
+        : paced(async (url) => {
+            const r = await fetch(url, { headers: { "User-Agent": `Magpie/${VERSION} (https://github.com/gregorymfoster/magpie)` } });
+            if (!r.ok) throw new Error(`${r.status} from ${url}`);
+            return r.json();
+          }),
     },
     env: {
       home,

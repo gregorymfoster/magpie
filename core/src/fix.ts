@@ -14,6 +14,7 @@ import { cover } from "./fixers/cover.ts";
 import { metadata } from "./fixers/metadata.ts";
 import { toc } from "./fixers/toc.ts";
 import type { Change, Fixer } from "./fixers/types.ts";
+import { fieldWord, patchFor } from "./suggestions.ts";
 import { coverImage, readInfo, suggest, writeInfo, type BookInfo, type InfoPatch, type Suggestion } from "./info.ts";
 
 export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, metadata, toc];
@@ -27,8 +28,23 @@ export interface FixPlan {
   info: InfoPatch;
   /** Suggestions a person turned down: the book keeps what it says. */
   dismissed?: Suggestion["field"][];
+  /** What a catalog lookup (Look Up Details) found, waiting for review like the book's own suggestions. */
+  found?: Suggestion[];
+  /** The catalog record a lookup matched, kept for later use (sorting by year written, tags). Never written into the book. */
+  catalog?: CatalogRecord;
   /** Pinned stand-ins for a fresh uuid and today's date (see Book.stamp). */
   stamp: { uuid: string; modified: string };
+}
+
+export interface CatalogRecord {
+  source: "openlibrary";
+  /** "/works/OL16489877W" */
+  key: string;
+  /** The year the work was first published, which the book's own date (usually the edition's) often isn't. */
+  firstYear?: number;
+  subjects: string[];
+  /** When it was looked up. */
+  at: string;
 }
 
 export interface FixReport {
@@ -64,7 +80,14 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
       errors.push({ fixer: f.id, error: e instanceof Error ? e.message : String(e) });
     }
   }
-  const suggestions = suggest(book).filter((s) => plan.info[s.field] === undefined && !plan.dismissed?.includes(s.field));
+  // The book's own pages first; a looked-up value only where it's surer or the pages had nothing.
+  const merged = suggest(book);
+  for (const f of plan.found ?? []) {
+    const i = merged.findIndex((s) => s.field === f.field);
+    if (i === -1) merged.push(f);
+    else if (f.confidence > merged[i].confidence) merged[i] = f;
+  }
+  const suggestions = merged.filter((s) => plan.info[s.field] === undefined && !plan.dismissed?.includes(s.field));
   if (Object.keys(plan.info).length) writeInfo(book, plan.info);
   const c = coverImage(book);
   return {
@@ -76,14 +99,7 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
 }
 
 /** Turn accepted suggestions into plan values. */
-export function accept(suggestions: Suggestion[]): InfoPatch {
-  const patch: InfoPatch = {};
-  for (const s of suggestions) {
-    if (s.field === "authors") patch.authors = s.value.split(/\s+(?:&|and)\s+/);
-    else patch[s.field] = s.value;
-  }
-  return patch;
-}
+export const accept = patchFor;
 
 /**
  * Fix and accept every suggestion: what the CLI's --accept and the bench do,
@@ -106,6 +122,6 @@ export function fixAndAccept(original: Uint8Array, stamp: FixPlan["stamp"] = new
   return second;
 }
 
-const label = (f: Suggestion["field"]) => (f === "authors" ? "author" : f);
+const label = fieldWord;
 
 export type { Change, Fixer } from "./fixers/types.ts";

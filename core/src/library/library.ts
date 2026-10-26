@@ -8,7 +8,7 @@
 
 import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
-import { fix, newPlan, type FixPlan, type FixReport } from "../fix.ts";
+import { fix, newPlan, type CatalogRecord, type FixPlan, type FixReport } from "../fix.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
@@ -75,6 +75,13 @@ export interface ListQuery {
 }
 
 export const REMOVED_DAYS = 30;
+
+/** What a book's plan held before a lookup changed it. */
+export interface LookupPrev {
+  id: number;
+  found?: Suggestion[];
+  catalog?: CatalogRecord;
+}
 
 type Row = Record<string, SqlValue>;
 interface Snapshot {
@@ -251,6 +258,32 @@ export class Library {
       };
       await this.rebuild(d.id, plan);
       steps.push({ id: d.id, before, after: { ...before, plan } });
+    }
+    if (steps.length) await this.record(label, steps);
+  }
+
+  /**
+   * Keep what a catalog lookup found on the book's plan, so it shows on the
+   * review sheet. Returns what it replaced; the lookup job turns those into
+   * one undo step for the whole run when it ends (recordLookups). Kept small
+   * because a job saves its results after every book.
+   */
+  async lookedUp(id: number, found: Suggestion[], catalog?: CatalogRecord): Promise<LookupPrev> {
+    const { plan: was } = await this.snapshot(id);
+    await this.rebuild(id, { ...was, found, catalog: catalog ?? was.catalog });
+    return { id, found: was.found, catalog: was.catalog };
+  }
+
+  /** One undo step for a whole lookup run: each book back to what it had found before. */
+  async recordLookups(label: string, prevs: LookupPrev[]) {
+    const steps = [];
+    for (const p of prevs) {
+      const now = await this.snapshot(p.id).catch(() => null);
+      if (!now) continue;
+      const plan: FixPlan = { ...now.plan, found: p.found, catalog: p.catalog };
+      if (p.found === undefined) delete plan.found;
+      if (p.catalog === undefined) delete plan.catalog;
+      steps.push({ id: p.id, before: { ...now, plan }, after: now });
     }
     if (steps.length) await this.record(label, steps);
   }

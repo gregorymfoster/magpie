@@ -2,7 +2,7 @@
 // to the window (tauri.ts), which forwards it to Rust.
 
 import * as Comlink from "comlink";
-import { createCore, type Core, type CoreEvent, type Db, type Host, type HostEnv } from "@magpie/core";
+import { createCore, paced, type Core, type CoreEvent, type Db, type Host, type HostEnv } from "@magpie/core";
 import type { TauriHost } from "./tauri.ts";
 
 let core: Core | null = null;
@@ -30,6 +30,14 @@ function workerHost(r: Comlink.Remote<TauriHost>, env: HostEnv): Host {
     sqlite: { open: async (p, o) => db(await r.dbOpen(p, !!o?.readonly)) },
     open: (p) => r.open(p),
     mail: (d) => r.mail(d),
+    // Straight from the worker: only openlibrary.org is allowed out (connect-src in tauri.conf.json).
+    web: {
+      getJson: paced(async (url) => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status} from ${url}`);
+        return res.json();
+      }),
+    },
     env,
   };
 }

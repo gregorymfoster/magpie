@@ -24,13 +24,18 @@ export { patchFor } from "./suggestions.ts";
 
 export type InfoPatch = Partial<BookInfo>;
 
+/** Fields a suggestion can fill: from the book's own pages (title, author) or a catalog lookup. */
+export type SuggestField = "title" | "authors" | "year" | "publisher" | "language" | "description";
+
 export interface Suggestion {
-  field: "title" | "authors";
+  field: SuggestField;
   /** What the book says now ("" when it says nothing). */
   current: string;
   value: string;
   /** Where Magpie read it, in words. */
   source: string;
+  /** "book" (its own pages, the default) or "catalog" (looked up online, on request). */
+  from?: "book" | "catalog";
   /** 0 to 1. The review sheet leaves anything under 0.8 unticked. */
   confidence: number;
 }

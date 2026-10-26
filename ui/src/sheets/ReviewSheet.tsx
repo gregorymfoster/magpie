@@ -2,7 +2,7 @@
 // Nothing is written until accepted; low-confidence guesses start unticked.
 
 import { useMemo, useState } from "react";
-import { BookOpen, Check, Info, Lock } from "lucide-react";
+import { BookOpen, Check, Globe, Info, Lock } from "lucide-react";
 import type { BookDetail, Suggestion } from "@magpie/core";
 import { patchFor } from "@magpie/core/suggestions";
 import { useAction, useCall } from "../api.tsx";
@@ -11,7 +11,14 @@ import { Cover } from "../components/Cover.tsx";
 import { useToast } from "../components/Toasts.tsx";
 import { plural } from "../format.ts";
 
-const FIELD = { title: "Title", authors: "Author" } as const;
+const FIELD: Record<Suggestion["field"], string> = {
+  title: "Title",
+  authors: "Author",
+  year: "Published",
+  publisher: "Publisher",
+  language: "Language",
+  description: "Description",
+};
 
 export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const { data: list } = useCall("books.list", { state: "review" });
@@ -122,10 +129,21 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
                   <td className="f">{FIELD[s.field]}</td>
                   <td className="old">{s.current || <span className="empty-old">empty</span>}</td>
                   <td>
-                    <div className="new">{s.value}</div>
+                    <div className={"new" + (s.field === "description" ? " long" : "")} title={s.field === "description" ? s.value : undefined}>
+                      {s.value}
+                    </div>
                     <div className="src">
-                      <BookOpen size={11} />
-                      In the book: {s.source.replace(/^the /, "")}
+                      {s.from === "catalog" ? (
+                        <>
+                          <Globe size={11} />
+                          {s.source}
+                        </>
+                      ) : (
+                        <>
+                          <BookOpen size={11} />
+                          In the book: {s.source.replace(/^the /, "")}
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -134,8 +152,8 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
           </table>
           <p style={{ fontSize: 12, color: "var(--fg3)", marginTop: 12, display: "flex", gap: 6 }}>
             <Info size={13} style={{ flex: "none" }} />
-            Suggestions come from the book’s own pages: its title page, copyright page or Project Gutenberg header. Unticked ones are turned down, and the book
-            keeps what it says.
+            Suggestions come from the book’s own pages (its title page, copyright page or Project Gutenberg header) or, when you’ve used Look Up Details, from
+            Open Library. Unticked ones are turned down, and the book keeps what it says.
           </p>
         </div>
       </div>

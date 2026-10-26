@@ -16,7 +16,7 @@ import { spawn } from "node:child_process";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { paced, type Db, type Host, type SqlValue } from "@magpie/core";
 
-const VERSION = "0.1.3";
+const VERSION = "0.1.4";
 
 /** Keep in step with MAIL_SCRIPT in app/src-tauri/src/main.rs. Values arrive as arguments, never spliced into the script. */
 const MAIL_SCRIPT = `on run argv

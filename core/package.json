@@ -1,6 +1,6 @@
 {
   "name": "@magpie/core",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Magpie's engine: EPUB fixers, the Library, import, send. No DOM, no Node APIs.",
   "license": "MIT",
   "type": "module",

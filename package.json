@@ -1,6 +1,6 @@
 {
   "name": "magpie-monorepo",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A calm, beautiful ebook manager for the Mac. Fixes the books you already have. Nothing is uploaded.",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@magpie/app",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "The Mac app: a Tauri shell around ui/ and core/.",
   "license": "MIT",
   "type": "module",

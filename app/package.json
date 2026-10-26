@@ -1,1 +1,14 @@
-{"name":"@magpie/app","private":true,"version":"0.1.0","type":"module"}
+{
+  "name": "@magpie/app",
+  "version": "0.1.0",
+  "description": "The Mac app: a Tauri shell around ui/ and core/.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0"
+  }
+}

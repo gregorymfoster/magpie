@@ -59,7 +59,10 @@ export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
     sqlite: {
       async open(path, opts) {
         if (!opts?.readonly) await mkdir(dirname(path), { recursive: true });
-        return sqliteDb(new DatabaseSync(path, { readOnly: !!opts?.readonly }));
+        const db = new DatabaseSync(path, { readOnly: !!opts?.readonly });
+        // The app and `magpie mcp` can have the same Library open; wait for each other's writes instead of failing.
+        db.exec("PRAGMA busy_timeout = 5000");
+        return sqliteDb(db);
       },
     },
     async open(path) {

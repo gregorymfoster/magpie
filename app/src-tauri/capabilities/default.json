@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "What the window may do: open dialogs, listen for menu and drop events, update and relaunch.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-open", "updater:default", "process:allow-restart"]
+}

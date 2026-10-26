@@ -1,0 +1,49 @@
+# Push a tag like v0.1.0 to publish a release: a universal Magpie.dmg (Apple
+# silicon and Intel) and, once the signing secret exists, the updater files.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - run: npm ci
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: app
+          tauriScript: npx tauri
+          args: --target universal-apple-darwin
+          tagName: ${{ github.ref_name }}
+          releaseName: Magpie ${{ github.ref_name }}
+          releaseBody: See the notes below. First time opening it? Control-click Magpie in Applications and choose Open.
+          releaseDraft: false
+          includeUpdaterJson: true
+      # A name that never changes, so the website's Download button always gets the newest build.
+      - name: Upload Magpie.dmg
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls app/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
+          cp "$dmg" Magpie.dmg
+          gh release upload "${{ github.ref_name }}" Magpie.dmg --clobber

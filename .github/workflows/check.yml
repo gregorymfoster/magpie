@@ -1,0 +1,43 @@
+# The same gate as `just check`, on every push. The Mac job builds and tests the Rust host.
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: extractions/setup-just@v2
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: just check
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright
+          path: ui/test-results
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+      - run: npm ci
+      - run: npm run build -w ui
+      - run: cargo test --manifest-path app/src-tauri/Cargo.toml
+      - run: npm run tauri -w app -- build --debug --bundles app

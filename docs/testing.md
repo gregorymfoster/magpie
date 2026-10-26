@@ -6,7 +6,7 @@
 |---|---|---|
 | `fix(original, plan)` | `core/test/fixers.test.ts` | One damage, one fixer behaviour. Small hand-made EPUBs from `core/test/fixtures.ts`. |
 | `core.call` on the Node host | `core/test/core.test.ts` | Anything a person can do: import, review, undo, remove, Calibre, send. Start here. |
-| Host contract | `core/test/host-contract.ts`, run by `cli/test/node-host.test.ts` | What every host must do (atomic writes, SQLite, listing). The Tauri host runs it in CI on macOS. |
+| Host contract | `core/test/host-contract.ts`, run by `cli/test/node-host.test.ts` | What every host must do (atomic writes, SQLite, listing). The Rust half of the Tauri host has the same checks as `cargo test` in `app/src-tauri/src/host.rs`, run by the `mac` CI job. |
 | The window | `ui/e2e/*.spec.ts` | Flows through the real UI against `magpie serve` on a temp Library. Set up state with `call()` and assert what a person would see. |
 | The bench | `just bench` | Fixer quality across the corpus. Any drop is a regression; it exits non-zero. |
 

@@ -114,6 +114,8 @@ function Window() {
             return setSheet({ type: "review" });
           case "settings":
             return setSheet({ type: "settings" });
+          case "updates":
+            return setSheet({ type: "settings", section: "Updates" });
           case "edit":
             return ids.length === 1 && setSheet({ type: "edit", id: ids[0] });
           case "selectAll":
@@ -152,7 +154,8 @@ function Window() {
     [sel, t, items, view, act, toast, importPaths],
   );
 
-  // Keyboard, for the browser. In the app the menu bar owns these keys and sends the same ids.
+  // Keyboard. In the app WebKit sees a shortcut before the menu bar does, so handling it here
+  // (and preventing the default) means the menu item fires only when it's clicked.
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest?.("input, textarea, select");
@@ -172,7 +175,14 @@ function Window() {
   }, [run, sheet]);
   useEffect(() => {
     let off = () => {};
-    void onMenu((id) => void run(id)).then((f) => (off = f));
+    void onMenu((id) => {
+      // Edit › Undo and Select All are ours, but in a text field they belong to the text.
+      const field = document.activeElement?.closest?.("input, textarea");
+      if (field && id === "undo") return document.execCommand("undo");
+      if (field && id === "selectAll") return (field as HTMLInputElement).select();
+      if (field && id === "remove") return;
+      void run(id);
+    }).then((f) => (off = f));
     return () => off();
   }, [run]);
 

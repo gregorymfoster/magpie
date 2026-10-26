@@ -16,6 +16,7 @@ const CHIP: Record<JobResult["outcome"], [string, string]> = {
   sent: ["ok", "Sent"],
   failed: ["bad", "Failed"],
   found: ["ok", "Found"],
+  sorted: ["ok", "Sorted"],
 };
 
 export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; onClose: () => void; onReview: () => void; reviewCount: number }) {

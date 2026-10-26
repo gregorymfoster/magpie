@@ -147,6 +147,48 @@ test("Look Up asks first, says what is sent, and what Open Library finds waits f
   await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("1815");
 });
 
+test("books land on shelves; the sidebar filters by shelf, author and series; tags go on and come off", async ({ page }) => {
+  await call(page, "books.import", { paths: classicFiles() });
+  await expect.poll(async () => (await call(page, "books.list")).length).toBe(15);
+  await page.reload();
+  const side = page.getByRole("navigation", { name: "Library" });
+  await side.getByRole("button", { name: /^Fiction \d+$/ }).click();
+  await expect(page.locator(".ttl h1")).toHaveText("Fiction");
+  await side.getByRole("button", { name: /^Science Fiction 1$/ }).click();
+  await expect(page.locator(".tile .t")).toHaveText(["Frankenstein"]);
+  await side.getByRole("button", { name: /^Jane Austen 2$/ }).click();
+  await expect(page.locator(".tile")).toHaveCount(2);
+
+  await page.locator(".tile", { hasText: "Persuasion" }).click();
+  const insp = page.getByRole("complementary", { name: "Inspector" });
+  await expect(insp.locator(".chip.ai", { hasText: "Romance" })).toBeVisible();
+  await insp.getByLabel("Add a tag").fill("Book club");
+  await insp.getByLabel("Add a tag").press("Enter");
+  await expect(side.getByRole("button", { name: /^Book club 1$/ })).toBeVisible();
+  await insp.getByRole("button", { name: "Take off Romance" }).click();
+  await expect(insp.locator(".chip", { hasText: "Romance" })).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(insp.locator(".chip.ai", { hasText: "Romance" })).toBeVisible();
+});
+
+test("the list's columns can be chosen, and the choice is remembered", async ({ page }) => {
+  await call(page, "books.import", { paths: classicFiles() });
+  await expect.poll(async () => (await call(page, "books.list")).length).toBe(15);
+  await page.goto("/?layout=list");
+  const head = page.locator(".tbl thead");
+  await expect(head.locator("th")).toContainText(["Title", "Author", "Series", "Year", "Genre", "Status"]);
+  await page.getByRole("button", { name: "Choose columns" }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Shelf" }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Status" }).click();
+  await page.keyboard.press("Escape");
+  await expect(head.locator("th", { hasText: "Shelf" })).toBeVisible();
+  await expect(head.locator("th", { hasText: "Status" })).toHaveCount(0);
+  await expect(page.locator(".tbl tbody tr", { hasText: "Dracula" })).toContainText("Horror");
+  await page.reload();
+  await expect(head.locator("th", { hasText: "Shelf" })).toBeVisible();
+  await page.evaluate(() => localStorage.removeItem("magpie.columns"));
+});
+
 test("Space previews a book on a reader; pages turn into the next chapter, and Original shows the file before the fix", async ({ page }) => {
   await call(page, "books.import", { paths: books({ "pp.epub": longBook() }) });
   await expect.poll(async () => (await call(page, "books.list")).length).toBe(1);

@@ -53,12 +53,27 @@ export const CLASSICS: [string, string][] = [
   ["The Portrait of a Lady", "Henry James"],
   ["Dracula", "Bram Stoker"],
 ];
+/** Library of Congress subjects like Gutenberg's, so the classics land on shelves. */
+const SUBJECTS: Record<string, string> = {
+  "Pride and Prejudice": "Love stories",
+  Middlemarch: "Domestic fiction",
+  "Moby-Dick": "Sea stories",
+  "Great Expectations": "Bildungsromans",
+  "Anna Karenina": "Love stories",
+  Persuasion: "Love stories",
+  "The Odyssey": "Epic poetry, Greek",
+  "Little Women": "Domestic fiction",
+  Frankenstein: "Science fiction",
+  "Bleak House": "Domestic fiction",
+  Dracula: "Horror tales",
+};
 export const classic = ([title, author]: [string, string], i: number) =>
   epub({
-    opfMeta: `<dc:identifier id="id">urn:uuid:c${i}</dc:identifier><dc:title>${title}</dc:title><dc:creator>${i === 3 ? "Unknown" : author}</dc:creator><dc:language>en</dc:language>`,
+    opfMeta: `<dc:identifier id="id">urn:uuid:c${i}</dc:identifier><dc:title>${title}</dc:title><dc:creator>${i === 3 ? "Unknown" : author}</dc:creator><dc:language>en</dc:language>${
+      SUBJECTS[title] ? `<dc:subject>${SUBJECTS[title]}</dc:subject><dc:subject>Fiction</dc:subject>` : ""
+    }`,
     pages: { "title.xhtml": xhtml(`<p>Title: ${title}</p><p>Author: ${author}</p>`), "ch1.xhtml": xhtml("<h2>Chapter 1</h2><p>It begins.</p>") },
   });
-
 
 /** All the classics, as files in a temp folder. */
 export const classicFiles = () => books(Object.fromEntries(CLASSICS.map((c, i) => [`${c[0].replace(/\W+/g, "-")}.epub`, classic(c, i)])));
@@ -79,10 +94,17 @@ export const longBook = () => {
     opfMeta:
       '<dc:identifier id="id">urn:uuid:pp</dc:identifier><dc:title>Pride and Prejudice</dc:title><dc:creator>Jane Austen</dc:creator><dc:language>en</dc:language>',
     pages: {
-      "ch1.xhtml": xhtml(`<h2>Chapter 1</h2>${text(6)}<div class="fig"><img src="plate.svg" alt="A plate"/></div>${text(18)}`).replace("<title>t</title>", head),
+      "ch1.xhtml": xhtml(`<h2>Chapter 1</h2>${text(6)}<div class="fig"><img src="plate.svg" alt="A plate"/></div>${text(18)}`).replace(
+        "<title>t</title>",
+        head,
+      ),
       "ch2.xhtml": xhtml(`<h2>Chapter 2</h2>${text(16)}`).replace("<title>t</title>", head),
     },
     manifest: '<item id="css" href="style.css" media-type="text/css"/><item id="plate" href="plate.svg" media-type="image/svg+xml"/>',
-    extra: { "style.css": "h2 { text-align: center; font-weight: normal; margin: 2em 0 1em } p { margin: 0; text-indent: 1.5em } .fig { text-align: center; margin: 1em 0 }", "plate.svg": svg },
+    extra: {
+      "style.css":
+        "h2 { text-align: center; font-weight: normal; margin: 2em 0 1em } p { margin: 0; text-indent: 1.5em } .fig { text-align: center; margin: 1em 0 }",
+      "plate.svg": svg,
+    },
   });
 };

@@ -81,8 +81,9 @@ function Window() {
   }, [layout]);
 
   const open = state?.library.status === "open";
-  const query = view === "review" ? { state: "review" as const } : view === "removed" ? { removed: true } : {};
+  const query = view === "review" ? { state: "review" as const } : view === "removed" ? { removed: true } : groupQuery(view);
   const { data: books = [] } = useCall("books.list", { ...query, search: q || undefined }, { enabled: open });
+  const { data: groups } = useCall("library.groups", undefined, { enabled: open });
   // Nothing tells the window a reader was plugged in, so look every few seconds (it's one folder listing).
   const { data: devices = [] } = useCall("devices.list", undefined, { enabled: open, every: 3000 });
   const kobo = view.startsWith("kobo:") ? view.slice(5) : null;
@@ -257,6 +258,7 @@ function Window() {
   const title =
     { all: "All Books", review: "Needs Review", recent: "Recently Added", removed: "Removed", kindle: "Kindle" }[view as string] ??
     devices.find((d) => `kobo:${d.path}` === view)?.name ??
+    (/^(tag|author|series):/.test(view) ? view.slice(view.indexOf(":") + 1) : undefined) ??
     "Kobo";
   const empty = state.counts.all === 0 && !q && view === "all";
 
@@ -311,6 +313,8 @@ function Window() {
           state={state}
           devices={devices}
           view={view}
+          groups={groups}
+          onSort={() => void act("library.organize").catch((e) => toast({ message: e instanceof Error ? e.message : String(e), error: true }))}
           setView={(v) => {
             setView(v);
             setSel([]);
@@ -367,7 +371,15 @@ function Window() {
             >
               {body}
             </div>
-            {showInsp && !empty && <Inspector chosen={chosen} act={inspect} />}
+            {showInsp && !empty && (
+              <Inspector
+                chosen={chosen}
+                act={inspect}
+                onTag={(name) => {
+                  setView(`tag:${name}`);
+                }}
+              />
+            )}
           </div>
         </div>
         {drag && (
@@ -399,6 +411,12 @@ function Window() {
       <StatusBar books={books} state={state} />
     </div>
   );
+}
+
+/** Shelves, vibes, tags, authors and series in the sidebar are each a filter on the list. */
+function groupQuery(view: View): { tag?: string; author?: string; series?: string } {
+  const m = view.match(/^(tag|author|series):(.*)$/s);
+  return m ? { [m[1]]: m[2] } : {};
 }
 
 function initialSheet(sel: number[]): SheetState {

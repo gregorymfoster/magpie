@@ -35,6 +35,7 @@ const summary = (b: BookSummary) => ({
   ...(b.year && { year: b.year }),
   language: b.language,
   state: b.state,
+  ...(b.tags.length && { tags: b.tags.map((t) => t.name) }),
   added: b.addedAt.slice(0, 10),
   ...(b.removedAt && { removed: b.removedAt.slice(0, 10) }),
 });
@@ -100,6 +101,9 @@ export function mcpServer(core: Core, version: string) {
       inputSchema: {
         search: z.string().optional(),
         state: z.enum(["ready", "fixed", "review", "locked"]).optional(),
+        tag: z.string().optional().describe("A shelf (Fiction, Nonfiction), genre, vibe or tag, exactly as list_shelves names it"),
+        author: z.string().optional(),
+        series: z.string().optional(),
         removed: z.boolean().optional().describe("Search Removed instead of the Library"),
         sort: z.enum(["added", "title", "author"]).optional(),
         limit: z.number().int().min(1).max(500).default(50),
@@ -214,6 +218,47 @@ export function mcpServer(core: Core, version: string) {
     async ({ ids }) => {
       await core.call("books.restore", { ids });
       return text(`Restored ${ids.length}.`);
+    },
+  );
+
+  server.registerTool(
+    "list_shelves",
+    {
+      title: "List shelves",
+      description:
+        "How the Library is sorted: Fiction and Nonfiction with their genres, vibes, other tags, and authors and series with two or more books, each with a count.",
+      annotations: read,
+    },
+    async () => text(await core.call("library.groups")),
+  );
+
+  server.registerTool(
+    "tag_books",
+    {
+      title: "Tag books",
+      description:
+        "Put tags on books, or take them off. Tags can be a genre or vibe from list_shelves or any word the user likes. A tag taken off stays off when Magpie sorts again.",
+      inputSchema: { ids, add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() },
+      annotations: write,
+    },
+    async ({ ids, add, remove }) => {
+      await core.call("books.tag", { ids, add, remove });
+      return text(`Tagged ${ids.length}.`);
+    },
+  );
+
+  server.registerTool(
+    "sort_library",
+    {
+      title: "Sort onto shelves",
+      description:
+        "Sort books into Fiction or Nonfiction, a genre and a vibe, from their own subjects first and Magpie's local model second. Never touches tags the user added. Without ids, sorts books not sorted yet; again: true re-sorts everything.",
+      inputSchema: { ids: ids.optional(), again: z.boolean().optional() },
+      annotations: write,
+    },
+    async (a) => {
+      const job = await core.call("library.organize", a);
+      return job ? text(await finish(job)) : text("Every book is already sorted.");
     },
   );
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Lock } from "lucide-react";
-import type { BookSummary } from "@magpie/core";
+import { Check, Columns3, Lock } from "lucide-react";
+import { GENRE_NAMES, KINDS, VIBE_NAMES, type BookSummary } from "@magpie/core";
 import { Cover } from "./Cover.tsx";
-import { authors, date, size } from "../format.ts";
+import { authors, date, language, size } from "../format.ts";
 
 type Select = (id: number, e: React.MouseEvent) => void;
 
@@ -100,32 +100,146 @@ export function Grid({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
   );
 }
 
+type Column = { id: string; label: string; width: string; cell: (b: BookSummary) => React.ReactNode; className?: string };
+
+const names = (b: BookSummary, keep: (n: string) => boolean) =>
+  b.tags
+    .map((t) => t.name)
+    .filter(keep)
+    .join(", ");
+const isKind = (n: string) => (KINDS as string[]).includes(n);
+const isOther = (n: string) => !isKind(n) && !GENRE_NAMES.has(n) && !VIBE_NAMES.has(n);
+
+/** Every column the list can show, in order. Title is always there. */
+export const COLUMNS: Column[] = [
+  { id: "author", label: "Author", width: "22%", cell: (b) => authors(b.authors), className: "mut" },
+  { id: "series", label: "Series", width: "16%", cell: (b) => (b.series ? `${b.series}${b.seriesIndex ? ` ${b.seriesIndex}` : ""}` : ""), className: "mut" },
+  {
+    id: "year",
+    label: "Year",
+    width: "64px",
+    className: "num",
+    // The year it was first published when Look Up Details found it; otherwise the book's own, usually its edition's, shown lighter.
+    cell: (b) =>
+      b.firstYear ??
+      (b.year ? (
+        <span className="ed" title="The year of this edition. Look Up Details finds when the book first came out.">
+          {b.year}
+        </span>
+      ) : (
+        ""
+      )),
+  },
+  { id: "shelf", label: "Shelf", width: "96px", cell: (b) => names(b, isKind), className: "mut" },
+  { id: "genre", label: "Genre", width: "15%", cell: (b) => names(b, (n) => GENRE_NAMES.has(n)), className: "mut" },
+  { id: "vibe", label: "Vibe", width: "12%", cell: (b) => names(b, (n) => VIBE_NAMES.has(n)), className: "mut" },
+  { id: "tags", label: "Tags", width: "14%", cell: (b) => names(b, isOther), className: "mut" },
+  { id: "publisher", label: "Publisher", width: "14%", cell: (b) => b.publisher ?? "", className: "mut" },
+  { id: "language", label: "Language", width: "88px", cell: (b) => language(b.language), className: "mut" },
+  { id: "size", label: "Size", width: "72px", cell: (b) => size(b.size), className: "num" },
+  { id: "added", label: "Added", width: "100px", cell: (b) => date(b.addedAt), className: "num" },
+  { id: "status", label: "Status", width: "124px", cell: (b) => <StatePill state={b.state} /> },
+];
+export const DEFAULT_COLUMNS = ["author", "series", "year", "genre", "status"];
+
+function useColumns() {
+  const [ids, setIds] = useState<string[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("magpie.columns") ?? "null");
+      if (Array.isArray(saved)) return saved;
+    } catch {}
+    return DEFAULT_COLUMNS;
+  });
+  const toggle = (id: string) =>
+    setIds((cur) => {
+      const next = cur.includes(id) ? cur.filter((c) => c !== id) : [...cur, id];
+      try {
+        localStorage.setItem("magpie.columns", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  return { shown: COLUMNS.filter((c) => ids.includes(c.id)), ids, toggle };
+}
+
+/** Right-click the header, or press the button at its end, for a menu of columns to show. */
+function ColumnMenu({ at, ids, toggle, onClose }: { at: { x: number; y: number }; ids: string[]; toggle: (id: string) => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector("button")?.focus();
+    const away = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && onClose();
+    const key = (e: KeyboardEvent) => e.key === "Escape" && (e.stopPropagation(), onClose());
+    window.addEventListener("mousedown", away);
+    window.addEventListener("keydown", key, true);
+    return () => {
+      window.removeEventListener("mousedown", away);
+      window.removeEventListener("keydown", key, true);
+    };
+  }, [onClose]);
+  return (
+    <div className="menu" role="menu" aria-label="Columns" ref={ref} style={{ left: Math.min(at.x, window.innerWidth - 190), top: at.y }}>
+      <div className="mh">Show columns</div>
+      {COLUMNS.map((c) => (
+        <button key={c.id} role="menuitemcheckbox" aria-checked={ids.includes(c.id)} onClick={() => toggle(c.id)}>
+          <span className="ck">{ids.includes(c.id) && <Check size={12} strokeWidth={2.4} />}</span>
+          {c.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function List({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel: number[]; onSel: Select; onOpen: (id: number) => void }) {
   const reveal = useReveal(items.length);
   const { shown, sentinel } = reveal;
   const keys = useKeys(items, sel, onSel, onOpen, reveal);
+  const cols = useColumns();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const on = new Set(sel);
+  // Fixed-width columns add up; past the window's width the list scrolls sideways rather than squeezing titles to nothing.
+  const minWidth = 36 + 200 + cols.shown.reduce((n, c) => n + (c.width.endsWith("px") ? parseInt(c.width) : 90), 0) + 28;
   return (
     <div className="tbl-wrap">
-      <table className="tbl" role="grid" aria-label="Books" aria-multiselectable ref={(el) => void (keys.box.current = el)} onKeyDown={keys.onKeyDown}>
+      <table
+        className="tbl"
+        role="grid"
+        aria-label="Books"
+        aria-multiselectable
+        style={{ minWidth }}
+        ref={(el) => void (keys.box.current = el)}
+        onKeyDown={keys.onKeyDown}
+      >
         <colgroup>
           <col className="c-cv" />
-          <col className="c-title" />
-          <col className="c-author" />
-          <col className="c-series" />
-          <col className="c-size" />
-          <col className="c-added" />
-          <col className="c-state" />
+          <col />
+          {cols.shown.map((c) => (
+            <col key={c.id} style={{ width: c.width }} />
+          ))}
+          <col className="c-more" />
         </colgroup>
-        <thead>
+        <thead
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setMenu({ x: e.clientX, y: e.clientY });
+          }}
+        >
           <tr>
             <th className="th" />
             <th>Title</th>
-            <th>Author</th>
-            <th>Series</th>
-            <th>Size</th>
-            <th>Added</th>
-            <th>Status</th>
+            {cols.shown.map((c) => (
+              <th key={c.id}>{c.label}</th>
+            ))}
+            <th className="more">
+              <button
+                aria-label="Choose columns"
+                title="Choose columns"
+                onClick={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setMenu({ x: r.right - 180, y: r.bottom + 4 });
+                }}
+              >
+                <Columns3 size={13} />
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -143,18 +257,18 @@ export function List({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
                 <Cover b={b} />
               </td>
               <td className="tt">{b.title}</td>
-              <td className="mut">{authors(b.authors)}</td>
-              <td className="mut">{b.series ? `${b.series}${b.seriesIndex ? ` ${b.seriesIndex}` : ""}` : ""}</td>
-              <td className="num">{size(b.size)}</td>
-              <td className="num">{date(b.addedAt)}</td>
-              <td>
-                <StatePill state={b.state} />
-              </td>
+              {cols.shown.map((c) => (
+                <td key={c.id} className={c.className}>
+                  {c.cell(b)}
+                </td>
+              ))}
+              <td />
             </tr>
           ))}
         </tbody>
       </table>
       {sentinel}
+      {menu && <ColumnMenu at={menu} ids={cols.ids} toggle={cols.toggle} onClose={() => setMenu(null)} />}
     </div>
   );
 }

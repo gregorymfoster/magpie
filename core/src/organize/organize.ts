@@ -149,6 +149,43 @@ const dot = (a: Float32Array, b: Float32Array) => {
 };
 
 /** Kind, genres and vibes for one book: rules first, then the model for what's left. */
+/** How close a book's blurb sits to each genre and vibe, in GENRES and VIBES order. */
+export interface Scores {
+  genres: number[];
+  vibes: number[];
+}
+
+/** Rules first; the model's scores fill only what they left empty, and only past the TUNING margins. */
+export function decide(rules: ReturnType<typeof byRules>, scores: Scores | null, tuning = TUNING): Guess[] {
+  let kind = rules.kind;
+  let genres = rules.genres;
+  const vibes: Guess[] = [];
+  if (scores) {
+    const sims = GENRES.map((g, i) => ({ g, sim: scores.genres[i] }));
+    if (!kind) {
+      const best = (k: Kind) => Math.max(...sims.filter((x) => x.g.kind === k).map((x) => x.sim));
+      const [f, n] = KINDS.map(best);
+      const confidence = 0.5 + 0.5 * scale(Math.abs(f - n), tuning.kindMargin);
+      if (confidence >= THRESHOLD) kind = { name: f > n ? "Fiction" : "Nonfiction", confidence, source: BY_MODEL };
+    }
+    if (!genres.length && kind) {
+      const ranked = sims.filter((x) => x.g.kind === kind!.name).sort((a, b) => b.sim - a.sim);
+      const confidence = 0.5 + 0.5 * scale(ranked[0].sim - ranked[1].sim, tuning.genreMargin);
+      if (confidence >= THRESHOLD) genres = [{ name: ranked[0].g.name, confidence, source: BY_MODEL }];
+    }
+    VIBES.map((v, i) => ({ name: v.name, sim: scores.vibes[i] }))
+      .sort((a, b) => b.sim - a.sim)
+      .slice(0, 2)
+      .forEach(({ name, sim }) => {
+        const confidence = 0.5 + 0.5 * scale(sim, tuning.vibe);
+        if (confidence >= THRESHOLD) vibes.push({ name, confidence, source: BY_MODEL });
+      });
+  }
+  if (!kind && genres.length) kind = { name: kindOf(genres[0].name)!, confidence: genres[0].confidence, source: genres[0].source };
+  return [...(kind ? [kind] : []), ...genres, ...vibes];
+}
+
+/** Kind, genres and vibes for one book: rules first, then the model for what's left. */
 export class Organizer {
   private embed?: Embed;
   private prototypes?: Promise<{ genres: Float32Array[]; vibes: Float32Array[] }>;
@@ -161,40 +198,21 @@ export class Organizer {
     return !!this.embed;
   }
 
+  /** The model's view of a book, or null with no model or nothing to read but a title. */
+  async scores(s: Signals): Promise<Scores | null> {
+    const text = blurb(s);
+    if (!this.embed || text.length <= s.title.length + 80) return null;
+    const p = await (this.prototypes ??= this.embed([...GENRES.map((g) => g.about), ...VIBES.map((v) => v.about)]).then((v) => ({
+      genres: v.slice(0, GENRES.length),
+      vibes: v.slice(GENRES.length),
+    })));
+    const [vec] = await this.embed([text]);
+    return { genres: p.genres.map((g) => dot(vec, g)), vibes: p.vibes.map((v) => dot(vec, v)) };
+  }
+
   async guess(s: Signals): Promise<Guess[]> {
     const rules = byRules(s);
-    let kind = rules.kind;
-    let genres = rules.genres;
-    const vibes: Guess[] = [];
-    const text = blurb(s);
-    // Without a blurb or an opening there's nothing for the model to read but a title.
-    if (this.embed && text.length > s.title.length + 80) {
-      const p = await (this.prototypes ??= this.embed([...GENRES.map((g) => g.about), ...VIBES.map((v) => v.about)]).then((v) => ({
-        genres: v.slice(0, GENRES.length),
-        vibes: v.slice(GENRES.length),
-      })));
-      const [vec] = await this.embed([text]);
-      const sims = GENRES.map((g, i) => ({ g, sim: dot(vec, p.genres[i]) }));
-      if (!kind) {
-        const best = (k: Kind) => Math.max(...sims.filter((x) => x.g.kind === k).map((x) => x.sim));
-        const [f, n] = KINDS.map(best);
-        const confidence = 0.5 + 0.5 * scale(Math.abs(f - n), TUNING.kindMargin);
-        if (confidence >= THRESHOLD) kind = { name: f > n ? "Fiction" : "Nonfiction", confidence, source: BY_MODEL };
-      }
-      if (!genres.length && kind) {
-        const ranked = sims.filter((x) => x.g.kind === kind!.name).sort((a, b) => b.sim - a.sim);
-        const confidence = 0.5 + 0.5 * scale(ranked[0].sim - ranked[1].sim, TUNING.genreMargin);
-        if (confidence >= THRESHOLD) genres = [{ name: ranked[0].g.name, confidence, source: BY_MODEL }];
-      }
-      VIBES.map((v, i) => ({ name: v.name, sim: dot(vec, p.vibes[i]) }))
-        .sort((a, b) => b.sim - a.sim)
-        .slice(0, 2)
-        .forEach(({ name, sim }) => {
-          const confidence = 0.5 + 0.5 * scale(sim, TUNING.vibe);
-          if (confidence >= THRESHOLD) vibes.push({ name, confidence, source: BY_MODEL });
-        });
-    }
-    if (!kind && genres.length) kind = { name: kindOf(genres[0].name)!, confidence: genres[0].confidence, source: genres[0].source };
-    return [...(kind ? [kind] : []), ...genres, ...vibes];
+    // The model only runs when there's something left for it to decide (vibes always are).
+    return decide(rules, await this.scores(s));
   }
 }

@@ -9,6 +9,7 @@ const ROOT = join(import.meta.dirname, "..");
 const MODEL = "models/bge-small-en-v1.5";
 const ASSETS: Record<string, string> = {
   "ort/ort-wasm-simd-threaded.wasm": join(ROOT, "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm"),
+  "ort/ort-wasm-simd-threaded.mjs": join(ROOT, "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs"),
   [`${MODEL}/onnx/model_quantized.onnx`]: join(ROOT, MODEL, "onnx/model_quantized.onnx"),
   [`${MODEL}/tokenizer.json`]: join(ROOT, MODEL, "tokenizer.json"),
 };
@@ -21,7 +22,7 @@ function modelAssets(): Plugin {
       server.middlewares.use((req, res, next) => {
         const file = ASSETS[(req.url ?? "").replace(/^\//, "").split("?")[0]];
         if (!file || !existsSync(file)) return next();
-        res.setHeader("Content-Type", file.endsWith(".wasm") ? "application/wasm" : "application/octet-stream");
+        res.setHeader("Content-Type", file.endsWith(".wasm") ? "application/wasm" : file.endsWith(".mjs") ? "text/javascript" : "application/octet-stream");
         res.end(readFileSync(file));
       });
     },
@@ -39,6 +40,8 @@ export default defineConfig({
   clearScreen: false,
   define: { __MAGPIE_MODEL__: JSON.stringify(hasModel) },
   server: { port: 5173, strictPort: true, proxy: { "/api": "http://127.0.0.1:4319" } },
+  // ONNX Runtime fetches its WebAssembly glue next to itself; the dep optimizer would move it away.
+  optimizeDeps: { exclude: ["onnxruntime-web", "onnxruntime-web/wasm"] },
   worker: { format: "es" },
   build: { target: "safari17", outDir: "dist", emptyOutDir: true },
 });

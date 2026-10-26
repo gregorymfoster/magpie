@@ -80,6 +80,7 @@ function General({ palette, setPalette }: { palette: string; setPalette: (p: str
 
 function LibraryPage({ onClose }: { onClose: () => void }) {
   const { data: s } = useCall("app.state");
+  const { data: settings } = useCall("settings.get");
   const t = useTransport();
   const act = useAction();
   const toast = useToast();
@@ -109,6 +110,30 @@ function LibraryPage({ onClose }: { onClose: () => void }) {
           }}
         >
           Empty now
+        </button>
+      </Row>
+      <Row
+        title="Shelves"
+        sub="Magpie sorts new books into Fiction or Nonfiction, a genre and a vibe, from the subjects they carry and a small model that runs on this Mac. Nothing is uploaded."
+      >
+        <select
+          className="field"
+          style={{ width: 120 }}
+          aria-label="Sort new books"
+          value={settings?.organize === false ? "off" : "on"}
+          onChange={(e) => void act("settings.set", { organize: e.target.value === "on" })}
+        >
+          <option value="on">Sort new books</option>
+          <option value="off">Don’t sort</option>
+        </select>
+        <button
+          className="btn"
+          onClick={async () => {
+            const job = await act("library.organize", { again: true });
+            toast({ message: job ? job.label : "Every book is already sorted" });
+          }}
+        >
+          Sort All Again
         </button>
       </Row>
       <Row title="Originals" sub="Every book keeps the file it arrived as, untouched, inside the Library’s originals folder. Undo rebuilds from it." />

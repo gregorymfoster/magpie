@@ -406,10 +406,7 @@ test("diagnostics leave out titles", async () => {
   assert.doesNotMatch(d, /Emma|Austen|Secret/);
 });
 
-function makeCalibre(
-  dir: string,
-  books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null }[],
-) {
+function makeCalibre(dir: string, books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null }[]) {
   mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(join(dir, "metadata.db"));
   db.exec(`

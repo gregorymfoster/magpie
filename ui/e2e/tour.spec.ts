@@ -13,7 +13,8 @@ const home = () => test.info().config.metadata.home as string;
 const tidy = (page: Page) =>
   page.evaluate(() => {
     const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.textContent?.includes("/tmp/")) n.textContent = n.textContent.replace(/\/tmp\/magpie-e2e-\d+/, "~");
+    for (let n = walk.nextNode(); n; n = walk.nextNode())
+      if (n.textContent?.includes("/tmp/")) n.textContent = n.textContent.replace(/\/tmp\/magpie-e2e-\d+/, "~");
   });
 
 async function seed(page: Page) {
@@ -85,7 +86,10 @@ test("video", async ({ browser }) => {
   await page.keyboard.type("austen", { delay: 90 });
   await pause(1400);
   await page.getByRole("textbox", { name: "Search" }).fill("");
-  await page.locator(".grid, main").first().click({ position: { x: 5, y: 5 } });
+  await page
+    .locator(".grid, main")
+    .first()
+    .click({ position: { x: 5, y: 5 } });
   await pause();
 
   // Review the one suggestion, then undo it from the toast.

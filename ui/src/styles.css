@@ -317,6 +317,47 @@ button {
   border-radius: 2px;
   background: var(--accent);
 }
+.row .lbl {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+/* A genre under its shelf: indented to line up with the shelf's label. */
+.row.sub {
+  padding-left: 29px;
+  color: var(--fg2);
+}
+.row.sub.on {
+  color: var(--fg);
+}
+.row.more,
+.row.hint {
+  padding-left: 29px;
+  color: var(--fg3);
+  font-size: 12px;
+}
+.sec.tog {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+}
+.sec.tog svg {
+  opacity: 0;
+  transform: rotate(90deg);
+  transition: transform 0.12s;
+}
+.sec.tog:hover svg,
+.sec.tog.shut svg {
+  opacity: 1;
+}
+.sec.tog.shut svg {
+  transform: none;
+}
 .row .ct {
   margin-left: auto;
   color: var(--fg3);
@@ -813,23 +854,29 @@ button {
 .tbl .c-cv {
   width: 36px;
 }
-.tbl .c-title {
-  width: 40%;
+.tbl .c-more {
+  width: 28px;
 }
-.tbl .c-author {
-  width: 25%;
+.tbl th.more {
+  padding: 0 4px;
+  text-align: right;
 }
-.tbl .c-series {
-  width: 20%;
+.tbl th.more button {
+  border: 0;
+  background: none;
+  color: var(--fg3);
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
 }
-.tbl .c-size {
-  width: 72px;
+.tbl th.more button:hover {
+  background: var(--accent-soft);
+  color: var(--fg);
 }
-.tbl .c-added {
-  width: 100px;
-}
-.tbl .c-state {
-  width: 124px;
+.tbl .ed {
+  color: var(--fg3);
 }
 .tbl th {
   position: sticky;
@@ -1992,6 +2039,120 @@ textarea::placeholder {
   flex: none;
   margin-top: 2px;
   color: var(--fg3);
+}
+
+/* tags in the inspector: Magpie's carry a small sparkle so a guess never passes for a fact */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 3px 0 8px;
+  border-radius: 10px;
+  background: var(--sunk);
+  color: var(--fg);
+  font-size: 11.5px;
+  max-width: 100%;
+}
+.chip.ai {
+  background: var(--accent-soft);
+  padding-left: 7px;
+}
+.chip.ai > svg {
+  color: var(--accent);
+  flex: none;
+}
+.chip button {
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  cursor: default;
+}
+.chip .nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip .nm:hover {
+  text-decoration: underline;
+}
+.chip .x {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--fg3);
+}
+.chip .x:hover {
+  background: var(--line2);
+  color: var(--fg);
+}
+.chip-add input {
+  height: 20px;
+  width: 92px;
+  border: 1px dashed var(--line2);
+  border-radius: 10px;
+  background: none;
+  padding: 0 8px;
+  font: 11.5px var(--ui);
+  color: var(--fg);
+}
+.chip-add input:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--accent-line);
+  width: 130px;
+}
+
+/* a small native-feeling menu: the list's column chooser */
+.menu {
+  position: fixed;
+  z-index: 50;
+  min-width: 180px;
+  padding: 4px;
+  background: var(--raise);
+  border: 1px solid var(--line2);
+  border-radius: 7px;
+  box-shadow: var(--sheet-shadow);
+  font-size: 13px;
+}
+.menu .mh {
+  padding: 4px 8px 4px 28px;
+  font-size: 11px;
+  color: var(--fg3);
+}
+.menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  border-radius: 4px;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+}
+.menu button:hover,
+.menu button:focus-visible {
+  background: var(--accent);
+  color: var(--accent-fg);
+  outline: none;
+}
+.menu .ck {
+  width: 20px;
+  display: inline-grid;
+  place-items: center start;
 }
 
 /* ---------------------------------------------------------------- preview */

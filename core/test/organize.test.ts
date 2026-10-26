@@ -16,7 +16,9 @@ import { epub } from "./fixtures.ts";
 function setup(change: (h: Host) => Host = (h) => h) {
   const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
   // Rules alone; the model's part is tested with a stand-in below and scored for real by bench/organize.ts.
-  const host = change(nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: join(home, "Volumes"), MAGPIE_OPENED: join(home, "opened.txt"), MAGPIE_MODEL: "/no-model" }));
+  const host = change(
+    nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: join(home, "Volumes"), MAGPIE_OPENED: join(home, "opened.txt"), MAGPIE_MODEL: "/no-model" }),
+  );
   const core = createCore(host);
   let n = 0;
   const add = async (meta: string) => {
@@ -116,12 +118,12 @@ test("turning sorting off leaves new books unsorted", async () => {
 });
 
 test("rules: a Fiction heading is a strong vote, not the last word; titles count", () => {
-  const titan = byRules({ title: "Titan", subjects: ["Corporate & Business History", "Business", "Fiction", "Biography & Autobiography", "Business & Economics"] });
+  const titan = byRules({
+    title: "Titan",
+    subjects: ["Corporate & Business History", "Business", "Fiction", "Biography & Autobiography", "Business & Economics"],
+  });
   assert.equal(titan.kind?.name, "Nonfiction");
-  assert.deepEqual(
-    byRules({ title: "Infinite Jest: A Novel", subjects: ["Literature"] }).kind?.name,
-    "Fiction",
-  );
+  assert.deepEqual(byRules({ title: "Infinite Jest: A Novel", subjects: ["Literature"] }).kind?.name, "Fiction");
   assert.deepEqual(
     byRules({ title: "Black Light: Stories", subjects: [] }).genres.map((g) => g.name),
     ["Short Stories"],
@@ -156,7 +158,11 @@ test("the model fills only what the rules left empty, and only when it's sure", 
     ],
     "rules win over the model",
   );
-  const vague = await org.guess({ title: "Notes", description: "a bit of the old and the new, up and so on, day by day, for you and me, all the way out and in.", subjects: [] });
+  const vague = await org.guess({
+    title: "Notes",
+    description: "a bit of the old and the new, up and so on, day by day, for you and me, all the way out and in.",
+    subjects: [],
+  });
   assert.deepEqual(vague, [], "unsure: no guess");
   assert.equal(VIBES.length, 10);
 });
@@ -170,7 +176,8 @@ test("a locked book can be sorted, since tags live in the Library and not in the
   writeFileSync(
     p,
     epub({
-      opfMeta: '<dc:identifier id="id">urn:uuid:9</dc:identifier><dc:title>Dune</dc:title><dc:language>en</dc:language><dc:subject>Science Fiction</dc:subject>',
+      opfMeta:
+        '<dc:identifier id="id">urn:uuid:9</dc:identifier><dc:title>Dune</dc:title><dc:language>en</dc:language><dc:subject>Science Fiction</dc:subject>',
       extra: { "META-INF/encryption.xml": enc, "META-INF/rights.xml": "<rights/>" },
     }),
   );

@@ -46,7 +46,20 @@ const unknownAuthor = () =>
 test("lists its tools, with no way to empty Removed", async () => {
   const { client } = await setup();
   const names = (await client.listTools()).tools.map((t) => t.name);
-  for (const n of ["search_books", "get_book", "import_books", "edit_book", "review_suggestions", "remove_books", "undo", "send_to_kindle", "send_to_kobo"])
+  for (const n of [
+    "search_books",
+    "get_book",
+    "import_books",
+    "edit_book",
+    "review_suggestions",
+    "remove_books",
+    "undo",
+    "send_to_kindle",
+    "send_to_kobo",
+    "list_shelves",
+    "tag_books",
+    "sort_library",
+  ])
     assert.ok(names.includes(n), n);
   assert.ok(!names.some((n) => /purge|empty|delete/.test(n)));
 });

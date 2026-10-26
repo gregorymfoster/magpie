@@ -61,7 +61,9 @@ export function Sidebar({
   const running = state.jobs.find((j) => j.state === "running" || j.state === "queued");
   const sorting = state.jobs.some((j) => j.kind === "organize" && (j.state === "running" || j.state === "queued"));
   const authors = groups ? [...groups.authors].sort((a, b) => b.count - a.count || 0) : [];
-  const shownAuthors = allAuthors ? groups?.authors ?? [] : authors.slice(0, FEW_AUTHORS).sort((a, b) => groups!.authors.indexOf(a) - groups!.authors.indexOf(b));
+  const shownAuthors = allAuthors
+    ? (groups?.authors ?? [])
+    : authors.slice(0, FEW_AUTHORS).sort((a, b) => groups!.authors.indexOf(a) - groups!.authors.indexOf(b));
   const i = { size: 14, strokeWidth: 1.7 };
   return (
     <aside className="side">
@@ -78,7 +80,7 @@ export function Sidebar({
         <Row id="review" icon={<AlertCircle {...i} />} label="Needs Review" count={state.counts.review} hot />
         <Row id="recent" icon={<Clock {...i} />} label="Recently Added" />
         {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 {...i} />} label="Removed" count={state.counts.removed} />}
-        {groups && state.counts.all > 0 && (
+        {groups && (groups.shelves.length > 0 || groups.unsorted > 0 || sorting) && (
           <Sec id="shelves" label="Shelves">
             {groups.shelves.map((s) => (
               <div key={s.name}>

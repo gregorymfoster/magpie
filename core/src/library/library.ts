@@ -59,6 +59,8 @@ export interface BookSummary {
   removedAt?: string;
   tags: Tag[];
   publisher?: string;
+  /** The year the work first came out, when Look Up Details found it (the book's own year is usually the edition's). */
+  firstYear?: number;
 }
 
 /** Everything the inspector shows. */
@@ -236,7 +238,10 @@ export class Library {
     const words = fold(q.search ?? "")
       .split(" ")
       .filter(Boolean);
-    if (words.length) books = books.filter((b) => ((hay) => words.every((w) => hay.includes(w)))(fold([b.title, ...b.authors, b.series ?? "", ...b.tags.map((t) => t.name)].join(" "))));
+    if (words.length)
+      books = books.filter((b) =>
+        ((hay) => words.every((w) => hay.includes(w)))(fold([b.title, ...b.authors, b.series ?? "", ...b.tags.map((t) => t.name)].join(" "))),
+      );
     const byTitle = (a: BookSummary, b: BookSummary) => COLLATE.compare(sortTitle(a.title), sortTitle(b.title));
     if (q.sort === "title") books.sort(byTitle);
     if (q.sort === "author")
@@ -355,7 +360,8 @@ export class Library {
       if (!now) continue;
       if (JSON.stringify(now.plan) !== JSON.stringify(s.before.plan)) await this.rebuild(s.id, s.before.plan);
       await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [s.before.removed_at, s.id]);
-      if (s.before.tags !== undefined) await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
+      if (s.before.tags !== undefined)
+        await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
     }
     await this.db.run("DELETE FROM history WHERE id = ?", [h.id]);
     return h.label;
@@ -389,12 +395,13 @@ export class Library {
     const before = await this.snapshot(id);
     const kept: Tag[] = (JSON.parse(before.tags ?? "[]") as Tag[]).filter((t) => t.by !== "magpie");
     const off = new Set<string>(JSON.parse(before.tags_off ?? "[]"));
-    let subjects: string[] = [];
+    // What Look Up Details found in Open Library counts as subjects too.
+    let subjects: string[] = (JSON.parse(r.plan as string) as FixPlan).catalog?.subjects ?? [];
     let opening = "";
     try {
       // A locked book's pages are encrypted, but its package (and subjects) can be read.
       const book = Book.load(await this.host.fs.read(this.abs(r.file as string)), { locked: "allow" });
-      subjects = readSubjects(book);
+      subjects = [...readSubjects(book), ...subjects];
       if (r.state !== "locked" && !r.description) opening = readOpening(book);
     } catch {
       // Unreadable now (a missing file): sort on what the Library knows.
@@ -408,7 +415,9 @@ export class Library {
     const have = new Set(kept.map((t) => t.name.toLowerCase()));
     const tags = [
       ...kept,
-      ...guesses.filter((g) => !off.has(g.name) && !have.has(g.name.toLowerCase())).map((g): Tag => ({ name: g.name, by: "magpie", confidence: round(g.confidence), source: g.source })),
+      ...guesses
+        .filter((g) => !off.has(g.name) && !have.has(g.name.toLowerCase()))
+        .map((g): Tag => ({ name: g.name, by: "magpie", confidence: round(g.confidence), source: g.source })),
     ];
     const key = (ts: Tag[]) => JSON.stringify(ts.map((t) => [t.name, t.by, t.confidence]).sort());
     if (key(tags) === key(JSON.parse(before.tags ?? "[]"))) {
@@ -421,7 +430,9 @@ export class Library {
 
   /** Live books Magpie hasn't sorted with the current rules. */
   async unsorted(): Promise<number[]> {
-    const rows = await this.db.all<{ id: number }>("SELECT id FROM books WHERE removed_at IS NULL AND (organized IS NULL OR organized < ?) ORDER BY id", [ORGANIZER]);
+    const rows = await this.db.all<{ id: number }>("SELECT id FROM books WHERE removed_at IS NULL AND (organized IS NULL OR organized < ?) ORDER BY id", [
+      ORGANIZER,
+    ]);
     return rows.map((r) => r.id);
   }
 
@@ -610,6 +621,8 @@ export class Library {
       tags: JSON.parse((r.tags as string) ?? "[]"),
     };
     if (r.publisher) s.publisher = r.publisher as string;
+    const first = (JSON.parse(r.plan as string) as FixPlan).catalog?.firstYear;
+    if (first) s.firstYear = first;
     if (r.series) s.series = r.series as string;
     if (r.series_index != null) s.seriesIndex = r.series_index as number;
     if (r.year != null) s.year = r.year as number;

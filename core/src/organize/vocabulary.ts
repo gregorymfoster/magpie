@@ -77,7 +77,7 @@ export const GENRES: Genre[] = [
   {
     name: "Short Stories",
     kind: "Fiction",
-    subjects: /short stories|anthologies|\bstories\b/i,
+    subjects: /short stories|anthologies|^stories$/i,
     about: "A collection of short stories by one author or an anthology of tales.",
   },
   {
@@ -107,7 +107,8 @@ export const GENRES: Genre[] = [
   {
     name: "Literary Fiction",
     kind: "Fiction",
-    subjects: /literary fiction|^literary$|fiction.*literary|psychological fiction|domestic fiction|^modern$|^contemporary$|family life.*fiction|bildungsroman/i,
+    subjects:
+      /literary fiction|^literary$|fiction.*literary|psychological fiction|domestic fiction|^modern$|^contemporary$|family life.*fiction|bildungsroman/i,
     about: "A literary novel about ordinary lives, families, love, grief and the inner life of its characters, written with care for language.",
   },
   // Nonfiction
@@ -174,13 +175,15 @@ export const GENRES: Genre[] = [
   {
     name: "Politics & Society",
     kind: "Nonfiction",
-    subjects: /politic|social science|sociology|race relations|discrimination|feminism|women's studies|ethnic studies|social classes|public policy|government|current affairs|cultural|poverty/i,
+    subjects:
+      /politic|social science|sociology|race relations|discrimination|feminism|women's studies|ethnic studies|social classes|public policy|government|current affairs|cultural|poverty/i,
     about: "A book about politics, society, culture, race, gender, inequality, government and public life.",
   },
   {
     name: "Science & Nature",
     kind: "Nonfiction",
-    subjects: /^science\b(?!.?fiction)|^nature$|natural history|physics|biology|chemistry|astronomy|evolution|ecology|climate|mathematics|^energy$|nuclear|medical|medicine|environmental/i,
+    subjects:
+      /^science\b(?!.?fiction)|^nature$|natural history|physics|biology|chemistry|astronomy|evolution|ecology|climate|mathematics|^energy$|nuclear|medical|medicine|environmental/i,
     about: "A popular science book about physics, biology, the universe, evolution, nature, medicine or how things work.",
   },
   {

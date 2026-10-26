@@ -39,3 +39,11 @@ The words Magpie uses, in code and in the window. Use these and only these.
 **Core.** `core/`. The whole app as a library, reached only through `core.call`.
 
 **Transport.** How the UI reaches the core: HTTP to `magpie serve` in a browser, a Web Worker in the app.
+
+**Tag.** A word a book is filed under, kept in the Library and never written into the book. Each says who put it there: you, Calibre, or Magpie.
+
+**Shelf.** Fiction or Nonfiction, with the genres under it. "Shelves" in the sidebar.
+
+**Vibe.** How a book feels to read (Cozy, Dark, Fast-paced…), from a fixed list.
+
+**Sort.** Putting books on shelves: Magpie's tags from the book's subjects first and the local model second. "Sort onto shelves" in the window; `library.organize` in code.

@@ -108,8 +108,14 @@ test("the keyboard moves through books like Finder, and Return opens Edit Detail
   await page.keyboard.press("Home");
   await expect(page.locator(`[data-book="${first}"]`)).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("dialog", { name: "Edit details" })).toBeVisible();
-  // Only one book is a Tab stop, so Tab leaves the grid.
+  const sheet = page.getByRole("dialog", { name: "Edit details" });
+  await expect(sheet).toBeVisible();
+  // Focus starts in the sheet's first field and Tab never leaves the sheet.
+  await expect(sheet.locator("input").first()).toBeFocused();
+  for (let i = 0; i < 12; i++) await page.keyboard.press("Tab");
+  expect(await sheet.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+  // Esc puts focus back on the book; only one book is a Tab stop, so Tab leaves the grid.
   await page.keyboard.press("Escape");
+  await expect(page.locator(`[data-book="${first}"]`)).toBeFocused();
   await expect(page.locator('.tile[tabindex="0"]')).toHaveCount(1);
 });

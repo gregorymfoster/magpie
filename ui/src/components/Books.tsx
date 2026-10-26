@@ -108,6 +108,15 @@ export function List({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
   return (
     <div className="tbl-wrap">
       <table className="tbl" role="grid" aria-label="Books" aria-multiselectable ref={(el) => void (keys.box.current = el)} onKeyDown={keys.onKeyDown}>
+        <colgroup>
+          <col className="c-cv" />
+          <col className="c-title" />
+          <col className="c-author" />
+          <col className="c-series" />
+          <col className="c-size" />
+          <col className="c-added" />
+          <col className="c-state" />
+        </colgroup>
         <thead>
           <tr>
             <th className="th" />

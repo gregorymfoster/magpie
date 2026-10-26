@@ -56,21 +56,18 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
             )
           : jobProgress(job)}
         <div className="files">
-          {job.results
-            .slice(-200)
-            .reverse()
-            .map((r, i) => (
-              <div key={i} className="file" title={r.message}>
-                <FileText size={13} />
-                <span className="fn">{r.label}</span>
-                {r.message && r.outcome !== "duplicate" && (
-                  <span style={{ color: "var(--fg3)", fontSize: 11, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {r.message}
-                  </span>
-                )}
-                <span className={`pill ${CHIP[r.outcome][0]}`}>{CHIP[r.outcome][1]}</span>
-              </div>
-            ))}
+          {(done ? byConcern(job.results) : job.results.slice(-200).reverse()).map((r, i) => (
+            <div key={i} className="file" title={r.message}>
+              <FileText size={13} />
+              <span className="fn">{r.label}</span>
+              {r.message && r.outcome !== "duplicate" && (
+                <span style={{ color: "var(--fg3)", fontSize: 11, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.message}
+                </span>
+              )}
+              <span className={`pill ${CHIP[r.outcome][0]}`}>{CHIP[r.outcome][1]}</span>
+            </div>
+          ))}
           {!job.results.length && (
             <div className="file">
               <span className="fn dim">Starting…</span>
@@ -94,4 +91,10 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
       </div>
     </Sheet>
   );
+}
+
+/** When a job is done, what needs a look comes first: not added, then anything with a note, then the rest. */
+function byConcern(results: JobResult[]): JobResult[] {
+  const rank = (r: JobResult) => (["unreadable", "failed", "skipped"].includes(r.outcome) ? 0 : r.message && r.outcome !== "duplicate" ? 1 : 2);
+  return [...results].sort((a, b) => rank(a) - rank(b));
 }

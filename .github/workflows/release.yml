@@ -1,10 +1,19 @@
-# Push a tag like v0.1.0 to publish a release: a universal Magpie.dmg (Apple
-# silicon and Intel) and, once the signing secret exists, the updater files.
+# Publish a release: a universal Magpie.dmg (Apple silicon and Intel) and,
+# once the signing secret exists, the updater files. Push a tag like v0.1.0,
+# or run this workflow by hand with the version (it creates the tag).
 name: release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, like 0.1.0. Must match app/src-tauri/tauri.conf.json.
+        required: true
+
+env:
+  TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
 
 permissions:
   contents: write
@@ -34,8 +43,8 @@ jobs:
           projectPath: app
           tauriScript: npx tauri
           args: --target universal-apple-darwin
-          tagName: ${{ github.ref_name }}
-          releaseName: Magpie ${{ github.ref_name }}
+          tagName: ${{ env.TAG }}
+          releaseName: Magpie ${{ env.TAG }}
           releaseBody: "First time opening it? macOS will warn you because Magpie is not notarized yet. Open System Settings › Privacy & Security and click Open Anyway. Details: https://magpie.gmfoster.com/#first-open"
           releaseDraft: false
           includeUpdaterJson: true
@@ -46,4 +55,4 @@ jobs:
         run: |
           dmg=$(ls app/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -1)
           cp "$dmg" Magpie.dmg
-          gh release upload "${{ github.ref_name }}" Magpie.dmg --clobber
+          gh release upload "$TAG" Magpie.dmg --clobber

@@ -142,6 +142,16 @@ function runners(ctx: Context) {
 }
 
 /** Folders become every .epub inside them, at any depth. Hidden files are skipped. */
+/** Details a person (or an AI tool) typed, checked before they're written into a book. */
+function checkPatch(p: InfoPatch): InfoPatch {
+  if (p.title !== undefined && !p.title.trim()) throw new UserError("empty-title");
+  if (p.authors?.some((a) => !a.trim())) throw new UserError("empty-author");
+  if (p.year !== undefined && !(Number.isInteger(p.year) && p.year >= 1000 && p.year <= 2200)) throw new UserError("bad-year");
+  if (p.seriesIndex !== undefined && !(Number.isFinite(p.seriesIndex) && p.seriesIndex >= 0 && p.seriesIndex < 10000)) throw new UserError("bad-series-number");
+  if (p.language && !/^[a-z]{2,3}(-[a-z0-9]{1,8})*$/i.test(p.language.trim())) throw new UserError("bad-language");
+  return p;
+}
+
 async function expand(host: Host, paths: string[]): Promise<{ path: string }[]> {
   const out: { path: string }[] = [];
   const walk = async (dir: string) => {
@@ -216,7 +226,7 @@ const commands = {
   },
 
   async "books.edit"(ctx: Context, a: { id: number; patch: InfoPatch }) {
-    const r = await ctx.lib().edit(a.id, a.patch);
+    const r = await ctx.lib().edit(a.id, checkPatch(a.patch));
     ctx.changed();
     return r;
   },
@@ -302,7 +312,7 @@ const commands = {
 
   /** Converts to KEPUB and copies to the Kobo, as a job. */
   async "send.kobo"(ctx: Context, a: { ids: number[]; device: string }) {
-    if (!(await ctx.host.fs.exists(a.device))) throw new UserError("no-device");
+    if (!(await listDevices(ctx.host)).some((d) => d.path === a.device)) throw new UserError("no-device");
     for (const id of a.ids) if ((await ctx.lib().get(id)).state === "locked") throw new UserError("locked-send");
     return ctx.queue().enqueue(
       "kobo",

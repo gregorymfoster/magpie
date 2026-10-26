@@ -592,7 +592,12 @@ button {
   gap: 22px 18px;
   padding: 18px 20px 30px;
 }
+.reveal {
+  height: 1px;
+}
 .tile {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 230px;
   display: flex;
   flex-direction: column;
   gap: 6px;

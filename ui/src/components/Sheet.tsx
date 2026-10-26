@@ -7,7 +7,10 @@ import { useEffect, useRef, type ReactNode } from "react";
 export function Sheet({ wide, children, onClose, label }: { wide?: boolean; children: ReactNode; onClose?: () => void; label: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // The key that opened the sheet (Return on a book) can still be on its way to window; it isn't for us.
+    const opened = performance.now();
     const k = (e: KeyboardEvent) => {
+      if (e.timeStamp < opened) return;
       if (e.key === "Escape" && onClose) onClose();
       if (e.key !== "Enter" || e.isComposing || e.metaKey || e.shiftKey) return;
       // A button focused in the sheet, or a text area, keeps Return for itself.

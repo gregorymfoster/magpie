@@ -52,7 +52,7 @@ export interface BookDetail extends BookSummary {
 export type AddOutcome =
   | { kind: "added"; book: BookSummary; locked?: boolean }
   | { kind: "duplicate"; book: BookSummary }
-  | { kind: "unreadable"; name: string; reason: BookError["code"] | "not-epub" };
+  | { kind: "unreadable"; name: string; reason: BookError["code"] | "not-epub" | "missing-file" };
 
 export interface AddSource {
   /** Absolute path of the file to bring in. It is copied, never moved. */
@@ -117,6 +117,7 @@ export class Library {
   async add(src: AddSource): Promise<AddOutcome> {
     const name = src.name ?? src.path.slice(src.path.lastIndexOf("/") + 1);
     if (!/\.epub$/i.test(src.path)) return { kind: "unreadable", name, reason: "not-epub" };
+    if (!(await this.host.fs.exists(src.path))) return { kind: "unreadable", name, reason: "missing-file" };
     const bytes = await this.host.fs.read(src.path);
     const hash = await sha256(bytes);
     const existing = (await this.db.all("SELECT * FROM books WHERE hash = ?", [hash]))[0];
@@ -182,16 +183,25 @@ export class Library {
       where.push("state = ?");
       params.push(q.state);
     }
-    if (q.search?.trim()) {
-      where.push("(title LIKE ? OR authors LIKE ? OR series LIKE ?)");
-      const like = `%${q.search.trim().replace(/[%_]/g, "")}%`;
-      params.push(like, like, like);
-    }
-    const order = { added: "added_at DESC, id DESC", title: "title COLLATE NOCASE", author: "author_sort COLLATE NOCASE, series, series_index, title" }[
-      q.sort ?? "added"
-    ];
-    const rows = await this.db.all(`SELECT * FROM books WHERE ${where.join(" AND ")} ORDER BY ${order}`, params);
-    return rows.map((r) => this.summary(r));
+    const order = { added: "added_at DESC, id DESC", title: "id", author: "id" }[q.sort ?? "added"];
+    let books = (await this.db.all(`SELECT * FROM books WHERE ${where.join(" AND ")} ORDER BY ${order}`, params)).map((r) => this.summary(r));
+    // Searching and sorting happen here rather than in SQL so they read like Finder:
+    // "bronte" finds Brontë, and Book 2 comes before Book 10 with "The" ignored.
+    const words = fold(q.search ?? "")
+      .split(" ")
+      .filter(Boolean);
+    if (words.length) books = books.filter((b) => ((hay) => words.every((w) => hay.includes(w)))(fold([b.title, ...b.authors, b.series ?? ""].join(" "))));
+    const byTitle = (a: BookSummary, b: BookSummary) => COLLATE.compare(sortTitle(a.title), sortTitle(b.title));
+    if (q.sort === "title") books.sort(byTitle);
+    if (q.sort === "author")
+      books.sort(
+        (a, b) =>
+          COLLATE.compare(authorSort(a.authors[0] ?? ""), authorSort(b.authors[0] ?? "")) ||
+          COLLATE.compare(a.series ?? "", b.series ?? "") ||
+          (a.seriesIndex ?? 0) - (b.seriesIndex ?? 0) ||
+          byTitle(a, b),
+      );
+    return books;
   }
 
   async get(id: number): Promise<BookDetail> {
@@ -430,6 +440,17 @@ function asLocked(bytes: Uint8Array, info: InfoPatch = {}) {
   const report: FixReport = { changes: [], suggestions: [], errors: [] };
   return { bytes, info: { ...readInfo(book), ...info }, report, cover: null, locked: true };
 }
+
+const COLLATE = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
+const sortTitle = (t: string) => t.replace(/^(the|a|an)\s+/i, "");
+/** Lowercase, accents off, punctuation to spaces: what search compares. */
+const fold = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 
 function stateOf(report: FixReport): BookState {
   if (report.suggestions.length) return "review";

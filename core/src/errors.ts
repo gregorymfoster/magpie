@@ -15,6 +15,12 @@ const SENTENCES: Record<string, string> = {
   "mail-failed":
     "Magpie couldn't open a message in Mail. If macOS asked whether Magpie may control Mail, allow it in System Settings › Privacy & Security › Automation, then try again.",
   "not-kindle-address": "That doesn't look like a Send to Kindle address. It ends in @kindle.com.",
+  "empty-title": "A book needs a title.",
+  "empty-author": "An author's name can't be blank. Leave the field empty for no author.",
+  "bad-year": "The year should be four digits, like 1813.",
+  "bad-series-number": "The series number should be a number, like 2 or 2.5.",
+  "bad-language": "The language should be a code like en, fr or pt-BR.",
+  "missing-file": "Magpie couldn't find this file. It may have been moved or deleted.",
   "no-book": "That book isn't in your Library any more.",
   "no-job": "That job has finished and is no longer listed.",
   "newer-library": "This Library was made by a newer version of Magpie. Update Magpie to open it.",

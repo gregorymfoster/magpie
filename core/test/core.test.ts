@@ -183,6 +183,36 @@ test("removing sends a book to Removed; undo and restore bring it back", async (
   assert.equal((await core.call("app.state")).counts.removed, 0);
 });
 
+test("search ignores accents and case; title sort is numeric and skips The, A and An", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const book = (id: number, title: string, author: string) =>
+    file(
+      `${id}.epub`,
+      epub({
+        opfMeta: `<dc:identifier id="id">urn:uuid:${id}</dc:identifier><dc:title>${title}</dc:title><dc:creator>${author}</dc:creator><dc:language>en</dc:language>`,
+      }),
+    );
+  await core.call("books.import", {
+    paths: [
+      book(1, "Book 10", "Anne Brontë"),
+      book(2, "Book 2", "Charlotte Brontë"),
+      book(3, "The Book 3", "Jane Austen"),
+      book(4, "Agnes Grey", "Anne Brontë"),
+    ],
+  });
+  await core.idle();
+  assert.deepEqual(
+    (await core.call("books.list", { sort: "title" })).map((b) => b.title),
+    ["Agnes Grey", "Book 2", "The Book 3", "Book 10"],
+  );
+  assert.deepEqual((await core.call("books.list", { search: "BRONTE anne" })).map((b) => b.title).sort(), ["Agnes Grey", "Book 10"]);
+  assert.deepEqual(
+    (await core.call("books.list", { sort: "author" })).map((b) => b.authors[0]),
+    ["Jane Austen", "Anne Brontë", "Anne Brontë", "Charlotte Brontë"],
+  );
+});
+
 test("search matches title and author", async () => {
   const { core, file } = setup();
   await core.call("app.state");
@@ -358,3 +388,17 @@ function makeCalibre(dir: string, books: { title: string; authors: string[]; ser
   });
   db.close();
 }
+
+test("edits are checked, a Kobo must be a connected reader, and a missing file gets a sentence", async () => {
+  const { core, file, home } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("a.epub", epub()), join(home, "Downloads/gone.epub")] });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  assert.match(job.results.find((r) => r.label === "gone.epub")!.message!, /couldn't find this file/);
+  const [b] = await core.call("books.list");
+  for (const patch of [{ title: " " }, { year: -40000 }, { seriesIndex: 1e308 }, { language: "zz 🙂" }, { authors: [""] }])
+    await assert.rejects(core.call("books.edit", { id: b.id, patch }), (e: Error) => !/Copy Diagnostics/.test(e.message));
+  await core.call("books.edit", { id: b.id, patch: { year: 1815, seriesIndex: 2.5, language: "pt-BR" } });
+  await assert.rejects(core.call("send.kobo", { ids: [b.id], device: join(home, "Downloads") }), /isn't connected/);
+});

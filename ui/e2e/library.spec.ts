@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { books, call, emma, reset, unknownAuthor } from "./helpers.ts";
+import { books, call, classicFiles, emma, reset, unknownAuthor } from "./helpers.ts";
 
 test.beforeEach(async ({ page }) => reset(page));
 
@@ -91,4 +91,24 @@ test("a cover image that won't load falls back to a typographic cover", async ({
   const tile = page.locator(".tile", { hasText: "Emma" });
   await expect(tile.locator("img")).toHaveCount(0);
   await expect(tile.locator(".cv")).toContainText("Emma");
+});
+
+test("the keyboard moves through books like Finder, and Return opens Edit Details", async ({ page }) => {
+  await call(page, "books.import", { paths: classicFiles() });
+  await page.reload();
+  const tiles = page.locator(".tile");
+  await tiles.first().click();
+  const first = await tiles.first().getAttribute("data-book");
+  await page.keyboard.press("ArrowRight");
+  await expect(tiles.nth(1)).toBeFocused();
+  await expect(tiles.nth(1)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Shift+ArrowRight");
+  await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("2 books selected");
+  await page.keyboard.press("Home");
+  await expect(page.locator(`[data-book="${first}"]`)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("dialog", { name: "Edit details" })).toBeVisible();
+  // Only one book is a Tab stop, so Tab leaves the grid.
+  await page.keyboard.press("Escape");
+  await expect(page.locator('.tile[tabindex="0"]')).toHaveCount(1);
 });

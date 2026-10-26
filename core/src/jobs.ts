@@ -5,7 +5,7 @@
 // file twice finds the duplicate).
 
 import type { Db } from "./host.ts";
-import { UserError } from "./errors.ts";
+import { UserError, explain } from "./errors.ts";
 
 export type JobKind = "import" | "calibre" | "kobo";
 export type JobState = "queued" | "running" | "done" | "cancelled";
@@ -115,7 +115,7 @@ export class Jobs {
       try {
         result = await runner(items[done]);
       } catch (e) {
-        result = { label: labelOf(items[done]), outcome: "failed", message: e instanceof Error ? e.message : String(e) };
+        result = { label: labelOf(items[done]), outcome: "failed", message: e instanceof UserError ? e.message : explain("unexpected") };
       }
       results.push(result);
       done++;

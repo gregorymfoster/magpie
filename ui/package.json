@@ -1,6 +1,6 @@
 {
   "name": "@magpie/ui",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Magpie's window: React screens that run in the Mac app or in a browser against `magpie serve`.",
   "license": "MIT",
   "type": "module",

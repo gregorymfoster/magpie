@@ -97,6 +97,7 @@ test("the keyboard moves through books like Finder, and Return opens Edit Detail
   await call(page, "books.import", { paths: classicFiles() });
   await page.reload();
   const tiles = page.locator(".tile");
+  await expect(tiles).toHaveCount(15);
   await tiles.first().click();
   const first = await tiles.first().getAttribute("data-book");
   await page.keyboard.press("ArrowRight");

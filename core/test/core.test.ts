@@ -12,6 +12,9 @@ import { createCore, patchFor, type CoreEvent } from "../src/index.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
 import { epub, page } from "./fixtures.ts";
 
+/** Sorting by rules alone, so these tests don't depend on the model being downloaded. organize.test.ts covers the model. */
+const NO_MODEL = "/no-model";
+
 function setup(web?: Record<string, unknown>) {
   const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
   const volumes = join(home, "Volumes");
@@ -19,7 +22,7 @@ function setup(web?: Record<string, unknown>) {
   const opened = join(home, "opened.txt");
   const MAGPIE_WEB = join(home, "web.json");
   writeFileSync(MAGPIE_WEB, JSON.stringify(web ?? {}));
-  const core = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: volumes, MAGPIE_OPENED: opened, MAGPIE_WEB }));
+  const core = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_VOLUMES: volumes, MAGPIE_OPENED: opened, MAGPIE_WEB, MAGPIE_MODEL: NO_MODEL }));
   const file = (name: string, bytes: Uint8Array) => {
     const p = join(home, "Downloads", name);
     mkdirSync(join(home, "Downloads"), { recursive: true });
@@ -289,6 +292,7 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
       authors: ["Jane Austen"],
       series: "Novels",
       index: 2,
+      tags: ["Romance", "to-read"],
       epub: epub({ opfMeta: "<dc:title>emma_final(2)</dc:title><dc:language>en</dc:language>" }),
     },
     { title: "Mobi Only", authors: ["Someone"], epub: null },
@@ -303,6 +307,11 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
   assert.equal(b.seriesIndex, 2);
   assert.equal(b.state, "fixed", "Calibre's details are trusted, not sent to review");
   assert.ok(b.cover && existsSync(b.cover), "Calibre's cover shows when the book has none");
+  assert.deepEqual(
+    b.tags.map((t) => `${t.name} (${t.by})`),
+    ["Romance (calibre)", "to-read (calibre)", "Fiction (magpie)"],
+    "Calibre's tags come over as they were, and its Romance tag puts the book on the Fiction shelf",
+  );
   const [job] = (await core.call("app.state")).jobs;
   assert.deepEqual(
     job.results.map((r) => r.outcome),
@@ -397,7 +406,10 @@ test("diagnostics leave out titles", async () => {
   assert.doesNotMatch(d, /Emma|Austen|Secret/);
 });
 
-function makeCalibre(dir: string, books: { title: string; authors: string[]; series?: string; index?: number; epub: Uint8Array | null }[]) {
+function makeCalibre(
+  dir: string,
+  books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null }[],
+) {
   mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(join(dir, "metadata.db"));
   db.exec(`
@@ -413,6 +425,8 @@ function makeCalibre(dir: string, books: { title: string; authors: string[]; ser
     CREATE TABLE languages (id INTEGER PRIMARY KEY, lang_code TEXT);
     CREATE TABLE books_languages_link (id INTEGER PRIMARY KEY, book INTEGER, lang_code INTEGER, item_order INTEGER DEFAULT 0);
     CREATE TABLE data (id INTEGER PRIMARY KEY, book INTEGER, format TEXT, name TEXT);
+    CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+    CREATE TABLE books_tags_link (id INTEGER PRIMARY KEY, book INTEGER, tag INTEGER);
     INSERT INTO languages (id, lang_code) VALUES (1, 'eng');
   `);
   books.forEach((b, i) => {
@@ -435,6 +449,11 @@ function makeCalibre(dir: string, books: { title: string; authors: string[]; ser
       db.prepare("INSERT INTO books_series_link (book, series) VALUES (?, ?)").run(id, sid);
     }
     db.prepare("INSERT INTO books_languages_link (book, lang_code) VALUES (?, 1)").run(id);
+    for (const t of b.tags ?? []) {
+      db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(t);
+      const tid = (db.prepare("SELECT id FROM tags WHERE name = ?").get(t) as { id: number }).id;
+      db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(id, tid);
+    }
     if (b.epub) {
       const name = `${b.title} - ${b.authors[0]}`;
       writeFileSync(join(dir, path, `${name}.epub`), b.epub);

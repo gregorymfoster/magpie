@@ -22,6 +22,8 @@ export interface CalibreItem {
   formats: string[];
   info: InfoPatch;
   cover?: string;
+  /** Calibre's tags (and custom columns someday), kept as tags. */
+  tags?: string[];
 }
 
 /** Where Calibre keeps its library: its own preferences, else ~/Calibre Library. */
@@ -77,6 +79,7 @@ interface Row {
   language: string | null;
   formats: string | null;
   epub: string | null;
+  tags: string | null;
 }
 
 // Authors keep Calibre's own order (the link table's id), which is the order a person typed them.
@@ -89,7 +92,8 @@ SELECT b.title, b.path, b.series_index, b.pubdate, b.has_cover,
   (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn') AS isbn,
   (SELECT g.lang_code FROM books_languages_link l JOIN languages g ON g.id = l.lang_code WHERE l.book = b.id ORDER BY l.item_order LIMIT 1) AS language,
   (SELECT group_concat(format) FROM data WHERE book = b.id) AS formats,
-  (SELECT name FROM data WHERE book = b.id AND format = 'EPUB') AS epub
+  (SELECT name FROM data WHERE book = b.id AND format = 'EPUB') AS epub,
+  (SELECT group_concat(t.name, char(31)) FROM books_tags_link l JOIN tags t ON t.id = l.tag WHERE l.book = b.id) AS tags
 FROM books b ORDER BY b.id`;
 
 function toItem(root: string, r: Row): CalibreItem {
@@ -117,6 +121,7 @@ function toItem(root: string, r: Row): CalibreItem {
     formats: (r.formats ?? "").split(",").filter(Boolean),
     info,
     cover: r.has_cover ? join(dir, "cover.jpg") : undefined,
+    tags: (r.tags ?? "").split("\u001f").filter(Boolean),
   };
 }
 

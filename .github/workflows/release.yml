@@ -34,6 +34,8 @@ jobs:
         with:
           workspaces: app/src-tauri
       - run: npm ci
+      # The sorting model ships inside the app; the build fails rather than ship without it.
+      - run: node scripts/fetch-model.ts
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

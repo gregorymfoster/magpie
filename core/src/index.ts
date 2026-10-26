@@ -12,3 +12,4 @@ export type { Device } from "./send/devices.ts";
 export type { Settings } from "./settings.ts";
 export { explain } from "./errors.ts";
 export { toKepub } from "./send/kepub.ts";
+export { MODEL, WordPiece, bertEmbedder, ortRun, type RunBert } from "./organize/bert.ts";

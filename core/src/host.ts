@@ -44,6 +44,12 @@ export interface Host {
    * Rejects when offline or on a non-2xx answer.
    */
   web: { getJson(url: string): Promise<unknown> };
+  /**
+   * A small text model on this machine (bge-small-en-v1.5, bundled), used to
+   * sort books onto shelves. Turns each text into a unit-length vector. Nothing
+   * leaves the machine. Optional: without it Magpie sorts by rules alone.
+   */
+  embed?(texts: string[]): Promise<Float32Array[]>;
   env: HostEnv;
 }
 

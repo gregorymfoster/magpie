@@ -10,6 +10,7 @@ import { join, type Host } from "./host.ts";
 import type { InfoPatch, Suggestion } from "./info.ts";
 import { Jobs, type Job, type JobResult } from "./jobs.ts";
 import { Library, type ListQuery, type LookupPrev } from "./library/library.ts";
+import { Organizer } from "./organize/organize.ts";
 import { deviceName } from "./naming.ts";
 import { loadForPreview, preview } from "./preview.ts";
 import type { Book } from "./epub.ts";
@@ -42,6 +43,7 @@ interface AppConfig {
 
 class Context {
   host: Host;
+  organizer: Organizer;
   library: Library | null = null;
   jobs: Jobs | null = null;
   /** The last unexpected error, for diagnostics; paths are left out like titles are. */
@@ -53,6 +55,18 @@ class Context {
 
   constructor(host: Host) {
     this.host = host;
+    this.organizer = new Organizer(host.embed?.bind(host));
+  }
+
+  /** Sort books onto shelves as a job: one undo step for the lot. */
+  async sort(ids: number[]) {
+    if (!ids.length) return null;
+    const step = await this.lib().openStep(ids.length === 1 ? "Sort book" : "Sort Library");
+    return this.queue().enqueue(
+      "organize",
+      ids.length === 1 ? "Sorting a book onto shelves" : `Sorting ${ids.length} books onto shelves`,
+      ids.map((id) => ({ id, step })),
+    );
   }
 
   emit(e: CoreEvent) {
@@ -111,6 +125,9 @@ class Context {
     });
     this.jobs.resume();
     await this.saveConfig({ ...(await this.config()), libraryPath: path });
+    // A Library from before shelves existed (or before the rules changed) gets sorted once, in the background.
+    const sorting = (await this.jobs.active()).some((j) => j.kind === "organize" && (j.state === "queued" || j.state === "running"));
+    if (!sorting && (await this.library.setting("organize", DEFAULTS.organize))) await this.sort(await this.library.unsorted());
     this.emit({ type: "library.changed" });
   }
 
@@ -126,6 +143,8 @@ class Context {
 function runners(ctx: Context) {
   const addResult = async (label: string, add: () => ReturnType<Library["add"]>): Promise<JobResult> => {
     const o = await add();
+    // New books are sorted as they arrive; that's part of adding them, not a separate undo step.
+    if (o.kind === "added" && (await ctx.lib().setting("organize", DEFAULTS.organize))) await ctx.lib().organize(o.book.id, ctx.organizer);
     ctx.changed();
     if (o.kind === "unreadable") return { label, outcome: "unreadable", message: explain(o.reason) };
     if (o.kind === "duplicate") return { label: o.book.title, outcome: "duplicate", message: "Already in your Library.", bookId: o.book.id };
@@ -140,7 +159,16 @@ function runners(ctx: Context) {
       const c = item as CalibreItem;
       if (!c.path) return { label: c.title, outcome: "skipped", message: explain("calibre-no-epub") } satisfies JobResult;
       if (!(await ctx.host.fs.exists(c.path))) return { label: c.title, outcome: "skipped", message: explain("calibre-file-missing") } satisfies JobResult;
-      return addResult(c.title, () => ctx.lib().add({ path: c.path!, name: c.title, origin: "calibre", info: c.info, cover: c.cover }));
+      return addResult(c.title, () => ctx.lib().add({ path: c.path!, name: c.title, origin: "calibre", info: c.info, cover: c.cover, tags: c.tags }));
+    },
+    organize: async (item: unknown) => {
+      const { id, step } = item as { id: number; step: number };
+      const lib = ctx.lib();
+      const book = await lib.get(id);
+      const change = await lib.organize(id, ctx.organizer);
+      if (change) await lib.addToStep(step, change);
+      ctx.changed();
+      return { label: book.title, outcome: "sorted", bookId: id } satisfies JobResult;
     },
     kobo: async (item: unknown) => {
       const { id, device } = item as { id: number; device: string };
@@ -258,9 +286,9 @@ async function appState(ctx: Context): Promise<AppState> {
 
 async function getSettings(ctx: Context): Promise<Settings> {
   const lib = ctx.lib();
-  const out = { ...DEFAULTS };
+  const out: Record<string, unknown> = { ...DEFAULTS };
   for (const k of Object.keys(DEFAULTS) as (keyof Settings)[]) out[k] = await lib.setting(k, DEFAULTS[k]);
-  return out;
+  return out as unknown as Settings;
 }
 
 const commands = {
@@ -309,6 +337,26 @@ const commands = {
   async "books.review"(ctx: Context, a: { decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[] }) {
     await ctx.lib().review(a.decisions);
     ctx.changed();
+  },
+
+  /** Put tags on or take them off, for one book or many. Taking off one of Magpie's tags keeps it off. */
+  async "books.tag"(ctx: Context, a: { ids: number[]; add?: string[]; remove?: string[] }) {
+    await ctx.lib().tag(a.ids, a.add ?? [], a.remove ?? []);
+    ctx.changed();
+  },
+
+  /** The sidebar's groups: Fiction and Nonfiction with their genres, vibes, tags, authors and series. */
+  async "library.groups"(ctx: Context) {
+    return ctx.lib().groups();
+  },
+
+  /**
+   * Sort books onto shelves (kind, genre, vibe) with the rules and the local model.
+   * Without ids, every book not yet sorted; with `again`, every book. A person's tags are never touched.
+   */
+  async "library.organize"(ctx: Context, a: { ids?: number[]; again?: boolean } = {}) {
+    const ids = a.ids ?? (a.again ? (await ctx.lib().list({})).map((b) => b.id) : await ctx.lib().unsorted());
+    return ctx.sort(ids);
   },
 
   async "books.remove"(ctx: Context, a: { ids: number[] }) {

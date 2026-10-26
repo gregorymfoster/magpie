@@ -19,6 +19,10 @@ lint:
     npx prettier --check core cli ui/src bench
     node scripts/ratchet.ts
 
+# Download the local sorting model into models/ (checked by sha256). Without it, books are sorted by rules alone
+model:
+    node scripts/fetch-model.ts
+
 # Format everything in place
 fmt:
     npx prettier --write core cli ui/src bench

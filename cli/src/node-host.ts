@@ -7,6 +7,8 @@
 //   MAGPIE_OPENED    a file that `open` and `mail` append to instead of launching apps
 //   MAGPIE_WEB       a JSON file of { "url fragment": answer } standing in for the internet;
 //                    an answer of null is "offline", and an unlisted URL fails too
+//   MAGPIE_MODEL     the folder holding the sorting model; defaults to models/ in the repo
+//                    (`just model` downloads it). Without it, books are sorted by rules alone.
 
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -14,7 +16,7 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { paced, type Db, type Host, type SqlValue } from "@magpie/core";
+import { MODEL, WordPiece, bertEmbedder, ortRun, paced, type Db, type Host, type SqlValue } from "@magpie/core";
 
 const VERSION = "0.1.4";
 
@@ -32,7 +34,9 @@ end run`;
 
 export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
   const home = env.MAGPIE_HOME ?? homedir();
+  const modelDir = env.MAGPIE_MODEL ?? join(import.meta.dirname, "../../models", MODEL.name);
   return {
+    ...(Object.keys(MODEL.files).every((f) => existsSync(join(modelDir, f))) && { embed: modelEmbedder(modelDir) }),
     fs: {
       read: async (p) => new Uint8Array(await readFile(p)),
       async write(p, data) {
@@ -142,4 +146,17 @@ function sqliteDb(db: DatabaseSync): Db {
     exec: async (sql) => db.exec(sql),
     close: async () => db.close(),
   };
+}
+
+/** The sorting model on ONNX Runtime's WebAssembly build, the same one the app runs, so the bench measures what ships. Loaded on first use. */
+function modelEmbedder(dir: string): (texts: string[]) => Promise<Float32Array[]> {
+  let ready: Promise<(texts: string[]) => Promise<Float32Array[]>> | null = null;
+  const load = async () => {
+    const ort = await import("onnxruntime-web");
+    ort.env.wasm.numThreads = 1;
+    const session = await ort.InferenceSession.create(new Uint8Array(await readFile(join(dir, "onnx/model_quantized.onnx"))));
+    const tokenizer = WordPiece.fromTokenizerJson(await readFile(join(dir, "tokenizer.json"), "utf8"));
+    return bertEmbedder(tokenizer, ortRun(session, ort.Tensor));
+  };
+  return async (texts) => (await (ready ??= load()))(texts);
 }

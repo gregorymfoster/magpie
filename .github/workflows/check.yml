@@ -17,6 +17,11 @@ jobs:
           cache: npm
       - uses: extractions/setup-just@v2
       - run: npm ci
+      - uses: actions/cache@v4
+        with:
+          path: models
+          key: model-${{ hashFiles('core/src/organize/bert.ts') }}
+      - run: node scripts/fetch-model.ts
       - run: npx playwright install --with-deps chromium
       - run: just check
       - uses: actions/upload-artifact@v4
@@ -38,6 +43,7 @@ jobs:
         with:
           workspaces: app/src-tauri
       - run: npm ci
+      - run: node scripts/fetch-model.ts
       - run: npm run build -w ui
       - run: cargo test --manifest-path app/src-tauri/Cargo.toml
       - run: npm run tauri -w app -- build --debug --bundles app

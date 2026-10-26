@@ -1,19 +1,68 @@
-import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder } from "lucide-react";
-import type { AppState, Device } from "@magpie/core";
+import { useState } from "react";
+import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder, Feather, Lightbulb, Sparkles, Layers, User, Tag, ChevronRight, Wand2 } from "lucide-react";
+import type { AppState, Device, Groups } from "@magpie/core";
 import { jobProgress } from "./Progress.tsx";
 import { tilde } from "../format.ts";
 
-export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}`;
+export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
 
-export function Sidebar({ state, devices, view, setView }: { state: AppState; devices: Device[]; view: View; setView: (v: View) => void }) {
-  const Row = ({ id, icon, label, count, hot }: { id: View; icon: React.ReactNode; label: string; count?: number; hot?: boolean }) => (
-    <button className={"row" + (view === id ? " on" : "")} onClick={() => setView(id)} aria-current={view === id ? "page" : undefined}>
+type Section = "shelves" | "vibes" | "series" | "authors" | "tags";
+const FEW_AUTHORS = 8;
+
+const stored = (): Record<string, boolean> => {
+  try {
+    return JSON.parse(localStorage.getItem("magpie.closed") ?? "{}");
+  } catch {
+    return {};
+  }
+};
+
+export function Sidebar({
+  state,
+  devices,
+  groups,
+  view,
+  setView,
+  onSort,
+}: {
+  state: AppState;
+  devices: Device[];
+  groups?: Groups;
+  view: View;
+  setView: (v: View) => void;
+  onSort: () => void;
+}) {
+  const [closed, setClosed] = useState(stored);
+  const [allAuthors, setAllAuthors] = useState(false);
+  const toggle = (s: Section) =>
+    setClosed((c) => {
+      const next = { ...c, [s]: !c[s] };
+      try {
+        localStorage.setItem("magpie.closed", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  const Row = ({ id, icon, label, count, hot, sub }: { id: View; icon?: React.ReactNode; label: string; count?: number; hot?: boolean; sub?: boolean }) => (
+    <button className={"row" + (view === id ? " on" : "") + (sub ? " sub" : "")} onClick={() => setView(id)} aria-current={view === id ? "page" : undefined}>
       {icon}
-      <span>{label}</span>
+      <span className="lbl">{label}</span>
       {count !== undefined && <span className={"ct" + (hot && count ? " hot" : "")}>{count.toLocaleString("en-US")}</span>}
     </button>
   );
+  const Sec = ({ id, label, children }: { id: Section; label: string; children: React.ReactNode }) => (
+    <>
+      <button className={"sec tog" + (closed[id] ? " shut" : "")} onClick={() => toggle(id)} aria-expanded={!closed[id]}>
+        {label}
+        <ChevronRight size={11} strokeWidth={2.2} />
+      </button>
+      {!closed[id] && children}
+    </>
+  );
   const running = state.jobs.find((j) => j.state === "running" || j.state === "queued");
+  const sorting = state.jobs.some((j) => j.kind === "organize" && (j.state === "running" || j.state === "queued"));
+  const authors = groups ? [...groups.authors].sort((a, b) => b.count - a.count || 0) : [];
+  const shownAuthors = allAuthors ? groups?.authors ?? [] : authors.slice(0, FEW_AUTHORS).sort((a, b) => groups!.authors.indexOf(a) - groups!.authors.indexOf(b));
+  const i = { size: 14, strokeWidth: 1.7 };
   return (
     <aside className="side">
       <div className="side-top" data-tauri-drag-region>
@@ -25,14 +74,68 @@ export function Sidebar({ state, devices, view, setView }: { state: AppState; de
       </div>
       <nav className="side-scroll" aria-label="Library">
         <div className="sec">Library</div>
-        <Row id="all" icon={<Library size={14} strokeWidth={1.7} />} label="All Books" count={state.counts.all} />
-        <Row id="review" icon={<AlertCircle size={14} strokeWidth={1.7} />} label="Needs Review" count={state.counts.review} hot />
-        <Row id="recent" icon={<Clock size={14} strokeWidth={1.7} />} label="Recently Added" />
-        {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 size={14} strokeWidth={1.7} />} label="Removed" count={state.counts.removed} />}
+        <Row id="all" icon={<Library {...i} />} label="All Books" count={state.counts.all} />
+        <Row id="review" icon={<AlertCircle {...i} />} label="Needs Review" count={state.counts.review} hot />
+        <Row id="recent" icon={<Clock {...i} />} label="Recently Added" />
+        {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 {...i} />} label="Removed" count={state.counts.removed} />}
+        {groups && state.counts.all > 0 && (
+          <Sec id="shelves" label="Shelves">
+            {groups.shelves.map((s) => (
+              <div key={s.name}>
+                <Row id={`tag:${s.name}`} icon={s.name === "Fiction" ? <Feather {...i} /> : <Lightbulb {...i} />} label={s.name} count={s.count} />
+                {s.genres.map((g) => (
+                  <Row key={g.name} id={`tag:${g.name}`} label={g.name} count={g.count} sub />
+                ))}
+              </div>
+            ))}
+            {!groups.shelves.length &&
+              (sorting ? (
+                <div className="row hint">Sorting your books…</div>
+              ) : (
+                <button className="row" onClick={onSort}>
+                  <Wand2 {...i} />
+                  <span className="lbl">Sort onto shelves</span>
+                </button>
+              ))}
+          </Sec>
+        )}
+        {groups && groups.vibes.length > 0 && (
+          <Sec id="vibes" label="Vibes">
+            {groups.vibes.map((v) => (
+              <Row key={v.name} id={`tag:${v.name}`} icon={<Sparkles {...i} />} label={v.name} count={v.count} />
+            ))}
+          </Sec>
+        )}
+        {groups && groups.series.length > 0 && (
+          <Sec id="series" label="Series">
+            {groups.series.map((s) => (
+              <Row key={s.name} id={`series:${s.name}`} icon={<Layers {...i} />} label={s.name} count={s.count} />
+            ))}
+          </Sec>
+        )}
+        {groups && groups.authors.length > 0 && (
+          <Sec id="authors" label="Authors">
+            {shownAuthors.map((a) => (
+              <Row key={a.name} id={`author:${a.name}`} icon={<User {...i} />} label={a.name} count={a.count} />
+            ))}
+            {groups.authors.length > FEW_AUTHORS && (
+              <button className="row more" onClick={() => setAllAuthors((s) => !s)}>
+                <span className="lbl">{allAuthors ? "Show fewer" : `Show all ${groups.authors.length}`}</span>
+              </button>
+            )}
+          </Sec>
+        )}
+        {groups && groups.tags.length > 0 && (
+          <Sec id="tags" label="Tags">
+            {groups.tags.map((t) => (
+              <Row key={t.name} id={`tag:${t.name}`} icon={<Tag {...i} />} label={t.name} count={t.count} />
+            ))}
+          </Sec>
+        )}
         <div className="sec">Devices</div>
-        <Row id="kindle" icon={<Mail size={14} strokeWidth={1.7} />} label="Kindle" />
+        <Row id="kindle" icon={<Mail {...i} />} label="Kindle" />
         {devices.map((d) => (
-          <Row key={d.id} id={`kobo:${d.path}`} icon={<Usb size={14} strokeWidth={1.7} />} label={d.name} />
+          <Row key={d.id} id={`kobo:${d.path}`} icon={<Usb {...i} />} label={d.name} />
         ))}
       </nav>
       <div className="side-foot">

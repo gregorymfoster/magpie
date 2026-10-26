@@ -7,10 +7,13 @@ import { UserError } from "./errors.ts";
 export interface Settings {
   /** Settings › Devices. name@kindle.com, from amazon.com › Manage Your Content and Devices › Preferences. */
   kindleAddress: string;
+  /** Settings › General. Sort books onto shelves (Fiction, genres, vibes) as they come in. */
+  organize: boolean;
 }
 
 export const DEFAULTS: Settings = {
   kindleAddress: "",
+  organize: true,
 };
 
 export function validate(patch: Partial<Settings>): Partial<Settings> {
@@ -20,5 +23,6 @@ export function validate(patch: Partial<Settings>): Partial<Settings> {
     if (a && !/^[^@\s]+@(free\.)?kindle\.(com|cn)$/i.test(a)) throw new UserError("not-kindle-address");
     out.kindleAddress = a;
   }
+  if (patch.organize !== undefined) out.organize = !!patch.organize;
   return out;
 }

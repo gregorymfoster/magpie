@@ -8,3 +8,4 @@ tools/epubcheck-batch/*.class
 ui/shots/
 ui/dist/
 test-results/
+models/

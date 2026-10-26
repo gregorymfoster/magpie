@@ -10,12 +10,37 @@ import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
 import { fix, newPlan, type CatalogRecord, type FixPlan, type FixReport } from "../fix.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
+import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
 import { MIGRATIONS } from "./schema.ts";
+import { GENRES, GENRE_NAMES, KINDS, VIBES, VIBE_NAMES } from "../organize/vocabulary.ts";
 
 /** "locked": DRM. Kept byte for byte as it came; never fixed, edited, converted or sent. */
 export type BookState = "ready" | "fixed" | "review" | "locked";
+
+/** A word a book is filed under. Magpie's own come with how sure it was and why. */
+export interface Tag {
+  name: string;
+  /** "you": typed by a person. "calibre": brought over from Calibre. "magpie": Magpie sorted it. */
+  by: "you" | "calibre" | "magpie";
+  confidence?: number;
+  /** For Magpie's tags: what it read, "the book's subjects" or "Magpie's model". */
+  source?: string;
+}
+
+/** The sidebar's groups, each with how many books are in it. */
+export interface Groups {
+  shelves: { name: string; count: number; genres: { name: string; count: number }[] }[];
+  vibes: { name: string; count: number }[];
+  /** Tags that aren't shelves or vibes: a person's and Calibre's own. */
+  tags: { name: string; count: number }[];
+  /** Authors and series with at least two books. */
+  authors: { name: string; count: number }[];
+  series: { name: string; count: number }[];
+  /** Live books Magpie hasn't sorted yet. */
+  unsorted: number;
+}
 
 /** One row of the Library, as the grid and list show it. */
 export interface BookSummary {
@@ -32,11 +57,12 @@ export interface BookSummary {
   size: number;
   addedAt: string;
   removedAt?: string;
+  tags: Tag[];
+  publisher?: string;
 }
 
 /** Everything the inspector shows. */
 export interface BookDetail extends BookSummary {
-  publisher?: string;
   isbn?: string;
   description?: string;
   /** Absolute path of the fixed EPUB. */
@@ -64,12 +90,18 @@ export interface AddSource {
   info?: InfoPatch;
   /** A cover image to show when the book has none of its own (Calibre's cover.jpg). */
   cover?: string;
+  /** Calibre's tags, kept as they were. */
+  tags?: string[];
 }
 
 export interface ListQuery {
   state?: BookState;
-  /** Matches title, author or series. */
+  /** Matches title, author, series or tag. */
   search?: string;
+  /** Books with this tag: a shelf, a genre, a vibe or any other tag. */
+  tag?: string;
+  author?: string;
+  series?: string;
   removed?: boolean;
   sort?: "added" | "title" | "author";
 }
@@ -87,6 +119,9 @@ type Row = Record<string, SqlValue>;
 interface Snapshot {
   plan: FixPlan;
   removed_at: string | null;
+  /** Raw JSON. Missing in history written before tags existed. */
+  tags?: string;
+  tags_off?: string;
 }
 
 export class Library {
@@ -149,8 +184,8 @@ export class Library {
     await this.host.fs.write(this.abs(file), built.bytes);
     const r = await this.db.run(
       `INSERT INTO books (hash, title, authors, author_sort, series, series_index, language, publisher, year, isbn, description,
-         file, original, size, state, plan, report, origin, origin_name, added_at, updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         file, original, size, state, plan, report, origin, origin_name, added_at, updated_at, tags)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         hash,
         built.info.title || stem(name),
@@ -173,6 +208,7 @@ export class Library {
         name,
         now,
         now,
+        JSON.stringify(cleanTags(src.tags ?? []).map((name): Tag => ({ name, by: "calibre" }))),
       ],
     );
     const id = r.lastId;
@@ -192,12 +228,15 @@ export class Library {
     }
     const order = { added: "added_at DESC, id DESC", title: "id", author: "id" }[q.sort ?? "added"];
     let books = (await this.db.all(`SELECT * FROM books WHERE ${where.join(" AND ")} ORDER BY ${order}`, params)).map((r) => this.summary(r));
+    if (q.tag) books = books.filter((b) => b.tags.some((t) => t.name === q.tag));
+    if (q.author) books = books.filter((b) => b.authors.includes(q.author!));
+    if (q.series) books = books.filter((b) => b.series === q.series);
     // Searching and sorting happen here rather than in SQL so they read like Finder:
     // "bronte" finds Brontë, and Book 2 comes before Book 10 with "The" ignored.
     const words = fold(q.search ?? "")
       .split(" ")
       .filter(Boolean);
-    if (words.length) books = books.filter((b) => ((hay) => words.every((w) => hay.includes(w)))(fold([b.title, ...b.authors, b.series ?? ""].join(" "))));
+    if (words.length) books = books.filter((b) => ((hay) => words.every((w) => hay.includes(w)))(fold([b.title, ...b.authors, b.series ?? "", ...b.tags.map((t) => t.name)].join(" "))));
     const byTitle = (a: BookSummary, b: BookSummary) => COLLATE.compare(sortTitle(a.title), sortTitle(b.title));
     if (q.sort === "title") books.sort(byTitle);
     if (q.sort === "author")
@@ -215,7 +254,6 @@ export class Library {
     const r = await this.row(id);
     return {
       ...this.summary(r),
-      publisher: (r.publisher as string) ?? undefined,
       isbn: (r.isbn as string) ?? undefined,
       description: (r.description as string) ?? undefined,
       file: this.abs(r.file as string),
@@ -307,6 +345,8 @@ export class Library {
 
   /** Undo the last change. Returns its label, or null when there's nothing to undo. */
   async undo(): Promise<string | null> {
+    // A sort that was cancelled before its first book leaves an empty step; it isn't a change.
+    await this.db.run("DELETE FROM history WHERE steps = '[]'");
     const [h] = await this.db.all<{ id: number; label: string; steps: string }>("SELECT * FROM history ORDER BY id DESC LIMIT 1");
     if (!h) return null;
     const steps: { id: number; before: Snapshot; after: Snapshot }[] = JSON.parse(h.steps);
@@ -315,13 +355,14 @@ export class Library {
       if (!now) continue;
       if (JSON.stringify(now.plan) !== JSON.stringify(s.before.plan)) await this.rebuild(s.id, s.before.plan);
       await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [s.before.removed_at, s.id]);
+      if (s.before.tags !== undefined) await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
     }
     await this.db.run("DELETE FROM history WHERE id = ?", [h.id]);
     return h.label;
   }
 
   async lastChange(): Promise<string | null> {
-    const [h] = await this.db.all<{ label: string }>("SELECT label FROM history ORDER BY id DESC LIMIT 1");
+    const [h] = await this.db.all<{ label: string }>("SELECT label FROM history WHERE steps != '[]' ORDER BY id DESC LIMIT 1");
     return h?.label ?? null;
   }
 
@@ -334,6 +375,115 @@ export class Library {
       await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
     }
     return gone.length;
+  }
+
+  // ------------------------------------------------------------ shelves
+
+  /**
+   * Sort one book: Magpie's tags are replaced with fresh guesses; a person's and
+   * Calibre's stay, and so does anything a person took off. Returns the history
+   * step when something changed, for the caller to record.
+   */
+  async organize(id: number, organizer: Organizer): Promise<{ id: number; before: Snapshot; after: Snapshot } | null> {
+    const r = await this.row(id);
+    const before = await this.snapshot(id);
+    const kept: Tag[] = (JSON.parse(before.tags ?? "[]") as Tag[]).filter((t) => t.by !== "magpie");
+    const off = new Set<string>(JSON.parse(before.tags_off ?? "[]"));
+    let subjects: string[] = [];
+    let opening = "";
+    try {
+      // A locked book's pages are encrypted, but its package (and subjects) can be read.
+      const book = Book.load(await this.host.fs.read(this.abs(r.file as string)), { locked: "allow" });
+      subjects = readSubjects(book);
+      if (r.state !== "locked" && !r.description) opening = readOpening(book);
+    } catch {
+      // Unreadable now (a missing file): sort on what the Library knows.
+    }
+    const guesses = await organizer.guess({
+      title: r.title as string,
+      description: (r.description as string) ?? undefined,
+      subjects: [...subjects, ...kept.map((t) => t.name)],
+      opening,
+    });
+    const have = new Set(kept.map((t) => t.name.toLowerCase()));
+    const tags = [
+      ...kept,
+      ...guesses.filter((g) => !off.has(g.name) && !have.has(g.name.toLowerCase())).map((g): Tag => ({ name: g.name, by: "magpie", confidence: round(g.confidence), source: g.source })),
+    ];
+    const key = (ts: Tag[]) => JSON.stringify(ts.map((t) => [t.name, t.by, t.confidence]).sort());
+    if (key(tags) === key(JSON.parse(before.tags ?? "[]"))) {
+      await this.db.run("UPDATE books SET organized = ? WHERE id = ?", [ORGANIZER, id]);
+      return null;
+    }
+    await this.db.run("UPDATE books SET tags = ?, organized = ? WHERE id = ?", [JSON.stringify(tags), ORGANIZER, id]);
+    return { id, before, after: { ...before, tags: JSON.stringify(tags) } };
+  }
+
+  /** Live books Magpie hasn't sorted with the current rules. */
+  async unsorted(): Promise<number[]> {
+    const rows = await this.db.all<{ id: number }>("SELECT id FROM books WHERE removed_at IS NULL AND (organized IS NULL OR organized < ?) ORDER BY id", [ORGANIZER]);
+    return rows.map((r) => r.id);
+  }
+
+  /** Put tags on and take tags off, for many books at once. One undo step. */
+  async tag(ids: number[], add: string[], remove: string[]): Promise<void> {
+    add = cleanTags(add);
+    const steps = [];
+    for (const id of ids) {
+      const before = await this.snapshot(id);
+      let tags: Tag[] = JSON.parse(before.tags ?? "[]");
+      let off: string[] = JSON.parse(before.tags_off ?? "[]");
+      const gone = new Set(remove.map((n) => n.toLowerCase()));
+      tags = tags.filter((t) => !gone.has(t.name.toLowerCase()));
+      off = [...new Set([...off.filter((n) => !add.some((a) => a.toLowerCase() === n.toLowerCase())), ...remove])];
+      for (const name of add) if (!tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) tags.push({ name, by: "you" });
+      const after = { ...before, tags: JSON.stringify(tags), tags_off: JSON.stringify(off) };
+      if (after.tags === before.tags && after.tags_off === before.tags_off) continue;
+      await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [after.tags, after.tags_off, id]);
+      steps.push({ id, before, after });
+    }
+    const label = remove.length && !add.length ? "Remove tag" : "Add tag";
+    if (steps.length) await this.record(label, steps);
+  }
+
+  /** The sidebar: shelves with their genres, vibes, other tags, and authors and series with two or more books. */
+  async groups(): Promise<Groups> {
+    const books = await this.list({});
+    const count = (names: Iterable<string>) => {
+      const m = new Map<string, number>();
+      for (const n of names) m.set(n, (m.get(n) ?? 0) + 1);
+      return m;
+    };
+    const tagCounts = count(books.flatMap((b) => [...new Set(b.tags.map((t) => t.name))]));
+    const sorted = (m: Map<string, number>, min = 1) =>
+      [...m]
+        .filter(([, n]) => n >= min)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => COLLATE.compare(a.name, b.name));
+    const shelves = KINDS.map((kind) => ({
+      name: kind,
+      count: tagCounts.get(kind) ?? 0,
+      genres: GENRES.filter((g) => g.kind === kind && tagCounts.get(g.name)).map((g) => ({ name: g.name, count: tagCounts.get(g.name)! })),
+    })).filter((s) => s.count || s.genres.length);
+    const known = new Set<string>([...KINDS, ...GENRE_NAMES, ...VIBE_NAMES]);
+    return {
+      shelves,
+      vibes: VIBES.filter((v) => tagCounts.get(v.name)).map((v) => ({ name: v.name, count: tagCounts.get(v.name)! })),
+      tags: sorted(new Map([...tagCounts].filter(([n]) => !known.has(n)))),
+      authors: sorted(count(books.flatMap((b) => b.authors)), 2).sort((a, b) => COLLATE.compare(authorSort(a.name), authorSort(b.name))),
+      series: sorted(count(books.flatMap((b) => (b.series ? [b.series] : []))), 2),
+      unsorted: (await this.unsorted()).length,
+    };
+  }
+
+  /** A history step that grows as a long job goes, so the whole job undoes at once. */
+  async openStep(label: string): Promise<number> {
+    const r = await this.db.run("INSERT INTO history (label, steps, at) VALUES (?, '[]', ?)", [label, new Date().toISOString()]);
+    return r.lastId;
+  }
+
+  async addToStep(historyId: number, step: unknown): Promise<void> {
+    await this.db.run("UPDATE history SET steps = json_insert(steps, '$[#]', json(?)) WHERE id = ?", [JSON.stringify(step), historyId]);
   }
 
   // ------------------------------------------------------------ settings
@@ -429,7 +579,7 @@ export class Library {
 
   private async snapshot(id: number): Promise<Snapshot> {
     const r = await this.row(id);
-    return { plan: JSON.parse(r.plan as string), removed_at: (r.removed_at as string) ?? null };
+    return { plan: JSON.parse(r.plan as string), removed_at: (r.removed_at as string) ?? null, tags: r.tags as string, tags_off: r.tags_off as string };
   }
 
   private async record(label: string, steps: unknown[]) {
@@ -457,7 +607,9 @@ export class Library {
       state: r.state as BookState,
       size: r.size as number,
       addedAt: r.added_at as string,
+      tags: JSON.parse((r.tags as string) ?? "[]"),
     };
+    if (r.publisher) s.publisher = r.publisher as string;
     if (r.series) s.series = r.series as string;
     if (r.series_index != null) s.seriesIndex = r.series_index as number;
     if (r.year != null) s.year = r.year as number;
@@ -473,6 +625,18 @@ function asLocked(bytes: Uint8Array, info: InfoPatch = {}) {
   const report: FixReport = { changes: [], suggestions: [], errors: [] };
   return { bytes, info: { ...readInfo(book), ...info }, report, cover: null, locked: true };
 }
+
+/** Trimmed, single-spaced, no blanks or repeats, at most 60 characters each. */
+export function cleanTags(names: string[]): string[] {
+  const out: string[] = [];
+  for (const n of names) {
+    const t = n.replace(/\s+/g, " ").trim().slice(0, 60);
+    if (t && !out.some((o) => o.toLowerCase() === t.toLowerCase())) out.push(t);
+  }
+  return out;
+}
+
+const round = (x: number) => Math.round(x * 100) / 100;
 
 const COLLATE = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 const sortTitle = (t: string) => t.replace(/^(the|a|an)\s+/i, "");

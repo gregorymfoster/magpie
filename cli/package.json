@@ -15,6 +15,7 @@
   "dependencies": {
     "@magpie/core": "*",
     "@modelcontextprotocol/sdk": "^1.32.2",
+    "onnxruntime-web": "^1.22.0",
     "zod": "^4.6.7"
   }
 }

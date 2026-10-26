@@ -52,4 +52,10 @@ export const MIGRATIONS: string[] = [
     finished_at TEXT
   );
   `,
+  // 2: Shelves. Tags live in the Library, never in the book file, so even a locked book can be sorted.
+  `
+  ALTER TABLE books ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';     -- JSON [{name, by, confidence?, source?}], by: you | calibre | magpie
+  ALTER TABLE books ADD COLUMN tags_off TEXT NOT NULL DEFAULT '[]'; -- JSON names a person took off; Magpie never puts them back
+  ALTER TABLE books ADD COLUMN organized INTEGER;                   -- ORGANIZER version that last sorted it; NULL: never
+  `,
 ];

@@ -7,14 +7,15 @@
 // suggestion or undoing either is "change the plan, rebuild".
 
 import { UserError } from "../errors.ts";
-import { BookError } from "../epub.ts";
+import { Book, BookError } from "../epub.ts";
 import { fix, newPlan, type FixPlan, type FixReport } from "../fix.ts";
-import type { InfoPatch, Suggestion } from "../info.ts";
+import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
 import { MIGRATIONS } from "./schema.ts";
 
-export type BookState = "ready" | "fixed" | "review";
+/** "locked": DRM. Kept byte for byte as it came; never fixed, edited, converted or sent. */
+export type BookState = "ready" | "fixed" | "review" | "locked";
 
 /** One row of the Library, as the grid and list show it. */
 export interface BookSummary {
@@ -49,7 +50,7 @@ export interface BookDetail extends BookSummary {
 }
 
 export type AddOutcome =
-  | { kind: "added"; book: BookSummary }
+  | { kind: "added"; book: BookSummary; locked?: boolean }
   | { kind: "duplicate"; book: BookSummary }
   | { kind: "unreadable"; name: string; reason: BookError["code"] | "not-epub" };
 
@@ -126,12 +127,13 @@ export class Library {
     }
     const now = new Date().toISOString();
     const plan = newPlan({ uuid: uuidFrom(hash), modified: now.replace(/\.\d+Z$/, "Z") }, src.info ?? {});
-    let built;
+    let built: ReturnType<typeof fix> & { locked?: boolean };
     try {
       built = fix(bytes, plan);
     } catch (e) {
-      if (e instanceof BookError) return { kind: "unreadable", name, reason: e.code };
-      throw e;
+      if (e instanceof BookError && e.code === "drm") built = asLocked(bytes, src.info);
+      else if (e instanceof BookError) return { kind: "unreadable", name, reason: e.code };
+      else throw e;
     }
     const original = `originals/${hash}.epub`;
     await this.host.fs.write(this.abs(original), bytes);
@@ -156,7 +158,7 @@ export class Library {
         file,
         original,
         built.bytes.length,
-        stateOf(built.report),
+        built.locked ? "locked" : stateOf(built.report),
         JSON.stringify(plan),
         JSON.stringify(built.report),
         src.origin ?? "import",
@@ -168,7 +170,7 @@ export class Library {
     const id = r.lastId;
     const cover = await this.saveCover(id, built.cover, src.cover);
     if (cover) await this.db.run("UPDATE books SET cover = ? WHERE id = ?", [cover, id]);
-    return { kind: "added", book: await this.summaryById(id) };
+    return { kind: "added", book: await this.summaryById(id), locked: built.locked };
   }
 
   // ------------------------------------------------------------ reading
@@ -333,6 +335,7 @@ export class Library {
 
   private async rebuild(id: number, plan: FixPlan) {
     const r = await this.row(id);
+    if (r.state === "locked") throw new UserError("locked-edit");
     const built = fix(await this.host.fs.read(this.abs(r.original as string)), plan);
     let file = r.file as string;
     const want = `books/${bookPath(built.info.authors, built.info.title || stem(r.origin_name as string))}`;
@@ -419,6 +422,13 @@ export class Library {
     if (r.removed_at) s.removedAt = r.removed_at as string;
     return s;
   }
+}
+
+/** A locked book goes in untouched: the original bytes, and only what its package says about itself. */
+function asLocked(bytes: Uint8Array, info: InfoPatch = {}) {
+  const book = Book.load(bytes, { locked: "allow" });
+  const report: FixReport = { changes: [], suggestions: [], errors: [] };
+  return { bytes, info: { ...readInfo(book), ...info }, report, cover: null, locked: true };
 }
 
 function stateOf(report: FixReport): BookState {

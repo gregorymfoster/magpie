@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import type { BookSummary } from "@magpie/core";
 import { Cover } from "./Cover.tsx";
 import { authors, date, size } from "../format.ts";
@@ -22,6 +22,7 @@ export function Grid({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
             <div className="t">{b.title}</div>
             <div className="a">
               {b.state === "review" && <span className="dot rv" />}
+              {b.state === "locked" && <Lock size={10} strokeWidth={2.2} aria-label="Locked with DRM" />}
               {authors(b.authors)}
             </div>
           </div>
@@ -75,6 +76,13 @@ export function StatePill({ state }: { state: BookSummary["state"] }) {
       <span className="pill ok">
         <Check size={11} strokeWidth={2.4} />
         Fixed
+      </span>
+    );
+  if (state === "locked")
+    return (
+      <span className="pill bad">
+        <Lock size={11} strokeWidth={2.4} />
+        DRM
       </span>
     );
   return <span className="pill mut">Ready</span>;

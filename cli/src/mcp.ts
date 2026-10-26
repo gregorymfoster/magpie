@@ -61,7 +61,7 @@ export function mcpServer(core: Core, version: string) {
     { name: "magpie", title: "Magpie", version },
     {
       instructions:
-        "Magpie is the user's ebook library on this Mac. Search before acting, refer to books by title when talking to the user, and tell them that any change can be undone with undo or ⌘Z in Magpie. Never claim a book was sent to a Kindle: send_to_kindle only opens a Mail draft the user sends.",
+        "Magpie is the user's ebook library on this Mac. Search before acting, refer to books by title when talking to the user, and tell them that any change can be undone with undo or ⌘Z in Magpie. Never claim a book was sent to a Kindle: send_to_kindle only opens a Mail draft the user sends. Books in state \"locked\" have DRM from the store that sold them: Magpie lists them but can't edit, fix or send them.",
     },
   );
   // Long work runs as a job; wait for it so the AI gets the outcome, not a job id.
@@ -98,7 +98,7 @@ export function mcpServer(core: Core, version: string) {
         "Find books by title, author or series. With no search, lists the Library. state 'review' finds books with suggested details waiting; 'fixed' finds books Magpie repaired.",
       inputSchema: {
         search: z.string().optional(),
-        state: z.enum(["ready", "fixed", "review"]).optional(),
+        state: z.enum(["ready", "fixed", "review", "locked"]).optional(),
         removed: z.boolean().optional().describe("Search Removed instead of the Library"),
         sort: z.enum(["added", "title", "author"]).optional(),
         limit: z.number().int().min(1).max(500).default(50),

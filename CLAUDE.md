@@ -31,7 +31,7 @@ Read `GLOSSARY.md` before naming things. Decisions and why are in `docs/adr/`. W
 
 ## Rules that are easy to break
 
-- Never copy, decrypt or detect-and-strip DRM. A DRM'd file is refused with a sentence.
+- Never decrypt, strip or work around DRM. A locked book (`Book.isLocked`) is let into the Library byte for byte with state `locked` and a warning, and is never fixed, edited, converted or sent (`locked-edit`, `locked-send` in errors.ts). Only its unencrypted package details are read.
 - The original file is never modified. `originals/<sha256>.epub` is kept and every fix is a `FixPlan` replayed on it, which is also how undo works.
 - Every write a user can make is undoable (`history.undo`). New write commands must record history.
 - Errors shown to people are sentences from `core/src/errors.ts`, never raw exceptions.

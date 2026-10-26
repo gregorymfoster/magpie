@@ -78,26 +78,51 @@ test("a folder imports every EPUB inside it; duplicates and non-books get a sent
 const encryption = (algorithm: string) =>
   `<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#"><EncryptionMethod Algorithm="${algorithm}"/><CipherData><CipherReference URI="ch1.xhtml"/></CipherData></EncryptedData></encryption>`;
 
-test("a book with DRM is refused with a sentence and nothing is kept; obfuscated fonts are fine", async () => {
+test("a book with DRM comes in untouched with a warning, and can't be fixed, edited or sent; obfuscated fonts aren't DRM", async () => {
   const { core, file, home } = setup();
   await core.call("app.state");
+  const adobe = epub({ extra: { "META-INF/encryption.xml": encryption("http://www.w3.org/2001/04/xmlenc#aes128-cbc"), "META-INF/rights.xml": "<rights/>" } });
+  file("adobe.epub", adobe);
   file(
-    "adobe.epub",
-    epub({ extra: { "META-INF/encryption.xml": encryption("http://www.w3.org/2001/04/xmlenc#aes128-cbc"), "META-INF/rights.xml": "<rights/>" } }),
+    "apple.epub",
+    epub({
+      opfMeta: '<dc:identifier id="id">urn:uuid:9</dc:identifier><dc:title>Persuasion</dc:title><dc:creator>Jane Austen</dc:creator>',
+      extra: { "META-INF/sinf.xml": "<fairplay/>" },
+    }),
   );
-  file("apple.epub", epub({ extra: { "META-INF/sinf.xml": "<fairplay/>" } }));
-  file("lcp.epub", epub({ extra: { "META-INF/license.lcpl": "{}" } }));
-  file("fonts.epub", epub({ extra: { "META-INF/encryption.xml": encryption("http://www.idpf.org/2008/embedding") } }));
+  file(
+    "lcp.epub",
+    epub({
+      opfMeta: '<dc:identifier id="id">urn:uuid:8</dc:identifier><dc:title>Lady Susan</dc:title><dc:creator>Jane Austen</dc:creator>',
+      extra: { "META-INF/license.lcpl": "{}" },
+    }),
+  );
+  file(
+    "fonts.epub",
+    epub({
+      opfMeta: '<dc:identifier id="id">urn:uuid:7</dc:identifier><dc:title>Sanditon</dc:title><dc:creator>Jane Austen</dc:creator>',
+      extra: { "META-INF/encryption.xml": encryption("http://www.idpf.org/2008/embedding") },
+    }),
+  );
   await core.call("books.import", { paths: [join(home, "Downloads")] });
   await core.idle();
   const [job] = (await core.call("app.state")).jobs;
-  const by = Object.fromEntries(job.results.map((r) => [r.label, r]));
-  for (const name of ["adobe.epub", "apple.epub", "lcp.epub"]) {
-    assert.equal(by[name].outcome, "unreadable", name);
-    assert.match(by[name].message!, /DRM/);
-  }
-  assert.deepEqual(job.results.filter((r) => r.outcome === "added").length, 1);
-  assert.equal(readdirSync(join(home, "Books/Magpie/originals")).length, 1);
+  assert.deepEqual(
+    job.results.map((r) => r.outcome),
+    ["added", "added", "added", "added"],
+  );
+  assert.equal(job.results.filter((r) => /locked with DRM/.test(r.message ?? "")).length, 3);
+
+  const locked = await core.call("books.list", { state: "locked" });
+  assert.deepEqual(locked.map((b) => b.title).sort(), ["Emma", "Lady Susan", "Persuasion"]);
+  assert.notEqual((await core.call("books.list", { search: "Sanditon" }))[0].state, "locked");
+  const emma = await core.call("books.get", { id: locked.find((b) => b.title === "Emma")!.id });
+  assert.deepEqual(new Uint8Array(readFileSync(emma.file)), adobe, "kept byte for byte");
+  assert.equal(emma.report.changes.length, 0);
+
+  await assert.rejects(core.call("books.edit", { id: emma.id, patch: { title: "Emma!" } }), /DRM/);
+  await core.call("settings.set", { kindleAddress: "me@kindle.com" });
+  await assert.rejects(core.call("send.kindle", { ids: [emma.id] }), /DRM/);
 });
 
 test("suggested details wait for review, and accepting renames the file; undo puts it back", async () => {

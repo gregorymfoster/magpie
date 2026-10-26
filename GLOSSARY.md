@@ -18,13 +18,15 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Suggestion.** A proposed title or author with its source and confidence. Never applied silently; it waits for **Review**.
 
+**Locked.** A book a store has locked with DRM. It comes into the Library byte for byte with a lock on it and is never fixed, edited, converted or sent. "DRM" on its pill in the window.
+
 **Review.** Accepting or dismissing suggestions. "Needs Review" in the sidebar.
 
 **Removed.** A book moved out of the way but kept for 30 days, restorable. **Purge** deletes removed books for good.
 
 **Job.** Long work (an import, a Calibre import, sending to a Kobo) that survives a quit and resumes. Made of items, each with a **result**: added, duplicate, unreadable, skipped, sent, failed.
 
-**Send.** Getting a book onto a reader. Kindle: a Mail draft to the Send to Kindle address. Kobo: a KEPUB copied to the mounted reader.
+**Send.** Getting a book onto a reader. Kindle: a new Mail message to the Send to Kindle address, with the books attached, that the person sends. Kobo: a KEPUB copied to the mounted reader.
 
 **Host.** Everything the core needs from the outside world. The Node host and the Tauri host.
 

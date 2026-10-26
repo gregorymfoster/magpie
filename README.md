@@ -4,7 +4,7 @@ Fix the ebook library you already have.
 
 Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs entirely on your machine, so your books never leave it. No account, no upload, no subscription.
 
-Magpie never touches DRM. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
+Magpie never touches DRM. A store-locked book can sit in your Library with a lock on it, exactly as it came, but Magpie won't fix, convert or send it. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
 
 > **Status:** early. The core, CLI and window work; the signed Mac app is on its way. Follow along, or help.
 

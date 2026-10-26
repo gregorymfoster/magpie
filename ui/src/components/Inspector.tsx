@@ -1,4 +1,4 @@
-import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle } from "lucide-react";
+import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock } from "lucide-react";
 import type { BookSummary } from "@magpie/core";
 import { useCall } from "../api.tsx";
 import { Cover } from "./Cover.tsx";
@@ -86,7 +86,7 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
             <button className="btn pri" onClick={() => act("restore")}>
               Put back
             </button>
-          ) : (
+          ) : b.state === "locked" ? null : (
             <>
               <button className="btn pri" onClick={() => act("send")}>
                 <Send size={13} />
@@ -114,7 +114,16 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
           </div>
           {d && (
             <div className="changes">
-              {d.report.changes.length === 0 && d.report.suggestions.length === 0 && (
+              {b.state === "locked" && (
+                <div>
+                  <Lock size={12} style={{ color: "var(--accent)" }} />
+                  <span>
+                    Locked with DRM by the store that sold it. Magpie keeps it exactly as it came and can’t fix, edit or send it. Read it in the store’s own
+                    app.
+                  </span>
+                </div>
+              )}
+              {b.state !== "locked" && d.report.changes.length === 0 && d.report.suggestions.length === 0 && (
                 <div style={{ color: "var(--fg2)" }}>Nothing needed fixing. The original was already sound.</div>
               )}
               {d.report.changes.map((c, i) => (

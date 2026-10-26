@@ -114,7 +114,7 @@ function runners(ctx: Context) {
     ctx.changed();
     if (o.kind === "unreadable") return { label, outcome: "unreadable", message: explain(o.reason) };
     if (o.kind === "duplicate") return { label: o.book.title, outcome: "duplicate", message: "Already in your Library.", bookId: o.book.id };
-    return { label: o.book.title, outcome: "added", bookId: o.book.id };
+    return { label: o.book.title, outcome: "added", bookId: o.book.id, message: o.locked ? explain("drm") : undefined };
   };
   return {
     import: (item: unknown) => {
@@ -286,6 +286,7 @@ const commands = {
     const to = await ctx.lib().setting("kindleAddress", DEFAULTS.kindleAddress);
     if (!to) throw new UserError("no-kindle-address");
     const books = await Promise.all(a.ids.map((id) => ctx.lib().get(id)));
+    if (books.some((b) => b.state === "locked")) throw new UserError("locked-send");
     const files = await Promise.all(books.map(async (b) => ({ name: deviceName(b.authors, b.title, "epub"), bytes: await ctx.host.fs.read(b.file) })));
     if (files.reduce((n, f) => n + f.bytes.length, 0) * 1.37 > KINDLE_LIMIT) throw new UserError("kindle-too-large");
     const subject = books.length === 1 ? books[0].title : `${books.length} books`;
@@ -302,6 +303,7 @@ const commands = {
   /** Converts to KEPUB and copies to the Kobo, as a job. */
   async "send.kobo"(ctx: Context, a: { ids: number[]; device: string }) {
     if (!(await ctx.host.fs.exists(a.device))) throw new UserError("no-device");
+    for (const id of a.ids) if ((await ctx.lib().get(id)).state === "locked") throw new UserError("locked-send");
     return ctx.queue().enqueue(
       "kobo",
       a.ids.length === 1 ? "Sending to Kobo" : `Sending ${a.ids.length} books to Kobo`,

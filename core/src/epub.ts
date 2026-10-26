@@ -42,7 +42,8 @@ export class Book {
    */
   stamp = { uuid: "00000000-0000-4000-8000-000000000000", modified: "2026-01-01T00:00:00Z" };
 
-  static load(bytes: Uint8Array): Book {
+  /** Throws BookError("drm") for a locked book unless `locked` is "allow" (reading its package details, never its text). */
+  static load(bytes: Uint8Array, opts: { locked?: "refuse" | "allow" } = {}): Book {
     const book = new Book();
     if (!bytes.length) throw new BookError("empty");
     let total = 0;
@@ -61,14 +62,14 @@ export class Book {
       const name = e.name.replace(/\\/g, "/");
       book.files.set(name, raw[e.name]);
     }
-    if (book.isLocked()) throw new BookError("drm");
+    if (opts.locked !== "allow" && book.isLocked()) throw new BookError("drm");
     book.opfPath = book.findOpfPath();
     return book;
   }
 
   /**
-   * True when a store has locked the book. Magpie only looks, so it can say no:
-   * it never decrypts or strips anything. Adobe (rights.xml), Apple (sinf.xml)
+   * True when a store has locked the book. Magpie only looks, so it can keep
+   * its hands off: it never decrypts, strips, fixes or converts a locked book. Adobe (rights.xml), Apple (sinf.xml)
    * and Readium LCP leave a file in META-INF; any encryption other than the
    * standard font obfuscation means the text itself is locked.
    */

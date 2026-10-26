@@ -19,7 +19,7 @@ export async function listDevices(host: Host): Promise<Device[]> {
     if (!v.dir) continue;
     const path = join(host.env.volumes, v.name);
     if (await host.fs.exists(join(path, ".kobo")))
-      out.push({ id: path, kind: "kobo", name: v.name === "KOBOeReader" ? "Kobo" : v.name, path, free: await host.fs.free(path) });
+      out.push({ id: path, kind: "kobo", name: /^kobo ?e?reader$/i.test(v.name) ? "Kobo" : v.name, path, free: await host.fs.free(path) });
   }
   return out;
 }

@@ -24,6 +24,9 @@ export function date(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: sameYear ? undefined : "numeric" });
 }
 
+/** A path as a person says it: ~/Books/Magpie. */
+export const tilde = (path: string) => path.replace(/^\/(Users|home)\/[^/]+/, "~");
+
 export const authors = (a: string[]) => (a.length ? a.join(" & ") : "Unknown author");
 
 const LANGS: Record<string, string> = {

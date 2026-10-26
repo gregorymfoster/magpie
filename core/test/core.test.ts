@@ -226,6 +226,8 @@ test("Send to Kobo converts to KEPUB on the reader and leaves the Library's EPUB
   const [dev] = await core.call("devices.list");
   assert.equal(dev.name, "Kobo");
   const [b] = await core.call("books.list");
+  writeFileSync(join(kobo, "bought-on-kobo.kepub.epub"), "x");
+  assert.deepEqual(await core.call("devices.books", { device: dev.path }), { ids: [], others: 0 });
   await core.call("send.kobo", { ids: [b.id], device: dev.path });
   await core.idle();
   const sent = join(kobo, "Magpie", "Jane-Austen-Emma.kepub.epub");
@@ -233,6 +235,7 @@ test("Send to Kobo converts to KEPUB on the reader and leaves the Library's EPUB
   const d = await core.call("books.get", { id: b.id });
   assert.doesNotMatch(strFromU8(unzipSync(readFileSync(d.file))["ch1.xhtml"]), /koboSpan/);
   assert.deepEqual(readdirSync(join(kobo, "Magpie")), ["Jane-Austen-Emma.kepub.epub"]);
+  assert.deepEqual(await core.call("devices.books", { device: dev.path }), { ids: [b.id], others: 0 });
 });
 
 test("a remembered Library on an unplugged disk reports missing instead of making a new one", async () => {

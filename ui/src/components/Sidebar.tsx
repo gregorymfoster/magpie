@@ -1,6 +1,7 @@
 import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder } from "lucide-react";
 import type { AppState, Device } from "@magpie/core";
 import { jobProgress } from "./Progress.tsx";
+import { tilde } from "../format.ts";
 
 export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}`;
 
@@ -41,7 +42,7 @@ export function Sidebar({ state, devices, view, setView }: { state: AppState; de
           <>
             <Folder size={12} />
             <span title={state.library.path} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {state.library.path.replace(/^\/(Users|home)\/[^/]+/, "~")}
+              {tilde(state.library.path)}
             </span>
           </>
         )}

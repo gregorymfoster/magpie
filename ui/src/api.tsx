@@ -36,7 +36,7 @@ export function useTransport(): Transport {
 }
 
 /** A read. Re-runs when an event says its data changed. */
-export function useCall<K extends CommandName>(command: K, args?: Args<K>, opts: { enabled?: boolean } = {}) {
+export function useCall<K extends CommandName>(command: K, args?: Args<K>, opts: { enabled?: boolean; every?: number } = {}) {
   const t = useTransport();
   // Keep showing the last answer while a new one loads (typing in search), so "No matches" never flashes.
   return useQuery({
@@ -44,6 +44,7 @@ export function useCall<K extends CommandName>(command: K, args?: Args<K>, opts:
     queryFn: () => t.call(command, args) as Promise<Result<K>>,
     enabled: opts.enabled ?? true,
     placeholderData: keepPreviousData,
+    refetchInterval: opts.every,
   });
 }
 

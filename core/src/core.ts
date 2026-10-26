@@ -274,6 +274,13 @@ const commands = {
     return listDevices(ctx.host);
   },
 
+  /** Which Library books Magpie has put on a Kobo (matched by the file name it gave them), and how many other files are in its Magpie folder. */
+  async "devices.books"(ctx: Context, a: { device: string }) {
+    const there = new Set((await ctx.host.fs.list(join(a.device, "Magpie"))).filter((e) => !e.dir).map((e) => e.name));
+    const ids = (await ctx.lib().list({})).filter((b) => there.has(deviceName(b.authors, b.title, "kepub.epub"))).map((b) => b.id);
+    return { ids, others: there.size - ids.length };
+  },
+
   /** Opens a Mail draft to the Kindle address with the books attached. */
   async "send.kindle"(ctx: Context, a: { ids: number[] }) {
     const to = await ctx.lib().setting("kindleAddress", DEFAULTS.kindleAddress);

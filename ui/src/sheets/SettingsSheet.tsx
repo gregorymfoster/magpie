@@ -5,7 +5,7 @@ import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { useToast } from "../components/Toasts.tsx";
 import { checkForUpdates, type UpdateStatus } from "../shell.ts";
-import { plural } from "../format.ts";
+import { plural, tilde } from "../format.ts";
 
 export const SECTIONS = ["General", "Library", "Devices", "Privacy", "Updates"] as const;
 export type Section = (typeof SECTIONS)[number];
@@ -91,7 +91,7 @@ function LibraryPage({ onClose }: { onClose: () => void }) {
   };
   return (
     <>
-      <Row title="Location" sub={s?.library.path ?? ""}>
+      <Row title="Location" sub={tilde(s?.library.path ?? "")}>
         <button className="btn" onClick={() => move("Open a Library")}>
           Open Other…
         </button>
@@ -182,7 +182,7 @@ function Updates() {
     downloading: `Downloading ${st.version}…`,
     ready: `Version ${st.version} is ready. Restart to update.`,
     current: "You have the latest version.",
-    error: "Couldn’t reach GitHub. Magpie will try again later.",
+    error: "Couldn’t check for a new version. You can always download the latest from magpie.gmfoster.com.",
   }[st.state];
   return (
     <Row title="Updates" sub={label}>

@@ -1,6 +1,6 @@
 import { BookMarked, Library, Plus } from "lucide-react";
 import { useAction, useCall, useTransport } from "../api.tsx";
-import { plural } from "../format.ts";
+import { plural, tilde } from "../format.ts";
 
 /** An empty Library opens on the drop target, with Calibre offered right there if it's on this Mac. */
 export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre: () => void }) {
@@ -25,7 +25,7 @@ export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre
           <p>
             <b>Bring in your Calibre library</b>
             <span>
-              {plural(calibre.epubs, "EPUB book")} in {calibre.path.replace(/^\/(Users|home)\/[^/]+/, "~")}. Your Calibre library itself is never changed.
+              {plural(calibre.epubs, "EPUB book")} in {tilde(calibre.path)}. Your Calibre library itself is never changed.
             </span>
           </p>
           <span className="btn">Bring in</span>
@@ -36,7 +36,7 @@ export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre
         </button>
       )}
       <div className="loc">
-        Your Library lives in {state?.library.path.replace(/^\/(Users|home)\/[^/]+/, "~")}.{" "}
+        Your Library lives in {tilde(state?.library.path ?? "")}.{" "}
         <button
           onClick={async () => {
             const p = await t.pickFolder("Choose where your Library lives");

@@ -79,8 +79,15 @@ function Window() {
   const open = state?.library.status === "open";
   const query = view === "review" ? { state: "review" as const } : view === "removed" ? { removed: true } : {};
   const { data: books = [] } = useCall("books.list", { ...query, search: q || undefined }, { enabled: open });
-  const { data: devices = [] } = useCall("devices.list", undefined, { enabled: open });
-  const items = useMemo(() => (view === "recent" ? books.filter((b) => Date.now() - Date.parse(b.addedAt) < 14 * 864e5) : books), [books, view]);
+  // Nothing tells the window a reader was plugged in, so look every few seconds (it's one folder listing).
+  const { data: devices = [] } = useCall("devices.list", undefined, { enabled: open, every: 3000 });
+  const kobo = view.startsWith("kobo:") ? view.slice(5) : null;
+  const { data: onKobo } = useCall("devices.books", { device: kobo ?? "" }, { enabled: open && !!kobo, every: 3000 });
+  const items = useMemo(() => {
+    if (view === "recent") return books.filter((b) => Date.now() - Date.parse(b.addedAt) < 14 * 864e5);
+    if (kobo) return books.filter((b) => onKobo?.ids.includes(b.id));
+    return books;
+  }, [books, view, kobo, onKobo]);
   const chosen = useMemo(() => books.filter((b) => sel.includes(b.id)), [books, sel]);
 
   const importPaths = useCallback(
@@ -109,7 +116,7 @@ function Window() {
           case "list":
             return setLayout(a);
           case "send":
-            return setSheet({ type: "send", ids, prefer: view.startsWith("kobo:") ? view.slice(5) : undefined });
+            return setSheet({ type: "send", ids, prefer: kobo ?? undefined });
           case "review":
             return setSheet({ type: "review" });
           case "settings":
@@ -245,12 +252,16 @@ function Window() {
   else if (!items.length)
     body = (
       <div className="empty">
-        <b>{q ? "No matches" : view === "review" ? "Every book’s details are settled" : "Nothing here"}</b>
+        <b>
+          {q ? "No matches" : view === "review" ? "Every book’s details are settled" : kobo ? "Nothing from your Library is on this Kobo yet" : "Nothing here"}
+        </b>
         {q
           ? `No titles, authors or series contain “${q}”.`
           : view === "review"
             ? "Books whose title or author Magpie had to guess wait here for you."
-            : "Drop ebook files anywhere on this window to add them."}
+            : kobo
+              ? "Select books in All Books and press Send. They arrive in Kobo’s own format."
+              : "Drop ebook files anywhere on this window to add them."}
       </div>
     );
   else

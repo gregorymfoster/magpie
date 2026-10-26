@@ -2,7 +2,7 @@
 // the core pushes events and this file decides what each one refetches.
 
 import { createContext, useContext, useEffect, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Args, CommandName, Job, Result } from "@magpie/core";
 import type { Transport } from "./transport/index.ts";
 
@@ -38,7 +38,13 @@ export function useTransport(): Transport {
 /** A read. Re-runs when an event says its data changed. */
 export function useCall<K extends CommandName>(command: K, args?: Args<K>, opts: { enabled?: boolean } = {}) {
   const t = useTransport();
-  return useQuery({ queryKey: [command, args], queryFn: () => t.call(command, args) as Promise<Result<K>>, enabled: opts.enabled ?? true });
+  // Keep showing the last answer while a new one loads (typing in search), so "No matches" never flashes.
+  return useQuery({
+    queryKey: [command, args],
+    queryFn: () => t.call(command, args) as Promise<Result<K>>,
+    enabled: opts.enabled ?? true,
+    placeholderData: keepPreviousData,
+  });
 }
 
 /** A change. Callers show errors with the toast; the events refresh the screens. */

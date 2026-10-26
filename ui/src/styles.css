@@ -1887,3 +1887,10 @@ button {
     width: auto;
   }
 }
+
+/* Placeholders are hints, not values: keep them clearly fainter than typed text. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--fg3);
+  opacity: 0.75;
+}

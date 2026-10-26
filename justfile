@@ -39,6 +39,10 @@ e2e:
 shots:
     SHOTS=1 npx playwright test -c ui/playwright.config.ts shots
 
+# A walk through the app for a person: stills and a video into ui/shots/tour/
+tour:
+    SHOTS=1 npx playwright test -c ui/playwright.config.ts tour
+
 # Score the fixers against the damaged-twin corpus (builds the corpus first if needed)
 bench:
     test -d corpus/files || python3 corpus/generate.py

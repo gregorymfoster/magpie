@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Page } from "@playwright/test";
-import { epub } from "../../core/test/fixtures.ts";
+import { epub, page as xhtml } from "../../core/test/fixtures.ts";
 
 /** Write EPUBs to a temp folder and return their paths. */
 export function books(spec: Record<string, Uint8Array>) {
@@ -34,3 +34,31 @@ export async function reset(page: Page) {
   await call(page, "settings.set", { kindleAddress: "" });
   await page.reload();
 }
+
+/** A shelf of real-looking books for screenshots; the fourth has "Unknown" as its author. */
+export const CLASSICS: [string, string][] = [
+  ["Pride and Prejudice", "Jane Austen"],
+  ["Middlemarch", "George Eliot"],
+  ["Moby-Dick", "Herman Melville"],
+  ["Jane Eyre", "Charlotte Brontë"],
+  ["Great Expectations", "Charles Dickens"],
+  ["The Age of Innocence", "Edith Wharton"],
+  ["Anna Karenina", "Leo Tolstoy"],
+  ["Persuasion", "Jane Austen"],
+  ["Wuthering Heights", "Emily Brontë"],
+  ["The Odyssey", "Homer"],
+  ["Little Women", "Louisa May Alcott"],
+  ["Frankenstein", "Mary Shelley"],
+  ["Bleak House", "Charles Dickens"],
+  ["The Portrait of a Lady", "Henry James"],
+  ["Dracula", "Bram Stoker"],
+];
+export const classic = ([title, author]: [string, string], i: number) =>
+  epub({
+    opfMeta: `<dc:identifier id="id">urn:uuid:c${i}</dc:identifier><dc:title>${title}</dc:title><dc:creator>${i === 3 ? "Unknown" : author}</dc:creator><dc:language>en</dc:language>`,
+    pages: { "title.xhtml": xhtml(`<p>Title: ${title}</p><p>Author: ${author}</p>`), "ch1.xhtml": xhtml("<h2>Chapter 1</h2><p>It begins.</p>") },
+  });
+
+
+/** All the classics, as files in a temp folder. */
+export const classicFiles = () => books(Object.fromEntries(CLASSICS.map((c, i) => [`${c[0].replace(/\W+/g, "-")}.epub`, classic(c, i)])));

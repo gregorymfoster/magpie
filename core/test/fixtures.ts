@@ -5,7 +5,7 @@ import { zipSync, strToU8 } from "fflate";
 export const page = (body: string) =>
   `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head><body>${body}</body></html>`;
 
-export function epub(opts: { opfMeta?: string; pages?: Record<string, string>; mimetypeLast?: boolean } = {}) {
+export function epub(opts: { opfMeta?: string; pages?: Record<string, string>; mimetypeLast?: boolean; extra?: Record<string, string> } = {}) {
   const pages = opts.pages ?? { "title.xhtml": page("<p>Title: Emma</p><p>Author: Jane Austen</p>"), "ch1.xhtml": page("<h2>Chapter 1</h2><p>Hi</p>") };
   const items = Object.keys(pages)
     .map((p, i) => `<item id="p${i}" href="${p}" media-type="application/xhtml+xml"/>`)
@@ -24,7 +24,7 @@ export function epub(opts: { opfMeta?: string; pages?: Record<string, string>; m
     "content.opf": strToU8(opf),
     "cover.jpg": new Uint8Array([0xff, 0xd8, 0xff]),
   };
-  for (const [k, v] of Object.entries(pages)) files[k] = strToU8(v);
+  for (const [k, v] of Object.entries({ ...pages, ...opts.extra })) files[k] = strToU8(v);
   const mimetype: [Uint8Array, { level: 0 }] = [strToU8("application/epub+zip"), { level: 0 }];
   return zipSync(opts.mimetypeLast ? { ...files, mimetype } : { mimetype, ...files });
 }

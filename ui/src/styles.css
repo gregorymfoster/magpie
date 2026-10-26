@@ -172,6 +172,16 @@ body {
   font: 13px/1.35 var(--ui);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  /* Like a native window: labels and headings aren't text you select; fields are. */
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+}
+input,
+textarea,
+.kv dd {
+  -webkit-user-select: text;
+  user-select: text;
 }
 * {
   box-sizing: border-box;
@@ -657,6 +667,17 @@ button {
   text-align: center;
   font-family: var(--serif);
 }
+.cv .ct,
+.cv .ca {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  flex: none;
+}
+.cv .ca {
+  -webkit-line-clamp: 2;
+}
 .cv .ct {
   font-size: 12cqw;
   line-height: 1.05;
@@ -866,6 +887,7 @@ button {
 .ip .cvw {
   width: 132px;
   align-self: center;
+  flex: none;
 }
 .ip h2 {
   font: 500 21px/1.15 var(--serif);
@@ -874,10 +896,19 @@ button {
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
+.ip h2,
+.ip .by {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  flex: none;
+}
 .ip .by {
   text-align: center;
   color: var(--fg2);
   margin-top: -8px;
+  -webkit-line-clamp: 2;
 }
 .ip .acts {
   display: flex;

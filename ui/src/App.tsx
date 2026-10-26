@@ -90,7 +90,7 @@ function Window() {
         const job = await act("books.import", { paths });
         setSheet({ type: "job", id: job.id });
       } catch (e) {
-        toast({ message: (e as Error).message, error: true });
+        toast({ message: e instanceof Error ? e.message : String(e), error: true });
       }
     },
     [act, toast],
@@ -148,7 +148,7 @@ function Window() {
           }
         }
       } catch (e) {
-        toast({ message: (e as Error).message, error: true });
+        toast({ message: e instanceof Error ? e.message : String(e), error: true });
       }
     },
     [sel, t, items, view, act, toast, importPaths],
@@ -174,7 +174,10 @@ function Window() {
     return () => window.removeEventListener("keydown", k);
   }, [run, sheet]);
   useEffect(() => {
-    let off = () => {};
+    // onMenu resolves later; if this effect is already cleaned up by then, drop the listener at once
+    // instead of leaving a second one that runs every menu item twice.
+    let off: (() => void) | null = null;
+    let gone = false;
     void onMenu((id) => {
       // Edit › Undo and Select All are ours, but in a text field they belong to the text.
       const field = document.activeElement?.closest?.("input, textarea");
@@ -182,8 +185,11 @@ function Window() {
       if (field && id === "selectAll") return (field as HTMLInputElement).select();
       if (field && id === "remove") return;
       void run(id);
-    }).then((f) => (off = f));
-    return () => off();
+    }).then((f) => (gone ? f() : (off = f)));
+    return () => {
+      gone = true;
+      off?.();
+    };
   }, [run]);
 
   // Drops: paths from Finder in the app, File objects in a browser.

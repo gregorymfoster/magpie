@@ -7,6 +7,8 @@ import { textOf, type Book } from "../epub.ts";
 import { guessLanguage } from "../identify/rules.ts";
 import type { Change, Fixer } from "./types.ts";
 
+const TAG = /<\/?[a-z][a-z0-9]*(\s[^<>]*)?\/?>/gi;
+
 export const metadata: Fixer = {
   id: "metadata",
   title: "Fill in language and identifiers",
@@ -15,6 +17,19 @@ export const metadata: Fixer = {
     const opf = book.opf();
     const changes: Change[] = [];
     const say = (message: string, source?: string) => changes.push({ fixer: "metadata", message, source });
+
+    // Markup that leaked into a field ("<b>Jane Austen</b>") shows up as literal tags on every reader.
+    let stripped = 0;
+    for (const el of ["title", "creator", "publisher"].flatMap((n) => opf.dc(n))) {
+      const text = textOf(el);
+      if (!text.match(TAG)) continue;
+      const plain = text.replace(TAG, " ").replace(/\s+/g, " ").trim();
+      if (plain) {
+        el.textContent = plain;
+        stripped++;
+      }
+    }
+    if (stripped) say("Removed HTML tags from the title and author fields, which readers would show as text.");
 
     if (!textOf(opf.dc("language")[0])) {
       const g = guessLanguage(book, opf);

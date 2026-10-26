@@ -97,7 +97,7 @@ test("a Kindle draft is opened, never sent", async () => {
   const r = await call("send_to_kindle", { ids: [id] });
   assert.ok(!r.isError);
   assert.match(r.text, /press Send/);
-  assert.match(readFileSync(opened, "utf8"), /\.eml/);
+  assert.match(readFileSync(opened, "utf8"), /^mail .*reader@kindle\.com.*\.epub/);
 });
 
 test("the CLI speaks MCP on stdio", () => {

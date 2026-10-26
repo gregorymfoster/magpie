@@ -5,6 +5,7 @@
 // file twice finds the duplicate).
 
 import type { Db } from "./host.ts";
+import { UserError } from "./errors.ts";
 
 export type JobKind = "import" | "calibre" | "kobo";
 export type JobState = "queued" | "running" | "done" | "cancelled";
@@ -79,7 +80,7 @@ export class Jobs {
 
   async get(id: number): Promise<Job> {
     const [r] = await this.db.all("SELECT * FROM jobs WHERE id = ?", [id]);
-    if (!r) throw new Error(`No job ${id}`);
+    if (!r) throw new UserError("no-job");
     return toJob(r);
   }
 

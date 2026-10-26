@@ -12,4 +12,4 @@
 
 Things that never get tested by mocking: SQLite (use a temp Library), the file system (use a temp dir), the core from the UI (use `magpie serve`).
 
-Sending to a Kindle is checked by reading the `.eml` draft Magpie writes; Kobos are faked with a folder containing `.kobo` under `MAGPIE_VOLUMES`.
+Sending to a Kindle is checked through `MAGPIE_OPENED`: the Node host logs the Mail message it would have opened (address, subject, attachment paths) instead of asking Mail. Kobos are faked with a folder containing `.kobo` under `MAGPIE_VOLUMES`.

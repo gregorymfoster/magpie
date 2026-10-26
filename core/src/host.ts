@@ -29,9 +29,23 @@ export interface Host {
   sqlite: {
     open(path: string, opts?: { readonly?: boolean }): Promise<Db>;
   };
-  /** Open a file in its default app: an .eml opens as a Mail draft. */
+  /** Open a file in its default app. */
   open(path: string): Promise<void>;
+  /**
+   * Open a new, unsent message in the person's mail app with these files
+   * attached. Never sends: they press Send. (Mail opens an .eml as a received
+   * message it won't send, so this goes through Mail itself.)
+   */
+  mail(draft: MailDraft): Promise<void>;
   env: HostEnv;
+}
+
+export interface MailDraft {
+  to: string;
+  subject: string;
+  body: string;
+  /** Absolute paths of files to attach. */
+  attachments: string[];
 }
 
 export interface HostEnv {

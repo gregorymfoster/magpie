@@ -77,8 +77,10 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
         <div className="cvw">
           <Cover b={b} />
         </div>
-        <h2>{b.title}</h2>
-        <div className="by">{authors(b.authors)}</div>
+        <h2 title={b.title}>{b.title}</h2>
+        <div className="by" title={authors(b.authors)}>
+          {authors(b.authors)}
+        </div>
         <div className="acts">
           {b.removedAt ? (
             <button className="btn pri" onClick={() => act("restore")}>

@@ -5,10 +5,17 @@
 const SENTENCES: Record<string, string> = {
   "not-a-zip": "This file isn't an EPUB Magpie can read. It may be a PDF or a document with the wrong ending.",
   "not-epub": "Magpie only reads EPUB books for now. MOBI, AZW3 and PDF are on the list.",
+  drm: "This book is locked with DRM by the store that sold it. Magpie doesn't open locked books; read it in that store's app.",
   empty: "This file is empty (0 bytes). Download it again from where it came from.",
   "too-large": "This book unpacks to more than 1.5 GB, which no real book does. Magpie stopped to be safe.",
   "too-many-files": "This book holds more than 20,000 files, which no real book does. Magpie stopped to be safe.",
   "no-library": "Your Library can't be found. If it's on an external disk, plug it in and try again.",
+  "mail-failed":
+    "Magpie couldn't open a message in Mail. If macOS asked whether Magpie may control Mail, allow it in System Settings › Privacy & Security › Automation, then try again.",
+  "not-kindle-address": "That doesn't look like a Send to Kindle address. It ends in @kindle.com.",
+  "no-book": "That book isn't in your Library any more.",
+  "no-job": "That job has finished and is no longer listed.",
+  "newer-library": "This Library was made by a newer version of Magpie. Update Magpie to open it.",
   "no-kindle-address": "Add your Send to Kindle address in Settings › Devices first.",
   "kindle-too-large": "Kindle takes at most 50 MB per email. Send fewer books at once.",
   "no-device": "That reader isn't connected any more. Plug it in and try again.",

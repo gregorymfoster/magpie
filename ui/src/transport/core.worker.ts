@@ -29,6 +29,7 @@ function workerHost(r: Comlink.Remote<TauriHost>, env: HostEnv): Host {
     },
     sqlite: { open: async (p, o) => db(await r.dbOpen(p, !!o?.readonly)) },
     open: (p) => r.open(p),
+    mail: (d) => r.mail(d),
     env,
   };
 }

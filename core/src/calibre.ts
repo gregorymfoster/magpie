@@ -51,7 +51,7 @@ export async function describeCalibre(host: Host, path: string): Promise<Calibre
 }
 
 export async function readCalibre(host: Host, path: string): Promise<CalibreItem[]> {
-  const copy = join(host.env.temp, `calibre-${Date.now()}.db`);
+  const copy = join(host.env.temp, `calibre-${Date.now()}-${Math.random().toString(36).slice(2)}.db`);
   await host.fs.copy(join(path, "metadata.db"), copy);
   const db = await host.sqlite.open(copy, { readonly: true });
   try {

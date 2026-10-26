@@ -14,7 +14,7 @@ import { deviceName } from "./naming.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { toKepub } from "./send/kepub.ts";
-import { KINDLE_LIMIT, kindleDraft } from "./send/kindle.ts";
+import { KINDLE_LIMIT } from "./send/kindle.ts";
 
 export type CoreEvent =
   /** Books were added, changed or removed: refetch lists and counts. */
@@ -41,6 +41,8 @@ class Context {
   host: Host;
   library: Library | null = null;
   jobs: Jobs | null = null;
+  /** The last unexpected error, for diagnostics; paths are left out like titles are. */
+  lastError: string | null = null;
   listeners = new Set<(e: CoreEvent) => void>();
   private changedTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -280,10 +282,14 @@ const commands = {
     const files = await Promise.all(books.map(async (b) => ({ name: deviceName(b.authors, b.title, "epub"), bytes: await ctx.host.fs.read(b.file) })));
     if (files.reduce((n, f) => n + f.bytes.length, 0) * 1.37 > KINDLE_LIMIT) throw new UserError("kindle-too-large");
     const subject = books.length === 1 ? books[0].title : `${books.length} books`;
-    const path = join(ctx.host.env.temp, `Send-to-Kindle-${Date.now()}.eml`);
-    await ctx.host.fs.write(path, kindleDraft(to, files, subject));
-    await ctx.host.open(path);
-    return { draft: path };
+    // Mail attaches files by path, so the books wait in a scratch folder until it's sent.
+    const dir = join(ctx.host.env.temp, `Send-to-Kindle-${Date.now()}`);
+    const attachments = files.map((f, i) => join(dir, files.findIndex((g) => g.name === f.name) < i ? f.name.replace(/\.epub$/, `-${i + 1}.epub`) : f.name));
+    for (const [i, f] of files.entries()) await ctx.host.fs.write(attachments[i], f.bytes);
+    await ctx.host.mail({ to, subject, body: "Sent from Magpie.", attachments }).catch(() => {
+      throw new UserError("mail-failed");
+    });
+    return { to, attachments };
   },
 
   /** Converts to KEPUB and copies to the Kobo, as a job. */
@@ -322,6 +328,7 @@ const commands = {
       `Fixes made: ${fmt(fixers)}`,
       `Fixer failures: ${fmt(failures)}`,
       `Jobs: ${(await ctx.queue().active()).map((j) => `${j.kind} ${j.state} ${j.done}/${j.total}`).join(", ") || "none"}`,
+      `Last error: ${ctx.lastError ?? "none"}`,
     ].join("\n");
   },
 } satisfies Record<string, (ctx: Context, args: never) => Promise<unknown>>;
@@ -346,8 +353,15 @@ export function createCore(host: Host): Core {
       const fn = commands[command] as (ctx: Context, a: unknown) => Promise<never>;
       if (!fn) throw new Error(`Unknown command ${String(command)}`);
       // Any command opens the remembered Library first, so a script or an AI tool needn't start with app.state.
-      if (!ctx.library && command !== "library.use") await appState(ctx);
-      return fn(ctx, args[0]);
+      try {
+        if (!ctx.library && command !== "library.use") await appState(ctx);
+        return await fn(ctx, args[0]);
+      } catch (e) {
+        if (e instanceof UserError) throw e;
+        // Anything else (a host's raw "os error 2", even a thrown string) becomes the one general sentence.
+        ctx.lastError = `${String(command)}: ${e instanceof Error ? e.message : String(e)}`.replace(/(\/[^\s/:'"]+)+/g, "<path>");
+        throw new Error(explain("unexpected"));
+      }
     },
     on(listener) {
       ctx.listeners.add(listener);

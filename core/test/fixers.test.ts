@@ -31,6 +31,19 @@ test("suggests an author for an Unknown one, says where it came from, and writes
   assert.deepEqual(fixAndAccept(unknown).info.authors, ["Jane Austen"]);
 });
 
+test("strips HTML that leaked into the title and author, so readers don't show the tags", () => {
+  const out = fixEpub(
+    epub({
+      opfMeta:
+        '<dc:identifier id="id">urn:uuid:1</dc:identifier><dc:title>&lt;i&gt;Emma&lt;/i&gt;</dc:title><dc:creator>&lt;b&gt;Jane Austen&lt;/b&gt;</dc:creator><dc:language>en</dc:language>',
+    }),
+  );
+  assert.equal(out.info.title, "Emma");
+  assert.deepEqual(out.info.authors, ["Jane Austen"]);
+  assert.ok(out.report.changes.some((c) => c.fixer === "metadata" && /HTML/.test(c.message)));
+  assert.equal(Book.load(out.bytes).opf().dc("title")[0].textContent, "Emma");
+});
+
 test("the same original and plan always give the same bytes", () => {
   const b = epub({ mimetypeLast: true });
   assert.deepEqual(fixEpub(b).bytes, fixEpub(b).bytes);

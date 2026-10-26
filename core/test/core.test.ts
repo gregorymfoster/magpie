@@ -75,6 +75,31 @@ test("a folder imports every EPUB inside it; duplicates and non-books get a sent
   assert.match(job.results.find((r) => r.label === "broken.epub")!.message!, /isn't an EPUB/);
 });
 
+const encryption = (algorithm: string) =>
+  `<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><EncryptedData xmlns="http://www.w3.org/2001/04/xmlenc#"><EncryptionMethod Algorithm="${algorithm}"/><CipherData><CipherReference URI="ch1.xhtml"/></CipherData></EncryptedData></encryption>`;
+
+test("a book with DRM is refused with a sentence and nothing is kept; obfuscated fonts are fine", async () => {
+  const { core, file, home } = setup();
+  await core.call("app.state");
+  file(
+    "adobe.epub",
+    epub({ extra: { "META-INF/encryption.xml": encryption("http://www.w3.org/2001/04/xmlenc#aes128-cbc"), "META-INF/rights.xml": "<rights/>" } }),
+  );
+  file("apple.epub", epub({ extra: { "META-INF/sinf.xml": "<fairplay/>" } }));
+  file("lcp.epub", epub({ extra: { "META-INF/license.lcpl": "{}" } }));
+  file("fonts.epub", epub({ extra: { "META-INF/encryption.xml": encryption("http://www.idpf.org/2008/embedding") } }));
+  await core.call("books.import", { paths: [join(home, "Downloads")] });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  const by = Object.fromEntries(job.results.map((r) => [r.label, r]));
+  for (const name of ["adobe.epub", "apple.epub", "lcp.epub"]) {
+    assert.equal(by[name].outcome, "unreadable", name);
+    assert.match(by[name].message!, /DRM/);
+  }
+  assert.deepEqual(job.results.filter((r) => r.outcome === "added").length, 1);
+  assert.equal(readdirSync(join(home, "Books/Magpie/originals")).length, 1);
+});
+
 test("suggested details wait for review, and accepting renames the file; undo puts it back", async () => {
   const { core, file, home } = setup();
   await core.call("app.state");
@@ -173,7 +198,7 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
   );
 });
 
-test("Send to Kindle opens a Mail draft addressed to Kindle with the book attached", async () => {
+test("Send to Kindle opens a new Mail message addressed to Kindle with the book attached, and never sends it", async () => {
   const { core, file, opened } = setup();
   await core.call("app.state");
   await core.call("books.import", { paths: [file("a.epub", epub())] });
@@ -182,11 +207,13 @@ test("Send to Kindle opens a Mail draft addressed to Kindle with the book attach
   await assert.rejects(core.call("send.kindle", { ids: [b.id] }), /Send to Kindle address/);
   await assert.rejects(core.call("settings.set", { kindleAddress: "me@gmail.com" }), /kindle\.com/);
   await core.call("settings.set", { kindleAddress: "greg_abc@kindle.com" });
-  const { draft } = await core.call("send.kindle", { ids: [b.id] });
-  assert.equal(readFileSync(opened, "utf8").trim(), draft);
-  const eml = readFileSync(draft, "utf8");
-  assert.match(eml, /^X-Unsent: 1\r\nTo: greg_abc@kindle\.com/);
-  assert.match(eml, /filename="Jane-Austen-Emma\.epub"/);
+  const { attachments } = await core.call("send.kindle", { ids: [b.id] });
+  const draft = JSON.parse(readFileSync(opened, "utf8").replace(/^mail /, ""));
+  assert.equal(draft.to, "greg_abc@kindle.com");
+  assert.equal(draft.subject, "Emma");
+  assert.deepEqual(draft.attachments, attachments);
+  assert.match(attachments[0], /\/Jane-Austen-Emma\.epub$/);
+  assert.ok(unzipSync(readFileSync(attachments[0]))["mimetype"]);
 });
 
 test("Send to Kobo converts to KEPUB on the reader and leaves the Library's EPUB alone", async () => {
@@ -229,6 +256,20 @@ test("events: an import pushes job progress and a library change", async () => {
   await new Promise((r) => setTimeout(r, 300));
   assert.ok(seen.includes("job"));
   assert.ok(seen.includes("library.changed"));
+});
+
+test("an unexpected host failure reaches people as a sentence, and diagnostics keep the detail without paths", async () => {
+  const { home } = setup();
+  const host = nodeHost({ MAGPIE_HOME: home });
+  let fail = false;
+  const core = createCore({ ...host, fs: { ...host.fs, exists: (p) => (fail ? Promise.reject("os error 2 at /Users/greg/Emma.epub") : host.fs.exists(p)) } });
+  await core.call("app.state");
+  fail = true;
+  await assert.rejects(core.call("calibre.find", { path: "/somewhere" }), /Copy Diagnostics/);
+  fail = false;
+  const d = await core.call("app.diagnostics");
+  assert.match(d, /Last error: calibre\.find: os error 2 at <path>/);
+  assert.doesNotMatch(d, /Emma/);
 });
 
 test("diagnostics leave out titles", async () => {

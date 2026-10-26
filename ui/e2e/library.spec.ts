@@ -38,7 +38,7 @@ test("suggested details: accept, see it written, then undo from the toast", asyn
   await expect(page.getByRole("button", { name: "Review 1", exact: true })).toBeVisible();
 });
 
-test("Send to Kindle asks for the address once, then makes a Mail draft", async ({ page }) => {
+test("Send to Kindle asks for the address once, then opens a Mail message with the book", async ({ page }) => {
   await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
   await page.reload();
   await page.locator(".tile", { hasText: "Emma" }).click();
@@ -51,7 +51,7 @@ test("Send to Kindle asks for the address once, then makes a Mail draft", async 
   await sheet.getByRole("button", { name: "Make Mail draft" }).click();
   await expect(page.locator(".toast")).toContainText("Mail draft is ready");
   const opened = readFileSync(`${test.info().config.metadata.home}/opened.txt`, "utf8").trim().split("\n").pop()!;
-  expect(readFileSync(opened, "utf8")).toContain("To: greg_1@kindle.com");
+  expect(opened).toMatch(/^mail .*"to":"greg_1@kindle\.com".*Jane-Austen-Emma\.epub/);
 });
 
 test("remove moves a book to Removed; ⌘Z brings it back", async ({ page }) => {

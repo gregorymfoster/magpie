@@ -9,10 +9,13 @@ export const OPF_NS = "http://www.idpf.org/2007/opf";
 export const DC_NS = "http://purl.org/dc/elements/1.1/";
 export const CONTAINER_PATH = "META-INF/container.xml";
 
+/** Font mangling every EPUB reader undoes; it isn't DRM. */
+const FONT_OBFUSCATION = new Set(["http://www.idpf.org/2008/embedding", "http://ns.adobe.com/pdf/enc#RC"]);
+
 export const LIMITS = { entries: 20_000, bytes: 1_500_000_000 };
 
 /** Why a file can't be opened as an EPUB at all. Each code has a sentence in errors.ts. */
-export type BookErrorCode = "not-a-zip" | "too-large" | "too-many-files" | "empty";
+export type BookErrorCode = "not-a-zip" | "too-large" | "too-many-files" | "empty" | "drm";
 
 export class BookError extends Error {
   code: BookErrorCode;
@@ -58,8 +61,23 @@ export class Book {
       const name = e.name.replace(/\\/g, "/");
       book.files.set(name, raw[e.name]);
     }
+    if (book.isLocked()) throw new BookError("drm");
     book.opfPath = book.findOpfPath();
     return book;
+  }
+
+  /**
+   * True when a store has locked the book. Magpie only looks, so it can say no:
+   * it never decrypts or strips anything. Adobe (rights.xml), Apple (sinf.xml)
+   * and Readium LCP leave a file in META-INF; any encryption other than the
+   * standard font obfuscation means the text itself is locked.
+   */
+  isLocked(): boolean {
+    if (["META-INF/rights.xml", "META-INF/sinf.xml", "META-INF/license.lcpl"].some((p) => this.files.has(p))) return true;
+    const enc = this.files.get("META-INF/encryption.xml");
+    if (!enc) return false;
+    const algorithms = [...new TextDecoder().decode(enc).matchAll(/Algorithm\s*=\s*["']([^"']+)["']/g)].map((m) => m[1]);
+    return algorithms.some((a) => !FONT_OBFUSCATION.has(a));
   }
 
   /** Write a valid OCF zip: mimetype first and stored, everything else deflated. */

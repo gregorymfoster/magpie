@@ -4,7 +4,7 @@
 // Test switches, all optional:
 //   MAGPIE_HOME      stands in for ~ (config, ~/Books/Magpie, ~/Calibre Library)
 //   MAGPIE_VOLUMES   stands in for /Volumes, so a test can plug in a fake Kobo
-//   MAGPIE_OPENED    a file that `open` appends paths to instead of launching apps
+//   MAGPIE_OPENED    a file that `open` and `mail` append to instead of launching apps
 
 import { appendFile, copyFile, mkdir, readdir, readFile, rename, rm, statfs, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -15,6 +15,18 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import type { Db, Host, SqlValue } from "@magpie/core";
 
 const VERSION = "0.1.0";
+
+/** Keep in step with MAIL_SCRIPT in app/src-tauri/src/main.rs. Values arrive as arguments, never spliced into the script. */
+const MAIL_SCRIPT = `on run argv
+  tell application "Mail"
+    set m to make new outgoing message with properties {subject:item 2 of argv, content:(item 3 of argv) & return & return, visible:true}
+    tell m to make new to recipient at end of to recipients with properties {address:item 1 of argv}
+    repeat with i from 4 to count of argv
+      tell content of m to make new attachment with properties {file name:(POSIX file (item i of argv))} at after the last paragraph
+    end repeat
+    activate
+  end tell
+end run`;
 
 export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
   const home = env.MAGPIE_HOME ?? homedir();
@@ -69,6 +81,19 @@ export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
       if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, path + "\n");
       const cmd = process.platform === "darwin" ? "open" : "xdg-open";
       spawn(cmd, [path], { detached: true, stdio: "ignore" }).unref();
+    },
+    async mail(draft) {
+      if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, `mail ${JSON.stringify(draft)}\n`);
+      const { to, subject, body, attachments } = draft;
+      const [cmd, args] =
+        process.platform === "darwin"
+          ? ["osascript", ["-e", MAIL_SCRIPT, to, subject, body, ...attachments]]
+          : ["xdg-email", ["--subject", subject, "--body", body, ...attachments.flatMap((a) => ["--attach", a]), to]];
+      await new Promise<void>((resolve, reject) =>
+        spawn(cmd, args, { stdio: "ignore" })
+          .on("error", reject)
+          .on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`)))),
+      );
     },
     env: {
       home,

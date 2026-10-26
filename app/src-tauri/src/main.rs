@@ -108,6 +108,31 @@ pub fn open(target: &str) -> Result<()> {
     }
 }
 
+/// Keep in step with MAIL_SCRIPT in cli/src/node-host.ts. Values arrive as arguments, never spliced into the script.
+const MAIL_SCRIPT: &str = r#"on run argv
+  tell application "Mail"
+    set m to make new outgoing message with properties {subject:item 2 of argv, content:(item 3 of argv) & return & return, visible:true}
+    tell m to make new to recipient at end of to recipients with properties {address:item 1 of argv}
+    repeat with i from 4 to count of argv
+      tell content of m to make new attachment with properties {file name:(POSIX file (item i of argv))} at after the last paragraph
+    end repeat
+    activate
+  end tell
+end run"#;
+
+/// A new, unsent message in Mail with the books attached. Mail opens an .eml
+/// as a received message it won't send, so this asks Mail directly. The first
+/// time, macOS asks the person to let Magpie control Mail.
+#[tauri::command]
+async fn compose_mail(to: String, subject: String, body: String, attachments: Vec<String>) -> Result<()> {
+    let out = Command::new("/usr/bin/osascript").arg("-e").arg(MAIL_SCRIPT).arg(&to).arg(&subject).arg(&body).args(&attachments).output().map_err(|e| e.to_string())?;
+    if out.status.success() {
+        Ok(())
+    } else {
+        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+    }
+}
+
 #[tauri::command]
 async fn copy_text(text: String) -> Result<()> {
     let mut child = Command::new("/usr/bin/pbcopy").stdin(std::process::Stdio::piped()).spawn().map_err(|e| e.to_string())?;
@@ -152,7 +177,7 @@ fn main() {
         .on_menu_event(menu::handle)
         .invoke_handler(tauri::generate_handler![
             fs_read, fs_write, fs_copy, fs_exists, fs_list, fs_mkdir, fs_remove, fs_move, fs_free, db_open, db_all, db_run, db_batch, db_exec, db_close,
-            open_path, copy_text, host_env
+            open_path, compose_mail, copy_text, host_env
         ])
         .run(tauri::generate_context!())
         .expect("Magpie failed to start");

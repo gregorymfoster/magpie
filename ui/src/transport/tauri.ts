@@ -7,7 +7,7 @@ import * as Comlink from "comlink";
 import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { CoreEvent, HostEnv, SqlValue } from "@magpie/core";
+import type { CoreEvent, HostEnv, MailDraft, SqlValue } from "@magpie/core";
 import type { Transport } from "./index.ts";
 import type { WorkerApi } from "./core.worker.ts";
 
@@ -43,6 +43,7 @@ export const tauriHost = {
   dbExec: (db: number, sql: string) => invoke<void>("db_exec", { db, sql }),
   dbClose: (db: number) => invoke<void>("db_close", { db }),
   open: (path: string) => invoke<void>("open_path", { path }),
+  mail: (draft: MailDraft) => invoke<void>("compose_mail", { ...draft }),
 };
 export type TauriHost = typeof tauriHost;
 

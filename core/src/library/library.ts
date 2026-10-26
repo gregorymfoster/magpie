@@ -6,6 +6,7 @@
 // books/ is always rebuilt from those two, so changing a title, accepting a
 // suggestion or undoing either is "change the plan, rebuild".
 
+import { UserError } from "../errors.ts";
 import { BookError } from "../epub.ts";
 import { fix, newPlan, type FixPlan, type FixReport } from "../fix.ts";
 import type { InfoPatch, Suggestion } from "../info.ts";
@@ -310,7 +311,7 @@ export class Library {
 
   private async migrate() {
     const [{ user_version: v }] = await this.db.all<{ user_version: number }>("PRAGMA user_version");
-    if (v > MIGRATIONS.length) throw new Error(`This Library was made by a newer Magpie (schema ${v}). Update Magpie to open it.`);
+    if (v > MIGRATIONS.length) throw new UserError("newer-library");
     for (let i = v; i < MIGRATIONS.length; i++) {
       if (i > 0) await this.backup(`before-schema-${i + 1}`);
       try {
@@ -393,7 +394,7 @@ export class Library {
 
   private async row(id: number): Promise<Row> {
     const [r] = await this.db.all("SELECT * FROM books WHERE id = ?", [id]);
-    if (!r) throw new Error(`No book with id ${id}`);
+    if (!r) throw new UserError("no-book");
     return r;
   }
 

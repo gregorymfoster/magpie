@@ -8,12 +8,12 @@
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": {
       "script": "npm run dev",
-      "cwd": "../ui",
+      "cwd": "../../ui",
       "wait": false
     },
     "beforeBuildCommand": {
       "script": "npm run build",
-      "cwd": "../ui"
+      "cwd": "../../ui"
     }
   },
   "app": {

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Magpie: fix the ebook library you already have</title>
+    <meta name="description" content="A calm Mac app that repairs broken EPUBs, tidies their details and sends them to your Kindle or Kobo. Free, open source, and nothing leaves your Mac." />
+    <meta property="og:title" content="Magpie" />
+    <meta property="og:description" content="Fix the ebook library you already have. A free, open source Mac app." />
+    <meta property="og:image" content="https://magpie.gmfoster.com/img/hero-light.webp" />
+    <link rel="icon" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #fbf9f6;
+        --paper2: #f1ede7;
+        --ink: #2b2622;
+        --ink2: #6c635b;
+        --ink3: #9c938a;
+        --line: rgba(43, 38, 34, 0.12);
+        --accent: #7a2e2a;
+        --accent-hi: #8e3a35;
+        --on-accent: #fff;
+        --shot-shadow: 0 30px 80px rgba(40, 28, 20, 0.22), 0 4px 14px rgba(40, 28, 20, 0.1);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #1c1917;
+          --paper2: #252120;
+          --ink: #ece6de;
+          --ink2: #b0a69b;
+          --ink3: #81776d;
+          --line: rgba(236, 230, 222, 0.12);
+          --accent: #b4534c;
+          --accent-hi: #c4625a;
+          --shot-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.3);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .serif,
+      h1,
+      h2,
+      h3 {
+        font-family: "EB Garamond", "Iowan Old Style", Georgia, serif;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+      a {
+        color: inherit;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 22px 0;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        font-family: "EB Garamond", Georgia, serif;
+        font-size: 24px;
+      }
+      .brand img {
+        width: 36px;
+        height: 36px;
+      }
+      nav a {
+        color: var(--ink2);
+        text-decoration: none;
+        font-size: 15px;
+        margin-left: 22px;
+      }
+      nav a:hover {
+        color: var(--ink);
+      }
+      .hero {
+        text-align: center;
+        padding: 56px 0 40px;
+      }
+      .hero h1 {
+        font-size: clamp(42px, 7vw, 72px);
+        line-height: 1.04;
+        margin: 0 0 18px;
+      }
+      .hero p.lede {
+        font-size: 20px;
+        color: var(--ink2);
+        max-width: 620px;
+        margin: 0 auto 32px;
+      }
+      .download {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--accent);
+        color: var(--on-accent);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 14px 26px;
+        border-radius: 12px;
+        font-size: 17px;
+        transition: background 0.15s;
+      }
+      .download:hover {
+        background: var(--accent-hi);
+      }
+      .download svg {
+        width: 18px;
+        height: 18px;
+      }
+      .fine {
+        color: var(--ink3);
+        font-size: 14px;
+        margin-top: 14px;
+      }
+      .fine a {
+        color: var(--ink2);
+      }
+      .shot {
+        margin: 40px auto 0;
+        max-width: 1080px;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: var(--shot-shadow);
+        border: 1px solid var(--line);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .shot img.dark-only {
+        display: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        .shot img.dark-only {
+          display: block;
+        }
+        .shot img.light-only {
+          display: none;
+        }
+      }
+      section {
+        padding: 88px 0 0;
+      }
+      .intro {
+        max-width: 680px;
+        margin: 0 auto;
+        text-align: center;
+      }
+      .intro h2 {
+        font-size: 38px;
+        margin: 0 0 14px;
+      }
+      .intro p {
+        color: var(--ink2);
+        margin: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px 36px;
+        margin-top: 56px;
+      }
+      .grid h3 {
+        font-size: 24px;
+        margin: 0 0 6px;
+      }
+      .grid p {
+        margin: 0;
+        color: var(--ink2);
+        font-size: 16px;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1.3fr;
+        gap: 48px;
+        align-items: center;
+      }
+      .split h2 {
+        font-size: 38px;
+        margin: 0 0 14px;
+      }
+      .split p {
+        color: var(--ink2);
+      }
+      .split .shot {
+        margin: 0;
+      }
+      .ai {
+        background: var(--paper2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 40px;
+      }
+      .ai h2 {
+        font-size: 34px;
+        margin: 0 0 10px;
+      }
+      .ai p {
+        color: var(--ink2);
+        margin: 0 0 12px;
+        max-width: 720px;
+      }
+      .ai blockquote {
+        margin: 18px 0 0;
+        font-family: "EB Garamond", Georgia, serif;
+        font-style: italic;
+        font-size: 22px;
+        color: var(--ink);
+      }
+      .open-note {
+        max-width: 720px;
+        margin: 0 auto;
+        color: var(--ink2);
+      }
+      .open-note h2 {
+        font-size: 32px;
+        color: var(--ink);
+        margin: 0 0 10px;
+        text-align: center;
+      }
+      .open-note ol {
+        padding-left: 22px;
+      }
+      code {
+        font: 14px ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: var(--paper2);
+        border: 1px solid var(--line);
+        padding: 2px 6px;
+        border-radius: 6px;
+        word-break: break-all;
+      }
+      footer {
+        margin-top: 100px;
+        padding: 32px 0 48px;
+        border-top: 1px solid var(--line);
+        color: var(--ink3);
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      @media (max-width: 760px) {
+        .grid,
+        .split {
+          grid-template-columns: 1fr;
+        }
+        nav a:not(.gh) {
+          display: none;
+        }
+        .ai {
+          padding: 28px 22px;
+        }
+        section {
+          padding-top: 64px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <a class="brand" href="/"><img src="img/icon.png" alt="" />Magpie</a>
+        <nav>
+          <a href="#what">What it does</a>
+          <a href="#claude">With Claude</a>
+          <a class="gh" href="https://github.com/gregorymfoster/magpie">GitHub</a>
+        </nav>
+      </header>
+
+      <div class="hero">
+        <h1>Fix the ebook library<br />you already have.</h1>
+        <p class="lede">
+          Magpie is a quiet Mac app for the EPUBs you own. It repairs the ones your Kindle rejects, finds the covers that went missing, gives "Unknown" its author back, and keeps
+          the whole shelf tidy.
+        </p>
+        <a class="download" href="https://github.com/gregorymfoster/magpie/releases/latest/download/Magpie.dmg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          Download for Mac
+        </a>
+        <div class="fine">Free and open source. macOS 15 or later, Apple silicon and Intel. <a href="#first-open">First time opening it?</a></div>
+      </div>
+
+      <div class="shot">
+        <img class="light-only" src="img/hero-light.webp" width="2560" height="1560" alt="Magpie's library window: a grid of book covers with Middlemarch selected and a list of what Magpie fixed." />
+        <img class="dark-only" src="img/hero-dark.webp" width="2560" height="1560" alt="" />
+      </div>
+
+      <section id="what">
+        <div class="intro">
+          <h2>Everything stays on your Mac</h2>
+          <p>No account, no upload, no subscription. Your books are copied into one folder you can see in Finder, and the file you started with is kept exactly as it was.</p>
+        </div>
+        <div class="grid">
+          <div>
+            <h3>Repairs broken books</h3>
+            <p>Bad zip wrappers, invalid pages, chapters missing from the reading order, contents pages that point nowhere. Each fix is explained in a plain sentence.</p>
+          </div>
+          <div>
+            <h3>Finds the right details</h3>
+            <p>When a book calls itself "9780316_final(1)" Magpie reads its title page and suggests a better name. Nothing changes until you say so.</p>
+          </div>
+          <div>
+            <h3>Sends to your reader</h3>
+            <p>A Mail draft to your Send to Kindle address with the book attached, or a Kobo-ready copy written straight to the reader when you plug it in.</p>
+          </div>
+          <div>
+            <h3>Brings Calibre along</h3>
+            <p>Magpie spots your Calibre library and copies your books over with their series, publishers and descriptions. Calibre's own files are never touched.</p>
+          </div>
+          <div>
+            <h3>Undo, always</h3>
+            <p>Every change, from an edited title to a hundred removed books, comes back with ⌘Z. Removed books wait 30 days before they go for good.</p>
+          </div>
+          <div>
+            <h3>Never touches DRM</h3>
+            <p>Magpie is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, and DRM-free store downloads.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="split">
+          <div>
+            <h2>You stay in charge of the details</h2>
+            <p>
+              Structural fixes happen quietly, because they never change what a book says. Titles and authors are different. Magpie shows you where each suggestion came from, unticks
+              the ones it isn't sure about, and waits.
+            </p>
+          </div>
+          <div class="shot">
+            <img class="light-only" src="img/hero-review-light.webp" width="2560" height="1560" alt="The review sheet, suggesting Charlotte Brontë as the author of Jane Eyre in place of Unknown." loading="lazy" />
+            <img class="dark-only" src="img/hero-review-dark.webp" width="2560" height="1560" alt="" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      <section id="claude">
+        <div class="ai">
+          <h2>Works with Claude</h2>
+          <p>
+            Magpie includes a local MCP server, so Claude and other AI assistants on your Mac can search your library, tidy details and send books for you. Every change they make is a
+            normal Magpie change you can see and undo. They can't empty the bin or change your settings, and a Kindle email always waits for you to press Send.
+          </p>
+          <p><a href="https://github.com/gregorymfoster/magpie/blob/main/docs/ai.md">How to connect it</a></p>
+          <blockquote>"Find every Discworld book with the series missing and fix it."</blockquote>
+        </div>
+      </section>
+
+      <section id="first-open">
+        <div class="open-note">
+          <h2>Opening Magpie the first time</h2>
+          <p>
+            Magpie isn't notarized by Apple yet, so macOS will stop the first launch and say it can't check the app. It's the same app you can read on GitHub. To open it once and for all:
+          </p>
+          <ol>
+            <li>Drag Magpie into Applications and open it. Choose <b>Done</b> when macOS warns you.</li>
+            <li>Open <b>System Settings › Privacy &amp; Security</b>, scroll down, and click <b>Open Anyway</b> next to Magpie.</li>
+            <li>Open Magpie again and confirm. From then on it opens like any other app.</li>
+          </ol>
+          <p>Comfortable in Terminal? <code>xattr -dr com.apple.quarantine /Applications/Magpie.app</code> does the same thing.</p>
+        </div>
+      </section>
+
+      <footer>
+        <span>Magpie is MIT licensed and made in the open.</span>
+        <span><a href="https://github.com/gregorymfoster/magpie">Source</a> · <a href="https://github.com/gregorymfoster/magpie/issues">Report a problem</a> · <a href="https://github.com/gregorymfoster/magpie/releases">Releases</a></span>
+      </footer>
+    </div>
+  </body>
+</html>

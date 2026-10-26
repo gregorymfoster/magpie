@@ -36,7 +36,7 @@ jobs:
           args: --target universal-apple-darwin
           tagName: ${{ github.ref_name }}
           releaseName: Magpie ${{ github.ref_name }}
-          releaseBody: See the notes below. First time opening it? Control-click Magpie in Applications and choose Open.
+          releaseBody: "First time opening it? macOS will warn you because Magpie is not notarized yet. Open System Settings › Privacy & Security and click Open Anyway. Details: https://magpie.gmfoster.com/#first-open"
           releaseDraft: false
           includeUpdaterJson: true
       # A name that never changes, so the website's Download button always gets the newest build.

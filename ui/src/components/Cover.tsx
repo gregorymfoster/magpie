@@ -2,6 +2,7 @@
 // cover in one of three house styles, coloured from the title so the same
 // book always looks the same.
 
+import { useState } from "react";
 import type { BookSummary } from "@magpie/core";
 import { useTransport } from "../api.tsx";
 import { authors } from "../format.ts";
@@ -32,10 +33,13 @@ function hash(s: string) {
 
 export function Cover({ b, className = "" }: { b: Pick<BookSummary, "title" | "authors" | "cover">; className?: string }) {
   const t = useTransport();
-  if (b.cover) {
+  // A cover file the book declares but that won't decode gets the typographic cover instead of a broken image.
+  const [broken, setBroken] = useState<string | null>(null);
+  if (b.cover && broken !== b.cover) {
+    const src = b.cover;
     return (
       <div className={`cv ${className}`}>
-        <img className="cover-img" src={t.fileUrl(b.cover)} alt="" loading="lazy" draggable={false} />
+        <img className="cover-img" src={t.fileUrl(src)} alt="" loading="lazy" draggable={false} onError={() => setBroken(src)} />
       </div>
     );
   }

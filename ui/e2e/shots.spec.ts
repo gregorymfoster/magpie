@@ -1,7 +1,8 @@
 // `just shots`: every screen, light and dark, into ui/shots/. For a look
 // without clicking; agents read these PNGs to check their own UI work.
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { books, call, emma, reset, unknownAuthor } from "./helpers.ts";
+import { epub, page } from "../../core/test/fixtures.ts";
 
 test.skip(!process.env.SHOTS, "only with SHOTS=1 (just shots)");
 
@@ -27,5 +28,55 @@ test("screens", async ({ page }) => {
       await page.screenshot({ path: `ui/shots/${name}-${theme}.png` });
     }
     await reset(page);
+  }
+});
+
+const CLASSICS: [string, string][] = [
+  ["Pride and Prejudice", "Jane Austen"],
+  ["Middlemarch", "George Eliot"],
+  ["Moby-Dick", "Herman Melville"],
+  ["Jane Eyre", "Charlotte Brontë"],
+  ["Great Expectations", "Charles Dickens"],
+  ["The Age of Innocence", "Edith Wharton"],
+  ["Anna Karenina", "Leo Tolstoy"],
+  ["Persuasion", "Jane Austen"],
+  ["Wuthering Heights", "Emily Brontë"],
+  ["The Odyssey", "Homer"],
+  ["Little Women", "Louisa May Alcott"],
+  ["Frankenstein", "Mary Shelley"],
+  ["Bleak House", "Charles Dickens"],
+  ["The Portrait of a Lady", "Henry James"],
+  ["Dracula", "Bram Stoker"],
+];
+const classic = ([title, author]: [string, string], i: number) =>
+  epub({
+    opfMeta: `<dc:identifier id="id">urn:uuid:c${i}</dc:identifier><dc:title>${title}</dc:title><dc:creator>${i === 3 ? "Unknown" : author}</dc:creator><dc:language>en</dc:language>`,
+    pages: { "title.xhtml": page(`<p>Title: ${title}</p><p>Author: ${author}</p>`), "ch1.xhtml": page("<h2>Chapter 1</h2><p>It begins.</p>") },
+  });
+
+/** The pictures on the website (site/img), at Retina size. */
+test("hero", async ({ browser }) => {
+  // Show the Library where it really lives, not in the test's temp folder.
+  const tidy = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.textContent?.includes("/tmp/")) n.textContent = "~/Books/Magpie";
+    });
+  for (const theme of ["light", "dark"]) {
+    const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1280, height: 780 }, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    await reset(page);
+    await call(page, "books.import", { paths: books(Object.fromEntries(CLASSICS.map((c, i) => [`${i}.epub`, classic(c, i)]))) });
+    await expect.poll(async () => (await call(page, "books.list")).length).toBe(CLASSICS.length);
+    const first = (await call(page, "books.list", { search: "Middlemarch" }))[0].id;
+    await page.goto(`/?sel=${first}&theme=${theme}`);
+    await page.waitForTimeout(600);
+    await tidy(page);
+    await page.screenshot({ path: `ui/shots/hero-${theme}.png` });
+    await page.goto(`/?sheet=review&theme=${theme}`);
+    await page.waitForTimeout(600);
+    await tidy(page);
+    await page.screenshot({ path: `ui/shots/hero-review-${theme}.png` });
+    await ctx.close();
   }
 });

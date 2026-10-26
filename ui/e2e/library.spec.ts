@@ -84,3 +84,11 @@ test("settings: an invalid Kindle address gets a sentence, a valid one sticks", 
   await sheet.getByRole("button", { name: "Save" }).click();
   expect((await call(page, "settings.get")).kindleAddress).toBe("greg_1@kindle.com");
 });
+
+test("a cover image that won't load falls back to a typographic cover", async ({ page }) => {
+  await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
+  await page.reload();
+  const tile = page.locator(".tile", { hasText: "Emma" });
+  await expect(tile.locator("img")).toHaveCount(0);
+  await expect(tile.locator(".cv")).toContainText("Emma");
+});

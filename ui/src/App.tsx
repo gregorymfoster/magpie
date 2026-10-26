@@ -319,7 +319,7 @@ function Window() {
             </div>
             <label className="search">
               <Search size={13} />
-              <input ref={searchRef} placeholder="Search titles and authors" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
+              <input ref={searchRef} placeholder="Search books" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
               <kbd>⌘K</kbd>
             </label>
             <button className="btn hide-sm" onClick={() => void run("add")} title="Add books (⌘O)">

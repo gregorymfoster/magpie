@@ -1,4 +1,4 @@
-/* Magpie's look: the "Study" direction (warm neutrals, EB Garamond for books, system sans for the UI, oxblood accent) and its
+/* Magpie's look: the "Study" direction (warm neutrals, Newsreader for books, Inter for the UI, oxblood accent) and its
    "Flannel & silver" palette. Dense like Claude, Cursor and Argus: 13px UI, 26px sidebar rows, 40px toolbar, hairline borders.
    Ported from the clickable prototype; docs/design.md is the source of truth for the rules. */
 :root {
@@ -34,8 +34,8 @@
   --shadow: 0 24px 60px rgba(30, 24, 20, 0.28), 0 2px 8px rgba(30, 24, 20, 0.12);
   --sheet-shadow: 0 18px 50px rgba(30, 24, 20, 0.26);
   --scrim: rgba(43, 38, 34, 0.18);
-  --serif: "EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --serif: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
+  --ui: "Inter Variable", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --r: 4px;
   color-scheme: light;

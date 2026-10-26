@@ -4,9 +4,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { connect } from "./transport/index.ts";
 import { CoreProvider } from "./api.tsx";
 import { App } from "./App.tsx";
-import "@fontsource/eb-garamond/latin-400.css";
-import "@fontsource/eb-garamond/latin-500.css";
-import "@fontsource/eb-garamond/latin-400-italic.css";
+// Newsreader for books (variable, with an optical-size axis so 13px tile titles stay sturdy) and Inter for the UI. Both OFL, bundled.
+import "@fontsource-variable/newsreader/opsz.css";
+import "@fontsource-variable/newsreader/opsz-italic.css";
+import "@fontsource-variable/inter/index.css";
 import "./styles.css";
 
 const transport = await connect();

@@ -1,19 +1,19 @@
-# Publish a release: a universal Magpie.dmg (Apple silicon and Intel) and,
-# once the signing secret exists, the updater files. Push a tag like v0.1.0,
-# or run this workflow by hand with the version (it creates the tag).
+# Backup only: releases are built on Greg's Mac with `just ship X.Y.Z` (docs/release.md), which
+# is several times faster. This builds a universal Magpie.dmg (Apple silicon and Intel) on a
+# GitHub runner instead, with the updater files once scripts/release/setup.sh has stored the key.
+# Run it by hand with the version. No tag trigger: `just ship` creates tags, and a second build
+# racing it would overwrite its latest.json.
 name: release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: Version to release, like 0.1.0. Must match app/src-tauri/tauri.conf.json.
+        description: Version to release, like 0.2.0 (newer than the latest release).
         required: true
 
 env:
-  TAG: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', inputs.version) || github.ref_name }}
+  TAG: v${{ inputs.version }}
 
 permissions:
   contents: write
@@ -36,6 +36,18 @@ jobs:
       - run: npm ci
       # The sorting model ships inside the app; the build fails rather than ship without it.
       - run: node scripts/fetch-model.ts
+      # Release-only config, as in scripts/release/ship.sh: the version from the input, and the
+      # updater key and update bundle only when setup.sh has stored the key.
+      - name: Release config
+        env:
+          VERSION: ${{ inputs.version }}
+          PUBKEY: ${{ vars.TAURI_UPDATER_PUBKEY }}
+        run: |
+          node -e '
+            const v = process.env.VERSION, k = process.env.PUBKEY;
+            const c = { version: v };
+            if (k) Object.assign(c, { bundle: { createUpdaterArtifacts: true }, plugins: { updater: { pubkey: k } } });
+            console.log(JSON.stringify(c));' > "$RUNNER_TEMP/release.conf.json"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +56,7 @@ jobs:
         with:
           projectPath: app
           tauriScript: npx tauri
-          args: --target universal-apple-darwin
+          args: --target universal-apple-darwin --config ${{ runner.temp }}/release.conf.json
           tagName: ${{ env.TAG }}
           releaseName: Magpie ${{ env.TAG }}
           releaseBody: "First time opening it? macOS will warn you because Magpie is not notarized yet. Open System Settings › Privacy & Security and click Open Anyway. Details: https://magpie.gmfoster.com/#first-open"

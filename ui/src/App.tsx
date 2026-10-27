@@ -18,7 +18,7 @@ import { SendSheet } from "./sheets/SendSheet.tsx";
 import { EditSheet } from "./sheets/EditSheet.tsx";
 import { PreviewSheet } from "./sheets/PreviewSheet.tsx";
 import { SettingsSheet, type Section } from "./sheets/SettingsSheet.tsx";
-import { onMenu } from "./shell.ts";
+import { checkForUpdates, checkForUpdatesNowAndThen, onMenu, onUpdateStatus, restart } from "./shell.ts";
 import { plural } from "./format.ts";
 
 type SheetState =
@@ -127,6 +127,7 @@ function Window() {
           case "settings":
             return setSheet({ type: "settings" });
           case "updates":
+            void checkForUpdates();
             return setSheet({ type: "settings", section: "Updates" });
           case "edit":
             return ids.length === 1 && setSheet({ type: "edit", id: ids[0] });
@@ -194,6 +195,17 @@ function Window() {
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [run, sheet]);
+  // Updates: checked quietly at launch and every six hours, downloaded in the background,
+  // then one toast that stays until Restart.
+  useEffect(() => checkForUpdatesNowAndThen(), []);
+  useEffect(
+    () =>
+      onUpdateStatus((s) => {
+        if (s.state === "ready")
+          toast({ message: `Magpie ${s.version} is ready`, action: { label: "Restart to update", run: () => void restart() }, sticky: true });
+      }),
+    [toast],
+  );
   useEffect(() => {
     // onMenu resolves later; if this effect is already cleaned up by then, drop the listener at once
     // instead of leaving a second one that runs every menu item twice.

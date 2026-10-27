@@ -6,6 +6,10 @@ interface Toast {
   message: string;
   error?: boolean;
   undo?: () => void;
+  /** A button other than Undo, like Restart. */
+  action?: { label: string; run: () => void };
+  /** Stays until its button is pressed. */
+  sticky?: boolean;
 }
 
 const Ctx = createContext<(t: Omit<Toast, "id">) => void>(() => {});
@@ -19,7 +23,7 @@ export function Toasts({ children }: { children: ReactNode }) {
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = next++;
     setList((l) => [...l.slice(-2), { ...t, id }]);
-    setTimeout(() => setList((l) => l.filter((x) => x.id !== id)), t.error ? 7000 : 4200);
+    if (!t.sticky) setTimeout(() => setList((l) => l.filter((x) => x.id !== id)), t.error ? 7000 : 4200);
   }, []);
   return (
     <Ctx.Provider value={push}>
@@ -39,6 +43,7 @@ export function Toasts({ children }: { children: ReactNode }) {
                 Undo
               </button>
             )}
+            {t.action && <button onClick={t.action.run}>{t.action.label}</button>}
           </div>
         ))}
       </div>

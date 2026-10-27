@@ -43,5 +43,6 @@ Read `GLOSSARY.md` before naming things. Decisions and why are in `docs/adr/`. W
 ## Environment notes
 
 - Node 22.18+ (type stripping, `node:sqlite`). `NODE_OPTIONS=--disable-warning=ExperimentalWarning` is set by the justfile.
-- Rust and the Tauri build only run on macOS: locally with `just app`, or in CI (the `mac` job in `check.yml`, and `release.yml` on tags). Everything else runs on Linux.
+- Rust and the Tauri build only run on macOS: locally with `just app`, or in CI (the `mac` job in `check.yml`, which runs only when `app/` or the lockfile changed). Everything else runs on Linux.
+- Releases: `just ship X.Y.Z` on Greg's Mac (via Remote Control from the cloud) builds, installs it there and publishes a signed update that installed copies pick up (docs/release.md). `release.yml` is a by-hand backup. Never regenerate the signing key in `~/.tauri`.
 - Test switches for the Node host: `MAGPIE_HOME`, `MAGPIE_CONFIG`, `MAGPIE_VOLUMES` (fake mounted readers), `MAGPIE_OPENED` (log of paths "opened" instead of launching apps), `MAGPIE_WEB` (canned Open Library answers; tests never touch the network).

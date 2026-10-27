@@ -1,10 +1,10 @@
 // Settings (⌘,). One page per section; each setting lives in exactly one place.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { useToast } from "../components/Toasts.tsx";
-import { checkForUpdates, type UpdateStatus } from "../shell.ts";
+import { checkForUpdates, onUpdateStatus, restart, updateStatus, type UpdateStatus } from "../shell.ts";
 import { plural, tilde } from "../format.ts";
 
 export const SECTIONS = ["General", "Library", "Devices", "Privacy", "Updates"] as const;
@@ -199,7 +199,8 @@ function Privacy() {
 }
 
 function Updates() {
-  const [st, setSt] = useState<UpdateStatus>({ state: "idle" });
+  const [st, setSt] = useState<UpdateStatus>(updateStatus);
+  useEffect(() => onUpdateStatus(setSt), []);
   const label = {
     off: "Updates are off in this build.",
     idle: "Magpie checks quietly at launch and every six hours.",
@@ -211,9 +212,15 @@ function Updates() {
   }[st.state];
   return (
     <Row title="Updates" sub={label}>
-      <button className="btn" disabled={st.state === "checking" || st.state === "downloading"} onClick={() => checkForUpdates(setSt)}>
-        Check Now
-      </button>
+      {st.state === "ready" ? (
+        <button className="btn pri" onClick={() => void restart()}>
+          Restart
+        </button>
+      ) : (
+        <button className="btn" disabled={st.state === "checking" || st.state === "downloading"} onClick={() => void checkForUpdates()}>
+          Check Now
+        </button>
+      )}
     </Row>
   );
 }

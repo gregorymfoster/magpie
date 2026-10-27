@@ -16,7 +16,7 @@ types:
 
 # Formatting and the design ratchet (no stray colours, spinners or em-dashes in UI copy)
 lint:
-    npx prettier --check core cli ui/src bench
+    npx prettier --check core cli ui/src bench scripts
     node scripts/ratchet.ts
 
 # Download the local sorting model into models/ (checked by sha256). Without it, books are sorted by rules alone
@@ -25,11 +25,11 @@ model:
 
 # Format everything in place
 fmt:
-    npx prettier --write core cli ui/src bench
+    npx prettier --write core cli ui/src bench scripts
 
-# Core and host tests (node:test)
+# Core, host and release-script tests (node:test)
 test:
-    node --test core/test/*.test.ts cli/test/*.test.ts
+    node --test core/test/*.test.ts cli/test/*.test.ts scripts/release/*.test.ts
 
 # Build the UI into ui/dist
 ui-build:
@@ -65,6 +65,14 @@ call command args="":
 app:
     npm run tauri -w app -- dev
 
-# A release build of the Mac app (Mac only; CI does this on tags)
+# A release build of the Mac app, not published (Mac only)
 app-build:
     npm run tauri -w app -- build
+
+# Build, install on this Mac and publish a release that installed copies update to: just ship 0.2.0 (docs/release.md)
+ship version *flags:
+    scripts/release/ship.sh {{version}} {{flags}}
+
+# Once per Mac: the update-signing key in ~/.tauri, and the same key as Actions secrets
+release-setup:
+    scripts/release/setup.sh

@@ -25,9 +25,13 @@ libc = "0.2"
 [dev-dependencies]
 tempfile = "3"
 
+# Built for speed of building: the Rust side is a thin host (the core is TypeScript), so LTO
+# and one codegen unit bought a few hundred KB and cost minutes on every release. Incremental
+# keeps a warm `just ship` to the files that changed (docs/release.md).
 [profile.release]
-codegen-units = 1
-lto = true
-opt-level = "s"
+codegen-units = 256
+incremental = true
+lto = false
+opt-level = 2
 panic = "abort"
 strip = true

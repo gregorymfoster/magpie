@@ -1,16 +1,16 @@
 # Magpie bench
 
-Generated 2026-10-27T20:04:58.557Z. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, every chapter in order, a clean layout (scene breaks kept, no spacer paragraphs, typed indents or publisher body-text CSS) and every paragraph of the input still there letter for letter ("text"). "fixed" is ready plus zero EPUBCheck errors.
+Generated 2026-10-27T20:12:11.484Z. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, every chapter in order, a clean layout (scene breaks kept, no spacer paragraphs, typed indents or publisher body-text CSS) and every paragraph of the input still there letter for letter ("text"). "fixed" is ready plus zero EPUBCheck errors.
 
 ### Broken files, held-out books (the number that counts) (60 files)
 
 | | original | calibre | calibre-v3 | magpie |
 |---|---|---|---|---|
 | fixed | 0% | 7% | 7% | 100% |
-| ready | 2% | 30% | 30% | 100% |
+| ready | 2% | 27% | 27% | 100% |
 | strict | 18% | 23% | 23% | 100% |
 | kindle | 27% | 82% | 82% | 100% |
-| cover | 45% | 100% | 100% | 100% |
+| cover | 45% | 88% | 88% | 100% |
 | metadata | 50% | 63% | 63% | 100% |
 | content | 68% | 88% | 88% | 100% |
 | layout | 55% | 72% | 72% | 100% |
@@ -20,11 +20,11 @@ Generated 2026-10-27T20:04:58.557Z. "ready" means a reader would see a good book
 
 | | original | calibre | calibre-v3 | magpie |
 |---|---|---|---|---|
-| fixed | 0% | 8% | 10% | 100% |
-| ready | 3% | 32% | 32% | 100% |
+| fixed | 0% | 8% | 9% | 100% |
+| ready | 3% | 28% | 28% | 100% |
 | strict | 16% | 25% | 30% | 100% |
 | kindle | 27% | 86% | 86% | 100% |
-| cover | 52% | 100% | 100% | 100% |
+| cover | 52% | 93% | 93% | 100% |
 | metadata | 60% | 68% | 68% | 100% |
 | content | 78% | 89% | 89% | 100% |
 | layout | 61% | 71% | 71% | 100% |
@@ -101,7 +101,7 @@ Generated 2026-10-27T20:04:58.557Z. "ready" means a reader would see a good book
 
 ### Magpie runtime
 
-Median 60 ms per book. 0 crash(es).
+Median 65 ms per book. 0 crash(es).
 
 ### Magpie misses (0)
 

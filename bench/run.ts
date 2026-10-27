@@ -15,6 +15,7 @@ import { dirname, join } from "node:path";
 import { parse } from "parse5";
 import { fix, fixAndAccept, newPlan } from "../core/src/fix.ts";
 import { Book, textOf, decodeUtf8 } from "../core/src/epub.ts";
+import { imageSize } from "../core/src/images.ts";
 
 const ROOT = join(import.meta.dirname, "..");
 const CORPUS = join(ROOT, "corpus");
@@ -115,7 +116,8 @@ interface Inspect {
   title: string;
   author: string;
   language: string;
-  cover: { declared: boolean; bytes: number };
+  /** The declared cover image and its pixel size. */
+  cover: { declared: boolean; bytes: number; size: string };
   headings: string[];
   /** hr.scene-break elements in the reading order. */
   sceneBreaks: number;
@@ -164,7 +166,13 @@ function inspect(bytes: Uint8Array): Inspect | null {
       title: textOf(opf.dc("title")[0]),
       author: textOf(opf.dc("creator")[0]),
       language: textOf(opf.dc("language")[0]),
-      cover: { declared, bytes: declared ? book.files.get(opf.itemPath(item!))!.length : 0 },
+      cover: (() => {
+        // Size the image either declaration points at, so a twin declared only the EPUB 3 way still has one.
+        const any = item ?? propItem;
+        const data = any && book.has(opf.itemPath(any)) ? book.files.get(opf.itemPath(any))! : undefined;
+        const size = data ? imageSize(data) : null;
+        return { declared, bytes: declared ? data!.length : 0, size: size ? `${size.w}x${size.h}` : "" };
+      })(),
       headings,
       sceneBreaks,
       emptyParas,
@@ -276,7 +284,9 @@ function judge(sys: string, r: Row): Verdict {
   const info = inspect(readFileSync(s.path(r.file)));
   if (!info) return { ...fail, ran: true, text, errorIds };
   const twin = twinInfo.get(cleanTwin(r)!.file)!;
-  const cover = info.cover.declared && info.cover.bytes >= 0.3 * twin.cover.bytes;
+  // The book's own cover, found: same picture size as the twin's (a re-encode may change the bytes).
+  // A cover Magpie draws when it finds none doesn't count as recovering this one.
+  const cover = info.cover.declared && info.cover.size === twin.cover.size && info.cover.bytes >= 0.3 * twin.cover.bytes;
   const metadata = norm(info.title) === norm(r.title) && norm(info.author) === norm(r.author) && info.language.toLowerCase().startsWith(r.language!);
   let want = twin.headings;
   if (r.defects?.includes("manifest_missing_file")) {

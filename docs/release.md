@@ -1,17 +1,19 @@
 # Releasing Magpie
 
-Releases are built on Greg's Mac, the way Argus does it. A warm Rust build there takes about a minute, where a GitHub runner starts cold, waits in a queue and builds twice for a universal app. `just ship 0.2.0` does all of it:
+Releases are built on Greg's Mac, the way Argus does it. A warm build there takes about 36 seconds, where a GitHub runner starts cold, waits in a queue and builds twice for a universal app. `just ship 0.2.0` does all of it:
 
 1. Checks that the checkout is `main` exactly as pushed, and that 0.2.0 is newer than the latest release (the updater only installs a higher version).
-2. Builds an Apple silicon `Magpie.app` and `.dmg` at gentle priority (`taskpolicy -c utility nice -n 10`: performance cores, but it yields to whatever Greg is doing). `MAGPIE_BUILD_PRIORITY=full` drops that when he's away.
+2. Builds the UI only when `ui/`, `core/` or the lockfile changed (a fresh `ui/dist` makes cargo recompile the app crate), then builds an Apple silicon `Magpie.app` and `.dmg` at gentle priority (`taskpolicy -c utility nice -n 10`: performance cores, but it yields to whatever Greg is doing). `MAGPIE_BUILD_PRIORITY=full` drops that when he's away.
 3. Installs the app in `/Applications`, quitting and reopening Magpie if it was running.
-4. Waits for CI's `just check` (and the Mac job, when the app changed) on the same commit. The build usually finishes first, so this costs little. A red CI stops here with nothing published.
+4. Runs the Rust host's `cargo test` beside the build (in `app/src-tauri/target-test`, so neither waits on the other), then waits for CI's `just check` on the same commit. CI's Mac job is not part of the gate: it takes about 4 minutes and repeats what the Mac just did. A red result stops here with nothing published.
 5. Publishes `vX.Y.Z` on GitHub with the `.dmg`, a stable-named `Magpie.dmg` for the website's Download button, the signed update bundle and `latest.json`. The tag is made by the release itself, so the Mac needs no git push rights.
 6. Fetches `latest.json` the way installed copies do and checks the version.
 
 The version comes from the argument and is merged over `app/src-tauri/tauri.conf.json` at build time, along with the updater's public key, so nobody bumps the file and dev builds never update themselves. Build files land in `out/release/vX.Y.Z/`.
 
 Other modes: `--build-only` builds and installs on the Mac without publishing, and `--publish-only` later publishes that exact build. `--universal` adds Intel (about twice the build time). `--no-wait` skips the CI wait. Release notes come from `docs/release-notes/X.Y.Z.md` when it exists, otherwise from the commit subjects since the last release.
+
+Measured on Greg's M4 Max (2026-10-27): a cold app build with the `.dmg` takes 132 s, a warm one after a Rust edit 36 s (15 s of it without the `.dmg`). `just check` is 18 s locally. On CI the check job takes about 77 s, so a warm ship is set by that wait.
 
 ## Updates
 

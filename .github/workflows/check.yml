@@ -69,5 +69,5 @@ jobs:
       - run: npm ci
       - run: node scripts/fetch-model.ts
       - run: npm run build -w ui
+      # `just ship` builds and bundles the real app on Greg's Mac, so this job only runs the tests.
       - run: cargo test --manifest-path app/src-tauri/Cargo.toml
-      - run: npm run tauri -w app -- build --debug --bundles app

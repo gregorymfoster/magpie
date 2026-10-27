@@ -59,11 +59,11 @@ fi
 name="Magpie_${VERSION}_${ARCH}"
 
 if [ "$MODE" != --publish-only ]; then
-  # The gate is CI's `just check` (and the Mac job when the app changed) on this exact commit.
-  # Waiting here overlaps it with the build below, so it costs nothing when CI is quicker.
+  # The gate is CI's `just check` on this exact commit, which runs while the Mac builds. CI's
+  # Mac job is left out (about 4 minutes): the Rust tests run here instead, beside the build.
   ci_state() {
     gh api "repos/$REPO/commits/$SHA/check-runs?per_page=50" \
-      --jq '[.check_runs[] | select(.name == "check" or .name == "mac" or .name == "changes")] |
+      --jq '[.check_runs[] | select(.name == "check" or .name == "changes")] |
             if length == 0 then "none"
             elif any(.conclusion == "failure" or .conclusion == "cancelled" or .conclusion == "timed_out") then "red"
             elif all(.status == "completed") then "green" else "running" end' 2>/dev/null || echo unknown
@@ -90,8 +90,19 @@ if [ "$MODE" != --publish-only ]; then
   # so nobody bumps the file, and only release builds carry the updater key.
   node -e '
     const [v, k] = process.argv.slice(1);
-    console.log(JSON.stringify({ version: v, bundle: { createUpdaterArtifacts: true }, plugins: { updater: { pubkey: k } } }));' \
+    console.log(JSON.stringify({ version: v, build: { beforeBuildCommand: null }, bundle: { createUpdaterArtifacts: true }, plugins: { updater: { pubkey: k } } }));' \
     "$VERSION" "$(cat "$KEY.pub")" > "$OUT/release.conf.json"
+  # The UI is built here, and only when the UI, the core it bundles or the lockfile changed:
+  # a fresh ui/dist makes cargo re-embed it and recompile the app crate (about 12 s) even
+  # when nothing changed. The tree is clean and at HEAD, so git's tree ids are its contents.
+  uikey="$(git rev-parse HEAD:ui HEAD:core):$lock"
+  if [ ! -f ui/dist/index.html ] || [ "$(cat out/release/ui.key 2>/dev/null)" != "$uikey" ]; then
+    npm run build -w ui
+    echo "$uikey" > out/release/ui.key
+  fi
+  # The Rust host's tests, in their own target folder so they don't wait on the build's lock.
+  CARGO_TARGET_DIR=app/src-tauri/target-test $PRIO cargo test --quiet --manifest-path app/src-tauri/Cargo.toml > "$OUT/cargo-test.log" 2>&1 &
+  cargo_test=$!
 
   step "Building Magpie $VERSION for $ARCH (${MAGPIE_BUILD_PRIORITY:-gentle} priority)"
   target=()
@@ -142,6 +153,10 @@ if [ "$MODE" != --publish-only ]; then
   ditto "$bundle/macos/Magpie.app" "$dest"
   echo "Installed $dest"
   if [ -n "$running" ]; then open "$dest"; fi
+
+  step "Waiting for the Rust tests"
+  wait "$cargo_test" || { tail -n 40 "$OUT/cargo-test.log"; die "cargo test failed (the build is installed here, nothing was published)"; }
+  echo "Rust tests passed"
 
   if [ -n "$WAIT" ]; then
     step "Waiting for CI's check on ${SHA:0:7}"

@@ -11,6 +11,7 @@ import { container } from "./fixers/container.ts";
 import { xhtml } from "./fixers/xhtml.ts";
 import { manifest } from "./fixers/manifest.ts";
 import { cover, putCover, type CoverFrom } from "./fixers/cover.ts";
+import { makeCover } from "./covers/make.ts";
 import { metadata } from "./fixers/metadata.ts";
 import { toc } from "./fixers/toc.ts";
 import { layout } from "./fixers/layout.ts";
@@ -23,7 +24,7 @@ import { coverImage, readInfo, suggest, writeInfo, type BookInfo, type InfoPatch
 export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, layout, metadata, toc];
 
 /** Bump when a fixer changes what it writes, so the Library knows which books to re-fix. */
-export const ENGINE = 3;
+export const ENGINE = 4;
 
 export interface FixPlan {
   engine: number;
@@ -35,7 +36,10 @@ export interface FixPlan {
   found?: Suggestion[];
   /** The catalog record a lookup matched, kept for later use (sorting by year written, tags). Never written into the book. */
   catalog?: CatalogRecord;
-  /** A cover put into the book: one a person chose, or Calibre's when the book had none. `file` is relative to the Library. */
+  /**
+   * A cover put into the book: one a person chose, or Calibre's when the book had none. `file` is relative to the Library.
+   * A book with no cover and none chosen gets one made from its title and author (covers/make.ts).
+   */
   cover?: { file: string; from: CoverFrom };
   /** "Keep the book's own styling": skip the layout fixer and leave the publisher's design as it is. */
   keepStyle?: boolean;
@@ -68,7 +72,8 @@ export interface FixReport {
 export interface Fixed {
   bytes: Uint8Array;
   info: BookInfo;
-  cover: { bytes: Uint8Array; mediaType: string } | null;
+  /** `made` when Magpie drew it because the book had none. */
+  cover: { bytes: Uint8Array; mediaType: string; made?: true } | null;
   report: FixReport;
 }
 
@@ -106,12 +111,23 @@ export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {})
   }
   const suggestions = merged.filter((s) => plan.info[s.field] === undefined && !plan.dismissed?.includes(s.field));
   if (Object.keys(plan.info).length) writeInfo(book, plan.info);
+  let info = readInfo(book);
+  let made: true | undefined;
+  // Made after the details are written, so an edited title shows on the cover too.
+  if (book.opfPath && !coverImage(book)) {
+    try {
+      changes.push(...putCover(book, { bytes: makeCover(info.title, info.authors), mediaType: "image/png" }, "magpie"));
+      info = readInfo(book);
+      made = true;
+    } catch (e) {
+      errors.push({ fixer: "cover", error: e instanceof Error ? e.message : String(e) });
+    }
+  }
   const c = coverImage(book);
-  const info = readInfo(book);
   return {
     bytes: book.save(),
     info,
-    cover: c && { bytes: book.files.get(c.path)!, mediaType: c.mediaType },
+    cover: c && { bytes: book.files.get(c.path)!, mediaType: c.mediaType, made },
     report: { changes, suggestions, errors, todos: checkBook(book, info, errors, plan.keepStyle) },
   };
 }

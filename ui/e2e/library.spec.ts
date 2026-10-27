@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { books, call, classicFiles, emma, longBook, reset, unknownAuthor } from "./helpers.ts";
 import { epub, jpeg, page as xhtml } from "../../core/test/fixtures.ts";
-import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { unzipSync, zipSync } from "fflate";
 
 test.beforeEach(async ({ page }) => reset(page));
 
@@ -57,14 +57,13 @@ test("Keep the book's own styling is a checkbox in the inspector, and ⌘Z puts 
   await expect(page.locator(".status")).toContainText("Undo keep the book's styling");
 });
 
-test("a book with no cover says so, and Choose a Cover puts one in", async ({ page }) => {
+test("a small cover is a to-do, and Choose a Cover puts a better one in", async ({ page }) => {
   const b = unzipSync(epub());
-  delete b["cover.jpg"];
-  b["content.opf"] = strToU8(strFromU8(b["content.opf"]).replace(/<item id="cov"[^>]*\/>/, ""));
+  b["cover.jpg"] = jpeg(300, 450);
   await call(page, "books.import", { paths: books({ "emma.epub": zipSync(b) }) });
   await page.reload();
   await page.locator(".tile", { hasText: "Emma" }).click();
-  await expect(page.locator(".todos")).toContainText("No cover");
+  await expect(page.locator(".todos")).toContainText("The cover is small");
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Choose a Cover…" }).click();
   await (await chooser).setFiles({ name: "cover.jpg", mimeType: "image/jpeg", buffer: Buffer.from(jpeg(1400, 2100)) });

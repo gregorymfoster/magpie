@@ -29,10 +29,8 @@ export const cover: Fixer = {
       (propItem && isImage(propItem) && { item: propItem, why: "the EPUB 3 cover-image property" }) ||
       (metaOk && { item: metaItem!, why: "the cover meta tag" }) ||
       findCover(book, opf, meta);
-    if (!found) {
-      if (!metaOk && !propItem) say("No cover image found in the book. (A generated cover is planned, not built yet.)");
-      return changes;
-    }
+    // No image at all: fix() makes one from the title and author once the details are settled.
+    if (!found) return changes;
     const id = found.item.getAttribute("id")!;
     if (!metaOk) {
       if (meta) meta.setAttribute("content", id);

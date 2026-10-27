@@ -199,7 +199,7 @@ export class Library {
       else throw e;
     }
     // Calibre's metadata is trusted, its cover too: a book with none gets Calibre's put in.
-    if (!built.locked && !built.cover && src.cover && (await this.host.fs.exists(src.cover))) {
+    if (!built.locked && (!built.cover || built.cover.made) && src.cover && (await this.host.fs.exists(src.cover))) {
       const kept = await this.keepCover(await this.host.fs.read(src.cover));
       if (kept) {
         plan.cover = { file: kept.file, from: "calibre" };

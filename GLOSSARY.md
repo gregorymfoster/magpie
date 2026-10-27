@@ -42,6 +42,8 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Chosen cover.** A picture put into the book as its cover, kept in `covers/chosen/` and named in the plan (`plan.cover`) with where it came from: you (Choose a Cover…) or Calibre (when the book had none). Replayed like any fix, so it undoes.
 
+**Made cover.** The cover Magpie draws for a book that has none and no chosen cover: title and author in Newsreader on one of the window's three house designs, the same colour the window always showed for that book. Redrawn when the title or author changes.
+
 **Preview.** A book laid out a screen at a time as a **reader** would show it, with that reader's text size, margins, spacing and fonts. For a fixed book it can show the original too, to see what the fix changed. Never for a locked book.
 
 **Reader.** A device the preview can imitate (`core/src/readers.ts`): a Kindle, a Kobo or an iPhone running Apple Books, with its real screen size.

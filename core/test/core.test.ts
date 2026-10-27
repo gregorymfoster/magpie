@@ -274,7 +274,7 @@ test("a book that passes every check is Clean; one that doesn't Needs work, with
   assert.equal((await core.call("books.get", { id: books[1].id })).state, "work", "undo brings the to-do back");
 });
 
-test("a missing, damaged or small cover is a to-do", async () => {
+test("a damaged or small cover is a to-do, and a book with none gets one made from its title and author", async () => {
   const { core, file } = setup();
   await core.call("app.state");
   const withCover = (bytes: Uint8Array<ArrayBuffer>) => {
@@ -297,7 +297,7 @@ test("a missing, damaged or small cover is a to-do", async () => {
   }
   assert.deepEqual(got.sort(), [
     ["bad.epub", "work", ["bad-cover"]],
-    ["none.epub", "work", ["no-cover"]],
+    ["none.epub", "clean", []],
     ["small.epub", "work", ["small-cover"]],
   ]);
 });
@@ -319,14 +319,32 @@ function declaredCover(path: string) {
   return href ? files[href[1] ?? href[2]] : undefined;
 }
 
-test("Choose a Cover puts the picture into the book, clears the to-do, and is one undo", async () => {
+test("a book with no cover gets one made from its title and author, which follows an edited title", async () => {
   const { core, file } = setup();
   await core.call("app.state");
   await core.call("books.import", { paths: [file("emma.epub", coverless())] });
   await core.idle();
   const [b] = await core.call("books.list");
+  const d = await core.call("books.get", { id: b.id });
+  assert.equal(d.state, "clean");
+  const made = declaredCover(d.file)!;
+  assert.deepEqual([...made.subarray(1, 4)], [0x50, 0x4e, 0x47], "a PNG, which every reader shows");
+  assert.ok(d.report.changes.some((c) => /Made a cover from the title and author/.test(c.message)));
+  assert.ok(b.cover && existsSync(b.cover));
+  const again = await core.call("books.edit", { id: b.id, patch: { title: "Emma: A Novel" } });
+  assert.notDeepEqual(declaredCover(again.file), made);
+  assert.notEqual(again.cover, b.cover, "the thumbnail follows");
+});
+
+test("Choose a Cover puts the picture into the book, clears the to-do, and is one undo", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const small = unzipSync(epub());
+  small["cover.jpg"] = jpeg(300, 450);
+  await core.call("books.import", { paths: [file("emma.epub", zipSync(small))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
   assert.equal(b.state, "work");
-  assert.equal(b.cover, undefined);
 
   await assert.rejects(core.call("books.setCover", { id: b.id, path: file("notes.txt", new TextEncoder().encode("hello")) }), /Choose a JPEG or PNG/);
   const pic = jpeg(1400, 2100);
@@ -343,9 +361,9 @@ test("Choose a Cover puts the picture into the book, clears the to-do, and is on
   assert.equal(back.state, "work");
   assert.deepEqual(
     back.report.todos?.map((t) => t.id),
-    ["no-cover"],
+    ["small-cover"],
   );
-  assert.equal(back.cover, undefined, "undo takes the thumbnail away again");
+  assert.equal(back.cover, b.cover, "undo brings the old thumbnail back");
   assert.ok(!existsSync(d.cover!));
 });
 

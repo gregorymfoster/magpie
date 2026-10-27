@@ -7,10 +7,10 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdi
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { unzipSync, strFromU8 } from "fflate";
+import { unzipSync, zipSync, strFromU8 } from "fflate";
 import { createCore, patchFor, type CoreEvent } from "../src/index.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
-import { epub, page } from "./fixtures.ts";
+import { epub, jpeg, page } from "./fixtures.ts";
 
 /** Sorting by rules alone, so these tests don't depend on the model being downloaded. organize.test.ts covers the model. */
 const NO_MODEL = "/no-model";
@@ -40,7 +40,7 @@ test("first launch opens an empty Library at ~/Books/Magpie", async () => {
   const s = await core.call("app.state");
   assert.equal(s.library.status, "open");
   assert.equal(s.library.path, join(home, "Books/Magpie"));
-  assert.deepEqual(s.counts, { all: 0, review: 0, fixed: 0, removed: 0 });
+  assert.deepEqual(s.counts, { all: 0, clean: 0, work: 0, review: 0, removed: 0 });
   for (const d of ["books", "originals", "covers", "backups", "library.db"]) assert.ok(existsSync(join(home, "Books/Magpie", d)), d);
 });
 
@@ -54,7 +54,7 @@ test("importing copies the book in, fixes it silently, keeps the original and na
   const [b] = await core.call("books.list");
   assert.equal(b.title, "Emma");
   assert.deepEqual(b.authors, ["Jane Austen"]);
-  assert.equal(b.state, "fixed");
+  assert.equal(b.state, "clean");
   const d = await core.call("books.get", { id: b.id });
   assert.equal(d.file, join(home, "Books/Magpie/books/Jane-Austen/Emma.epub"));
   assert.deepEqual(readFileSync(d.original), readFileSync(src), "original kept byte for byte");
@@ -214,7 +214,7 @@ test("suggested details wait for review, and accepting renames the file; undo pu
 
   await core.call("books.review", { decisions: [{ id: b.id, accept: { authors: ["Jane Austen"] }, dismiss: [] }] });
   const after = await core.call("books.get", { id: b.id });
-  assert.equal(after.state, "fixed");
+  assert.equal(after.state, "clean");
   assert.equal(after.file, join(home, "Books/Magpie/books/Jane-Austen/Emma.epub"));
   assert.match(strFromU8(unzipSync(readFileSync(after.file))["content.opf"]), /Jane Austen/);
   assert.equal((await core.call("app.state")).undo, "Accept suggested details");
@@ -234,8 +234,95 @@ test("turning a suggestion down keeps what the book says and clears the review",
   const [b] = await core.call("books.list");
   await core.call("books.review", { decisions: [{ id: b.id, accept: {}, dismiss: ["authors"] }] });
   const d = await core.call("books.get", { id: b.id });
-  assert.equal(d.state, "fixed");
   assert.deepEqual(d.report.suggestions, []);
+  assert.equal(d.state, "work", "an author of Unknown still needs work, now as a to-do instead of a suggestion");
+  assert.deepEqual(
+    d.report.todos?.map((t) => t.id),
+    ["no-author"],
+  );
+});
+
+test("a book that passes every check is Clean; one that doesn't Needs work, with to-dos that clear as they're settled", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const noAuthor = epub({
+    opfMeta: '<dc:identifier id="id">urn:uuid:3</dc:identifier><dc:title>Persuasion</dc:title><dc:language>en</dc:language>',
+    pages: { "ch1.xhtml": page("<h2>Chapter 1</h2><p>Sir Walter Elliot never took up any book but the Baronetage.</p>") },
+  });
+  await core.call("books.import", { paths: [file("emma.epub", epub()), file("persuasion.epub", noAuthor)] });
+  await core.idle();
+  const books = await core.call("books.list", { sort: "title" });
+  assert.deepEqual(
+    books.map((b) => [b.title, b.state, b.todo]),
+    [
+      ["Emma", "clean", 0],
+      ["Persuasion", "work", 1],
+    ],
+  );
+  assert.deepEqual((await core.call("app.state")).counts, { all: 2, clean: 1, work: 1, review: 0, removed: 0 });
+  assert.deepEqual(
+    (await core.call("books.list", { state: "work" })).map((b) => b.title),
+    ["Persuasion"],
+  );
+  const [todo] = (await core.call("books.get", { id: books[1].id })).report.todos!;
+  assert.equal(todo.id, "no-author");
+  assert.equal(todo.action, "edit");
+
+  await core.call("books.edit", { id: books[1].id, patch: { authors: ["Jane Austen"] } });
+  assert.equal((await core.call("books.get", { id: books[1].id })).state, "clean");
+  await core.call("history.undo");
+  assert.equal((await core.call("books.get", { id: books[1].id })).state, "work", "undo brings the to-do back");
+});
+
+test("a missing, damaged or small cover is a to-do", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const withCover = (bytes: Uint8Array<ArrayBuffer>) => {
+    const b = unzipSync(epub());
+    b["cover.jpg"] = bytes;
+    return zipSync(b);
+  };
+  const noCover = unzipSync(epub());
+  delete noCover["cover.jpg"];
+  const noCoverOpf = strFromU8(noCover["content.opf"]).replace(/<item id="cov"[^>]*\/>/, "");
+  noCover["content.opf"] = new TextEncoder().encode(noCoverOpf);
+  await core.call("books.import", {
+    paths: [file("small.epub", withCover(jpeg(300, 450))), file("bad.epub", withCover(new Uint8Array([1, 2, 3]))), file("none.epub", zipSync(noCover))],
+  });
+  await core.idle();
+  const got = [];
+  for (const b of await core.call("books.list")) {
+    const d = await core.call("books.get", { id: b.id });
+    got.push([d.originName, d.state, d.report.todos?.map((t) => t.id)]);
+  }
+  assert.deepEqual(got.sort(), [
+    ["bad.epub", "work", ["bad-cover"]],
+    ["none.epub", "work", ["no-cover"]],
+    ["small.epub", "work", ["small-cover"]],
+  ]);
+});
+
+test("books fixed by an older engine are re-fixed and re-checked once when the Library opens", async () => {
+  const { core, file, home } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub())] });
+  await core.idle();
+  await core.close();
+  // What a Library from before checks looks like after the schema migration: no to-dos, waiting as "work".
+  const db = new DatabaseSync(join(home, "Books/Magpie/library.db"));
+  const row = db.prepare("SELECT plan, report FROM books").get() as { plan: string; report: string };
+  const report = JSON.parse(row.report);
+  delete report.todos;
+  db.prepare("UPDATE books SET state = 'work', plan = ?, report = ?").run(JSON.stringify({ ...JSON.parse(row.plan), engine: 1 }), JSON.stringify(report));
+  db.close();
+
+  const again = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_MODEL: NO_MODEL }));
+  const s = await again.call("app.state");
+  assert.ok(s.jobs.some((j) => j.kind === "refresh"));
+  await again.idle();
+  const [b] = await again.call("books.list");
+  assert.equal(b.state, "clean");
+  assert.equal((await again.call("app.state")).undo, null, "a refresh is not an undo step");
 });
 
 test("removing sends a book to Removed; undo and restore bring it back", async () => {
@@ -319,7 +406,7 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
   assert.equal(b.title, "Emma");
   assert.equal(b.series, "Novels");
   assert.equal(b.seriesIndex, 2);
-  assert.equal(b.state, "fixed", "Calibre's details are trusted, not sent to review");
+  assert.equal(b.state, "clean", "Calibre's details are trusted, not sent to review");
   assert.ok(b.cover && existsSync(b.cover), "Calibre's cover shows when the book has none");
   assert.deepEqual(
     b.tags.map((t) => `${t.name} (${t.by})`),
@@ -581,7 +668,7 @@ test("Look Up Details fills what books are missing from Open Library, waits for 
   assert.equal((await core.call("app.state")).undo, "Look Up Details");
   await core.call("history.undo");
   assert.equal((await core.call("books.get", { id: emma.id })).report.suggestions.length, 0);
-  assert.equal((await core.call("books.get", { id: cope.id })).state, "fixed");
+  assert.equal((await core.call("books.get", { id: cope.id })).state, "clean");
   assert.deepEqual(await core.call("books.lookupCount"), { count: 2 });
 
   // Again, then accept: the year is written into the book.
@@ -591,7 +678,7 @@ test("Look Up Details fills what books are missing from Open Library, waits for 
   await core.call("books.review", { decisions: [{ id: emma.id, accept: patchFor(again.report.suggestions), dismiss: [] }] });
   const accepted = await core.call("books.get", { id: emma.id });
   assert.equal(accepted.year, 1815);
-  assert.equal(accepted.state, "fixed");
+  assert.equal(accepted.state, "clean");
   assert.match(strFromU8(unzipSync(readFileSync(accepted.file))["content.opf"]), /<dc:date>1815<\/dc:date>/);
 });
 

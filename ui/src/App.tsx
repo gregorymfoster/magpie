@@ -76,8 +76,8 @@ function Window() {
     setBack(ids);
     setTimeout(() => setBack([]), 1500);
   }, []);
-  // Settling the last book in Needs Review earns the fleuron's flourish, once.
-  const reviewCount = state?.counts.review;
+  // Settling the last book in Needs Work earns the fleuron's flourish, once.
+  const reviewCount = state?.counts.work;
   const lastReview = useRef(reviewCount);
   const [cleared, setCleared] = useState(false);
   // Passing 100, 500, 1,000, 5,000 or 10,000 books gets one quiet toast, once ever per milestone.
@@ -130,7 +130,7 @@ function Window() {
   }, [layout]);
 
   const open = state?.library.status === "open";
-  const query = view === "review" ? { state: "review" as const } : view === "removed" ? { removed: true } : groupQuery(view);
+  const query = view === "work" ? { state: "work" as const } : view === "removed" ? { removed: true } : groupQuery(view);
   const { data: books = [] } = useCall("books.list", { ...query, search: q || undefined }, { enabled: open });
   const { data: groups } = useCall("library.groups", undefined, { enabled: open });
   // Nothing tells the window a reader was plugged in, so look every few seconds (it's one folder listing).
@@ -317,7 +317,7 @@ function Window() {
 
   const job = sheet?.type === "job" ? state.jobs.find((j) => j.id === sheet.id) : undefined;
   const title =
-    { all: "All Books", review: "Needs Review", recent: "Recently Added", removed: "Removed", kindle: "Kindle" }[view as string] ??
+    { all: "All Books", work: "Needs Work", recent: "Recently Added", removed: "Removed", kindle: "Kindle" }[view as string] ??
     devices.find((d) => `kobo:${d.path}` === view)?.name ??
     (/^(tag|author|series):/.test(view) ? view.slice(view.indexOf(":") + 1) : undefined) ??
     "Kobo";
@@ -328,14 +328,12 @@ function Window() {
   else if (!items.length)
     body = (
       <div className="empty">
-        {view === "review" && !q && <Fleuron ink={cleared} />}
-        <b>
-          {q ? "No matches" : view === "review" ? "Every book’s details are settled" : kobo ? "Nothing from your Library is on this Kobo yet" : "Nothing here"}
-        </b>
+        {view === "work" && !q && <Fleuron ink={cleared} />}
+        <b>{q ? "No matches" : view === "work" ? "Every book is clean" : kobo ? "Nothing from your Library is on this Kobo yet" : "Nothing here"}</b>
         {q
           ? `No titles, authors or series contain “${q}”.`
-          : view === "review"
-            ? "Books whose title or author Magpie had to guess wait here for you."
+          : view === "work"
+            ? "Books with a missing cover, details to check or a layout Magpie wasn’t sure about wait here."
             : kobo
               ? "Select books in All Books and press Send. They arrive in Kobo’s own format."
               : "Drop ebook files anywhere on this window to add them."}
@@ -344,18 +342,22 @@ function Window() {
   else
     body = (
       <>
-        {view === "review" && (
+        {view === "work" && (
           <div className="pane" style={{ paddingBottom: 0, maxWidth: "none" }}>
             <div className="lead" style={{ marginBottom: 0 }}>
               <p>
-                <b>{plural(items.length, "book")} with details to check</b>
+                <b>{items.length === 1 ? "1 book needs work" : `${items.length} books need work`}</b>
                 <span>
-                  Magpie found a better title or author inside {items.length === 1 ? "this book" : "these books"}. Nothing is written until you accept it.
+                  {state.counts.review
+                    ? `Magpie found better details for ${plural(state.counts.review, "book")}. Nothing is written until you accept it. Select a book to see its other to-dos.`
+                    : "Select a book to see what’s left and the button that settles it."}
                 </span>
               </p>
-              <button className="btn pri" onClick={() => setSheet({ type: "review" })}>
-                Review details
-              </button>
+              {state.counts.review > 0 && (
+                <button className="btn pri" onClick={() => setSheet({ type: "review" })}>
+                  Review details
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -536,7 +538,8 @@ function StatusBar({ books, state }: { books: BookSummary[]; state: NonNullable<
     <div className="status">
       <span>
         {plural(state.counts.all, "book")}
-        {state.counts.review ? ` · ${state.counts.review} to review` : ""}
+        {state.counts.clean ? ` · ${state.counts.clean} clean` : ""}
+        {state.counts.work ? ` · ${state.counts.work} need${state.counts.work === 1 ? "s" : ""} work` : ""}
         {books.length !== state.counts.all ? ` · ${books.length} shown` : ""}
       </span>
       <span className="sp" />

@@ -47,6 +47,7 @@ const detail = (b: BookDetail) => ({
   ...(b.description && { description: b.description }),
   addedFrom: b.originName,
   fixed: b.report.changes.map((c) => c.message),
+  ...(b.report.todos?.length && { todo: b.report.todos.map((t) => t.message) }),
   suggestions: b.report.suggestions.map((s) => ({ field: s.field, current: s.current, suggested: s.value, source: s.source, confidence: s.confidence })),
 });
 
@@ -97,10 +98,10 @@ export function mcpServer(core: Core, version: string) {
     {
       title: "Search books",
       description:
-        "Find books by title, author or series. With no search, lists the Library. state 'review' finds books with suggested details waiting; 'fixed' finds books Magpie repaired.",
+        "Find books by title, author or series. With no search, lists the Library. state 'clean' finds books that passed every check; 'work' finds books that need work (get_book lists their to-dos); 'review' finds those with suggested details waiting.",
       inputSchema: {
         search: z.string().optional(),
-        state: z.enum(["ready", "fixed", "review", "locked"]).optional(),
+        state: z.enum(["clean", "work", "review", "locked"]).optional(),
         tag: z.string().optional().describe("A shelf (Fiction, Nonfiction), genre, vibe or tag, exactly as list_shelves names it"),
         author: z.string().optional(),
         series: z.string().optional(),

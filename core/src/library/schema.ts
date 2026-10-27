@@ -23,7 +23,7 @@ export const MIGRATIONS: string[] = [
     original TEXT NOT NULL,             -- never changed, relative: originals/<hash>.epub
     cover TEXT,                         -- relative: covers/<id>.jpg
     size INTEGER NOT NULL,
-    state TEXT NOT NULL,                -- ready | fixed | review
+    state TEXT NOT NULL,                -- clean | work | review | locked (ready | fixed before schema 3)
     plan TEXT NOT NULL,                 -- JSON FixPlan: replaying it on the original rebuilds the book
     report TEXT NOT NULL,               -- JSON FixReport from the last build
     origin TEXT NOT NULL,               -- import | calibre
@@ -57,5 +57,9 @@ export const MIGRATIONS: string[] = [
   ALTER TABLE books ADD COLUMN tags TEXT NOT NULL DEFAULT '[]';     -- JSON [{name, by, confidence?, source?}], by: you | calibre | magpie
   ALTER TABLE books ADD COLUMN tags_off TEXT NOT NULL DEFAULT '[]'; -- JSON names a person took off; Magpie never puts them back
   ALTER TABLE books ADD COLUMN organized INTEGER;                   -- ORGANIZER version that last sorted it; NULL: never
+  `,
+  // 3: Clean or Needs work. Books from before engine 2 have no checks yet; they wait as "work" until the refresh job re-fixes them.
+  `
+  UPDATE books SET state = 'work' WHERE state IN ('ready', 'fixed');
   `,
 ];

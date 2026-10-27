@@ -10,13 +10,13 @@
 import type { Db } from "./host.ts";
 import { UserError, explain } from "./errors.ts";
 
-export type JobKind = "import" | "calibre" | "kobo" | "lookup" | "organize";
+export type JobKind = "import" | "calibre" | "kobo" | "lookup" | "organize" | "refresh";
 export type JobState = "queued" | "running" | "done" | "cancelled";
 
 export interface JobResult {
   /** What the item was, for a person: a file name or a book title. */
   label: string;
-  outcome: "added" | "duplicate" | "unreadable" | "skipped" | "sent" | "sorted" | "failed" | "found";
+  outcome: "added" | "duplicate" | "unreadable" | "skipped" | "sent" | "sorted" | "failed" | "found" | "checked";
   /** A sentence, for anything other than added or sent. */
   message?: string;
   bookId?: number;

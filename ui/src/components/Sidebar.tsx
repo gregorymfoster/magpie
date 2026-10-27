@@ -5,7 +5,7 @@ import { DoneCheck, jobProgress } from "./Progress.tsx";
 import { Count, useLinger } from "./Motion.tsx";
 import { plural, tilde } from "../format.ts";
 
-export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
+export type View = "all" | "work" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
 
 type Section = "shelves" | "vibes" | "series" | "authors" | "tags";
 const FEW_AUTHORS = 8;
@@ -88,7 +88,7 @@ export function Sidebar({
       <nav className="side-scroll" aria-label="Library">
         <div className="sec">Library</div>
         <Row id="all" icon={<Library {...i} />} label="All Books" count={state.counts.all} />
-        <Row id="review" icon={<AlertCircle {...i} />} label="Needs Review" count={state.counts.review} hot />
+        <Row id="work" icon={<AlertCircle {...i} />} label="Needs Work" count={state.counts.work} hot />
         <Row id="recent" icon={<Clock {...i} />} label="Recently Added" />
         {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 {...i} />} label="Removed" count={state.counts.removed} />}
         {groups && (groups.shelves.length > 0 || groups.unsorted > 0 || sorting) && (

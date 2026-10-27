@@ -15,12 +15,13 @@ import { metadata } from "./fixers/metadata.ts";
 import { toc } from "./fixers/toc.ts";
 import type { Change, Fixer } from "./fixers/types.ts";
 import { fieldWord, patchFor } from "./suggestions.ts";
+import { checkBook, type Todo } from "./checks.ts";
 import { coverImage, readInfo, suggest, writeInfo, type BookInfo, type InfoPatch, type Suggestion } from "./info.ts";
 
 export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, metadata, toc];
 
 /** Bump when a fixer changes what it writes, so the Library knows which books to re-fix. */
-export const ENGINE = 1;
+export const ENGINE = 2;
 
 export interface FixPlan {
   engine: number;
@@ -54,6 +55,8 @@ export interface FixReport {
   suggestions: Suggestion[];
   /** Fixers that threw. The book is still built with the other fixes applied. */
   errors: { fixer: string; error: string }[];
+  /** What still stands between the book and Clean, besides suggestions (checks.ts). Missing in reports from before engine 2. */
+  todos?: Todo[];
 }
 
 export interface Fixed {
@@ -90,11 +93,12 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
   const suggestions = merged.filter((s) => plan.info[s.field] === undefined && !plan.dismissed?.includes(s.field));
   if (Object.keys(plan.info).length) writeInfo(book, plan.info);
   const c = coverImage(book);
+  const info = readInfo(book);
   return {
     bytes: book.save(),
-    info: readInfo(book),
+    info,
     cover: c && { bytes: book.files.get(c.path)!, mediaType: c.mediaType },
-    report: { changes, suggestions, errors },
+    report: { changes, suggestions, errors, todos: checkBook(book, info, errors) },
   };
 }
 

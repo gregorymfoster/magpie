@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import { books, call, classicFiles, emma, longBook, reset, unknownAuthor } from "./helpers.ts";
+import { epub, page as xhtml } from "../../core/test/fixtures.ts";
 
 test.beforeEach(async ({ page }) => reset(page));
 
@@ -23,6 +24,25 @@ test("selecting a book shows what Magpie fixed in the inspector", async ({ page 
   const insp = page.getByRole("complementary", { name: "Inspector" });
   await expect(insp.getByRole("heading", { name: "Emma" })).toBeVisible();
   await expect(insp).toContainText("Declared cover.jpg as the cover");
+});
+
+test("a clean book wears the seal; one that needs work waits in Needs Work with a to-do that opens its fix", async ({ page }) => {
+  const noAuthor = epub({
+    opfMeta: '<dc:identifier id="id">urn:uuid:7</dc:identifier><dc:title>Persuasion</dc:title><dc:language>en</dc:language>',
+    pages: { "ch1.xhtml": xhtml("<h2>Chapter 1</h2><p>Sir Walter Elliot never took up any book but the Baronetage.</p>") },
+  });
+  await call(page, "books.import", { paths: books({ "emma.epub": emma(), "persuasion.epub": noAuthor }) });
+  await page.reload();
+  await expect(page.locator(".tile", { hasText: "Emma" }).getByLabel("Clean")).toBeVisible();
+  await expect(page.locator(".status")).toContainText("1 clean · 1 needs work");
+  await page.getByRole("navigation", { name: "Library" }).getByText("Needs Work").click();
+  await expect(page.locator(".tile .t")).toHaveText(["Persuasion"]);
+  await page.locator(".tile", { hasText: "Persuasion" }).click();
+  const insp = page.getByRole("complementary", { name: "Inspector" });
+  await expect(insp).toContainText("1 to do");
+  await expect(insp).toContainText("The book doesn't say who wrote it.");
+  await insp.getByRole("button", { name: "Edit details" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
 });
 
 test("suggested details: accept, see it written, then undo from the toast", async ({ page }) => {

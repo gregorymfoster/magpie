@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock, Sparkles, X, BookOpen } from "lucide-react";
-import type { BookSummary, Tag } from "@magpie/core";
+import type { BookSummary, Tag, Todo } from "@magpie/core";
 import { useAction, useCall } from "../api.tsx";
 import { useToast } from "./Toasts.tsx";
 import { Cover } from "./Cover.tsx";
@@ -21,6 +21,7 @@ export function Inspector({ chosen, act, onTag }: { chosen: BookSummary[]; act: 
     );
   if (chosen.length > 1) {
     const review = chosen.filter((b) => b.state === "review").length;
+    const work = chosen.filter((b) => b.state === "review" || b.state === "work").length;
     return (
       <aside className="insp" aria-label="Inspector">
         <div className="ip">
@@ -35,7 +36,9 @@ export function Inspector({ chosen, act, onTag }: { chosen: BookSummary[]; act: 
             ))}
           </div>
           <h2>{plural(chosen.length, "book")} selected</h2>
-          <div className="by">{review ? `${review} with details to check` : "All ready to read"}</div>
+          <div className="by">
+            {work ? `${work} need${work === 1 ? "s" : ""} work` : chosen.every((b) => b.state === "clean") ? "All clean" : "Ready to read"}
+          </div>
           <div className="acts">
             <button className="btn pri" onClick={() => act("send")}>
               <Send size={13} />
@@ -122,13 +125,19 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
           )}
         </div>
         <hr className="dash" />
+        {d && !!d.report.todos?.length && (
+          <>
+            <Todos todos={d.report.todos} act={act} />
+            <hr className="dash" />
+          </>
+        )}
         <Tags books={[b]} onTag={onTag} />
         <hr className="dash" />
         <div>
           <div className="h">
             What Magpie did
             <span className="sp" />
-            <StatePill state={b.state} />
+            <StatePill b={b} />
           </div>
           {d && (
             <div className="changes">
@@ -178,6 +187,42 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
         </div>
       </div>
     </aside>
+  );
+}
+
+/** What stands between the book and Clean, each with the one thing that settles it. */
+function Todos({ todos, act }: { todos: Todo[]; act: Act }) {
+  const fix: Record<Todo["action"], [string, Parameters<Act>[0]] | null> = {
+    edit: ["Edit details", "edit"],
+    preview: ["Preview", "preview"],
+    // Adding a cover arrives with generated and looked-up covers.
+    cover: null,
+  };
+  return (
+    <div>
+      <div className="h">To do</div>
+      <div className="changes todos">
+        {todos.map((t) => {
+          const f = fix[t.action];
+          return (
+            <div key={t.id}>
+              <AlertCircle size={12} style={{ color: "var(--warn)" }} />
+              <span>
+                {t.message}
+                {f && (
+                  <>
+                    {" "}
+                    <button className="link" onClick={() => act(f[1])}>
+                      {f[0]}
+                    </button>
+                  </>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

@@ -8,7 +8,7 @@
 
 import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
-import { fix, newPlan, type CatalogRecord, type FixPlan, type FixReport } from "../fix.ts";
+import { ENGINE, fix, newPlan, type CatalogRecord, type FixPlan, type FixReport } from "../fix.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
@@ -16,8 +16,12 @@ import { bookPath, unique } from "../naming.ts";
 import { MIGRATIONS } from "./schema.ts";
 import { GENRES, GENRE_NAMES, KINDS, VIBES, VIBE_NAMES } from "../organize/vocabulary.ts";
 
-/** "locked": DRM. Kept byte for byte as it came; never fixed, edited, converted or sent. */
-export type BookState = "ready" | "fixed" | "review" | "locked";
+/**
+ * "clean": passed every check, nothing waiting. "work": Needs work, with to-dos
+ * (report.todos). "review": Needs work, with suggested details waiting for a
+ * person. "locked": DRM. Kept byte for byte as it came; never fixed, edited, converted or sent.
+ */
+export type BookState = "clean" | "work" | "review" | "locked";
 
 /** A word a book is filed under. Magpie's own come with how sure it was and why. */
 export interface Tag {
@@ -61,6 +65,8 @@ export interface BookSummary {
   publisher?: string;
   /** The year the work first came out, when Look Up Details found it (the book's own year is usually the edition's). */
   firstYear?: number;
+  /** How many things stand between the book and Clean: to-dos plus suggestions waiting. */
+  todo: number;
 }
 
 /** Everything the inspector shows. */
@@ -97,6 +103,7 @@ export interface AddSource {
 }
 
 export interface ListQuery {
+  /** "work" also finds books waiting for review, since those need work too. */
   state?: BookState;
   /** Matches title, author, series or tag. */
   search?: string;
@@ -106,6 +113,14 @@ export interface ListQuery {
   series?: string;
   removed?: boolean;
   sort?: "added" | "title" | "author";
+}
+
+export interface Counts {
+  all: number;
+  clean: number;
+  work: number;
+  review: number;
+  removed: number;
 }
 
 export const REMOVED_DAYS = 30;
@@ -224,7 +239,8 @@ export class Library {
   async list(q: ListQuery = {}): Promise<BookSummary[]> {
     const where = [q.removed ? "removed_at IS NOT NULL" : "removed_at IS NULL"];
     const params: SqlValue[] = [];
-    if (q.state) {
+    if (q.state === "work") where.push("state IN ('work', 'review')");
+    else if (q.state) {
       where.push("state = ?");
       params.push(q.state);
     }
@@ -270,12 +286,30 @@ export class Library {
     };
   }
 
-  async counts(): Promise<{ all: number; review: number; fixed: number; removed: number }> {
-    const [c] = await this.db.all<{ all: number; review: number; fixed: number; removed: number }>(
-      `SELECT SUM(removed_at IS NULL) AS "all", SUM(removed_at IS NULL AND state = 'review') AS review,
-              SUM(removed_at IS NULL AND state = 'fixed') AS fixed, SUM(removed_at IS NOT NULL) AS removed FROM books`,
+  /** "work" counts books waiting for review too; "review" is those alone. */
+  async counts(): Promise<Counts> {
+    const [c] = await this.db.all<Counts>(
+      `SELECT SUM(removed_at IS NULL) AS "all", SUM(removed_at IS NULL AND state = 'clean') AS clean,
+              SUM(removed_at IS NULL AND state IN ('work', 'review')) AS work, SUM(removed_at IS NULL AND state = 'review') AS review,
+              SUM(removed_at IS NOT NULL) AS removed FROM books`,
     );
-    return { all: c.all ?? 0, review: c.review ?? 0, fixed: c.fixed ?? 0, removed: c.removed ?? 0 };
+    return { all: c.all ?? 0, clean: c.clean ?? 0, work: c.work ?? 0, review: c.review ?? 0, removed: c.removed ?? 0 };
+  }
+
+  /** Books fixed by an older engine, which a refresh brings up to date. Locked books are never fixed, so never stale. */
+  async stale(): Promise<number[]> {
+    const rows = await this.db.all<{ id: number; plan: string }>("SELECT id, plan FROM books WHERE state != 'locked' ORDER BY id");
+    return rows.filter((r) => (JSON.parse(r.plan) as FixPlan).engine < ENGINE).map((r) => r.id);
+  }
+
+  /**
+   * Re-fix a book with today's engine. Nothing a person chose changes, so
+   * it isn't an undo step; undoing an older edit rebuilds with today's engine too.
+   */
+  async refresh(id: number): Promise<void> {
+    const { plan } = await this.snapshot(id);
+    if (plan.engine >= ENGINE) return;
+    await this.rebuild(id, { ...plan, engine: ENGINE });
   }
 
   /** How many fixes Magpie has made across the books still in the Library. */
@@ -625,7 +659,12 @@ export class Library {
       size: r.size as number,
       addedAt: r.added_at as string,
       tags: JSON.parse((r.tags as string) ?? "[]"),
+      todo: 0,
     };
+    if (r.state === "work" || r.state === "review") {
+      const report = JSON.parse(r.report as string) as FixReport;
+      s.todo = (report.todos?.length ?? 0) + report.suggestions.length;
+    }
     if (r.publisher) s.publisher = r.publisher as string;
     const first = (JSON.parse(r.plan as string) as FixPlan).catalog?.firstYear;
     if (first) s.firstYear = first;
@@ -670,7 +709,7 @@ const fold = (s: string) =>
 
 function stateOf(report: FixReport): BookState {
   if (report.suggestions.length) return "review";
-  return report.changes.length ? "fixed" : "ready";
+  return report.todos?.length ? "work" : "clean";
 }
 
 /** "Ursula K. Le Guin" -> "Le Guin, Ursula K." */

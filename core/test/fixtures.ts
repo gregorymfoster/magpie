@@ -24,9 +24,14 @@ export function epub(
       '<?xml version="1.0"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>',
     ),
     "content.opf": strToU8(opf),
-    "cover.jpg": new Uint8Array([0xff, 0xd8, 0xff]),
+    "cover.jpg": jpeg(1600, 2400),
   };
   for (const [k, v] of Object.entries({ ...pages, ...opts.extra })) files[k] = strToU8(v);
   const mimetype: [Uint8Array, { level: 0 }] = [strToU8("application/epub+zip"), { level: 0 }];
   return zipSync(opts.mimetypeLast ? { ...files, mimetype } : { mimetype, ...files });
+}
+
+/** Just enough of a JPEG for its size to be read: start of image, a baseline frame header, end of image. */
+export function jpeg(w: number, h: number) {
+  return new Uint8Array([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x03, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1, 0xff, 0xd9]);
 }

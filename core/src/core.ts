@@ -9,7 +9,7 @@ import { UserError, explain } from "./errors.ts";
 import { join, type Host } from "./host.ts";
 import type { InfoPatch, Suggestion } from "./info.ts";
 import { Jobs, type Job, type JobResult } from "./jobs.ts";
-import { Library, type ListQuery, type LookupPrev } from "./library/library.ts";
+import { Library, type Counts, type ListQuery, type LookupPrev } from "./library/library.ts";
 import { Organizer } from "./organize/organize.ts";
 import { deviceName } from "./naming.ts";
 import { loadForPreview, preview } from "./preview.ts";
@@ -31,7 +31,7 @@ export interface AppState {
   version: string;
   /** "open": ready. "missing": the remembered Library's folder isn't there (an unplugged disk). */
   library: { status: "open" | "missing"; path: string };
-  counts: { all: number; review: number; fixed: number; removed: number };
+  counts: Counts;
   /** Label of the change ⌘Z would undo. */
   undo: string | null;
   jobs: Job[];
@@ -124,6 +124,17 @@ class Context {
       },
     });
     this.jobs.resume();
+    // Books fixed by an older engine are re-fixed and re-checked once, in the background.
+    const active = await this.jobs.active();
+    if (!active.some((j) => j.kind === "refresh" && (j.state === "queued" || j.state === "running"))) {
+      const stale = await this.library.stale();
+      if (stale.length)
+        await this.jobs.enqueue(
+          "refresh",
+          `Checking ${stale.length} book${stale.length === 1 ? "" : "s"}`,
+          stale.map((id) => ({ id })),
+        );
+    }
     await this.saveConfig({ ...(await this.config()), libraryPath: path });
     // A Library from before shelves existed (or before the rules changed) gets sorted once, in the background.
     const sorting = (await this.jobs.active()).some((j) => j.kind === "organize" && (j.state === "queued" || j.state === "running"));
@@ -160,6 +171,14 @@ function runners(ctx: Context) {
       if (!c.path) return { label: c.title, outcome: "skipped", message: explain("calibre-no-epub") } satisfies JobResult;
       if (!(await ctx.host.fs.exists(c.path))) return { label: c.title, outcome: "skipped", message: explain("calibre-file-missing") } satisfies JobResult;
       return addResult(c.title, () => ctx.lib().add({ path: c.path!, name: c.title, origin: "calibre", info: c.info, cover: c.cover, tags: c.tags }));
+    },
+    refresh: async (item: unknown) => {
+      const { id } = item as { id: number };
+      const lib = ctx.lib();
+      await lib.refresh(id).catch(() => {});
+      const book = await lib.get(id).catch(() => null);
+      ctx.changed();
+      return { label: book?.title ?? `Book ${id}`, outcome: "checked", bookId: id } satisfies JobResult;
     },
     organize: async (item: unknown) => {
       const { id, step } = item as { id: number; step: number };
@@ -267,7 +286,7 @@ async function appState(ctx: Context): Promise<AppState> {
       return {
         version: ctx.host.env.version,
         library: { status: "missing", path: want },
-        counts: { all: 0, review: 0, fixed: 0, removed: 0 },
+        counts: { all: 0, clean: 0, work: 0, review: 0, removed: 0 },
         undo: null,
         jobs: [],
       };

@@ -18,6 +18,12 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Suggestion.** A proposed title or author with its source and confidence. Never applied silently; it waits for **Review**.
 
+**Clean.** A book that passed every check (`core/src/checks.ts`): a cover big enough to look sharp, a title, an author and a language, nothing waiting in Review, every fixer finished. A seal in the grid, "Clean" on its pill.
+
+**Needs work.** A book that isn't Clean yet. Each thing in the way is a **to-do**: a sentence and the one button that settles it. Waiting suggestions count too. "Needs Work" in the sidebar; `work` (or `review`, when suggestions are waiting) in code.
+
+**Refresh.** Re-fixing books made by an older engine, once, in the background, when the Library opens. Nothing a person chose changes, so it isn't an undo step.
+
 **Locked.** A book a store has locked with DRM. It comes into the Library byte for byte with a lock on it and is never fixed, edited, converted or sent. "DRM" on its pill in the window.
 
 **Review.** Accepting or dismissing suggestions. "Needs Review" in the sidebar.

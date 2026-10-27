@@ -6,7 +6,8 @@ import { Book } from "../src/epub.ts";
 import { isJunkTitle, unshout } from "../src/identify/rules.ts";
 import { toXhtml, wellFormednessErrors } from "../src/fixers/xhtml.ts";
 
-import { epub, page } from "./fixtures.ts";
+import { epub, jpeg, page } from "./fixtures.ts";
+import { imageSize } from "../src/checks.ts";
 
 test("writes mimetype first and uncompressed", () => {
   const out = fixEpub(epub({ mimetypeLast: true }));
@@ -93,4 +94,18 @@ test("title heuristics", () => {
   assert.ok(!isJunkTitle("Emma"));
   assert.equal(unshout("THE HOUND OF THE BASKERVILLES"), "The Hound of the Baskervilles");
   assert.equal(unshout("L. M. MONTGOMERY"), "L. M. Montgomery");
+});
+
+test("reads an image's size from its header: JPEG, PNG, GIF and WebP", () => {
+  const png = new Uint8Array(32);
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0x06, 0x40, 0, 0, 0x09, 0x60]);
+  const gif = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x2c, 0x01, 0xc2, 0x01, 0, 0]);
+  const webp = new Uint8Array(32);
+  webp.set(new TextEncoder().encode("RIFF\0\0\0\0WEBPVP8X"));
+  webp.set([0, 0, 0, 0, 0, 0, 0, 0, 0x3f, 0x06, 0, 0x5f, 0x09, 0], 16);
+  assert.deepEqual(imageSize(jpeg(1600, 2400)), { w: 1600, h: 2400 });
+  assert.deepEqual(imageSize(png), { w: 1600, h: 2400 });
+  assert.deepEqual(imageSize(gif), { w: 300, h: 450 });
+  assert.deepEqual(imageSize(webp), { w: 1600, h: 2400 });
+  assert.equal(imageSize(new Uint8Array([1, 2, 3])), null);
 });

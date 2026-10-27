@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Columns3, Lock } from "lucide-react";
+import { BadgeCheck, Check, Columns3, Lock } from "lucide-react";
 import { GENRE_NAMES, KINDS, VIBE_NAMES, type BookSummary } from "@magpie/core";
 import { Cover } from "./Cover.tsx";
 import { authors, date, language, size } from "../format.ts";
@@ -113,7 +113,8 @@ export function Grid({ items, sel, onSel, onOpen, back = [] }: Props) {
               <div>
                 <div className="t">{b.title}</div>
                 <div className="a">
-                  {b.state === "review" && <span className="dot rv" />}
+                  {(b.state === "review" || b.state === "work") && <span className="dot rv" aria-label="Needs work" />}
+                  {b.state === "clean" && <BadgeCheck className="seal" size={11} strokeWidth={2.2} aria-label="Clean" />}
                   {b.state === "locked" && <Lock size={10} strokeWidth={2.2} aria-label="Locked with DRM" />}
                   {authors(b.authors)}
                 </div>
@@ -165,7 +166,7 @@ export const COLUMNS: Column[] = [
   { id: "language", label: "Language", width: "88px", cell: (b) => language(b.language), className: "mut" },
   { id: "size", label: "Size", width: "72px", cell: (b) => size(b.size), className: "num" },
   { id: "added", label: "Added", width: "100px", cell: (b) => date(b.addedAt), className: "num" },
-  { id: "status", label: "Status", width: "124px", cell: (b) => <StatePill state={b.state} /> },
+  { id: "status", label: "Status", width: "124px", cell: (b) => <StatePill b={b} /> },
 ];
 export const DEFAULT_COLUMNS = ["author", "series", "year", "genre", "status"];
 
@@ -300,15 +301,20 @@ export function List({ items, sel, onSel, onOpen, back = [] }: Props) {
   );
 }
 
-export function StatePill({ state }: { state: BookSummary["state"] }) {
-  if (state === "review") return <span className="pill rv">Check details</span>;
-  if (state === "fixed")
+/** Clean, or what stands between the book and Clean. */
+export function StatePill({ b }: { b: Pick<BookSummary, "state" | "todo"> }) {
+  const { state } = b;
+  if (state === "clean")
     return (
-      <span className="pill ok">
-        <Check size={11} strokeWidth={2.4} />
-        Fixed
+      <span className="pill ok" title="Passed every check: cover, details and layout">
+        <BadgeCheck size={11} strokeWidth={2.4} />
+        Clean
       </span>
     );
+  if (state === "review") return <span className="pill rv">Check details</span>;
+  // A book from before checks, waiting for its first check.
+  if (state === "work" && !b.todo) return <span className="pill mut">Checking</span>;
+  if (state === "work") return <span className="pill rv">{b.todo === 1 ? "1 to do" : `${b.todo} to do`}</span>;
   if (state === "locked")
     return (
       <span className="pill bad">
@@ -316,5 +322,5 @@ export function StatePill({ state }: { state: BookSummary["state"] }) {
         DRM
       </span>
     );
-  return <span className="pill mut">Ready</span>;
+  return null;
 }

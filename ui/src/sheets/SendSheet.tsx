@@ -56,7 +56,7 @@ export function SendSheet({ books, onClose, onJob, prefer }: { books: BookSummar
     <Sheet label={`Send ${title}`} onClose={onClose}>
       <div className="sh-h">
         <h2>Send {title}</h2>
-        <p>Kindle gets an email from your own Mail. A Kobo gets a copy over USB in Kobo’s own format.</p>
+        <p>Kindle gets an email from your own Mail. A Kobo gets a copy over USB. Each gets the file it reads best, made for it the first time and kept.</p>
       </div>
       <div className="sh-b">
         <div className="devs">

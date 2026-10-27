@@ -16,7 +16,6 @@ import { loadForPreview, preview } from "./preview.ts";
 import type { Book } from "./epub.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
-import { toKepub } from "./send/kepub.ts";
 import { KINDLE_LIMIT } from "./send/kindle.ts";
 import { descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wants, workUrl, type CatalogDoc } from "./identify/catalog.ts";
 
@@ -193,7 +192,8 @@ function runners(ctx: Context) {
       const { id, device } = item as { id: number; device: string };
       const book = await ctx.lib().get(id);
       if (!(await ctx.host.fs.exists(device))) return { label: book.title, outcome: "failed", message: explain("no-device") } satisfies JobResult;
-      const kepub = toKepub(await ctx.host.fs.read(book.file));
+      if (book.state === "locked") return { label: book.title, outcome: "failed", message: explain("locked-send") } satisfies JobResult;
+      const kepub = await ctx.lib().deviceCopy(id, "kepub");
       const free = await ctx.host.fs.free(device);
       if (free !== null && free < kepub.length + 5e6) return { label: book.title, outcome: "failed", message: explain("device-full") } satisfies JobResult;
       // Resending a book replaces the copy on the reader, keeping its reading position.
@@ -464,13 +464,15 @@ const commands = {
     return { ids, others: there.size - ids.length };
   },
 
-  /** Opens a Mail draft to the Kindle address with the books attached. */
+  /** Opens a Mail draft to the Kindle address with the books attached, each a Kindle-safe copy of the clean book. */
   async "send.kindle"(ctx: Context, a: { ids: number[] }) {
     const to = await ctx.lib().setting("kindleAddress", DEFAULTS.kindleAddress);
     if (!to) throw new UserError("no-kindle-address");
     const books = await Promise.all(a.ids.map((id) => ctx.lib().get(id)));
     if (books.some((b) => b.state === "locked")) throw new UserError("locked-send");
-    const files = await Promise.all(books.map(async (b) => ({ name: deviceName(b.authors, b.title, "epub"), bytes: await ctx.host.fs.read(b.file) })));
+    const files = await Promise.all(
+      books.map(async (b) => ({ name: deviceName(b.authors, b.title, "epub"), bytes: await ctx.lib().deviceCopy(b.id, "kindle") })),
+    );
     if (files.reduce((n, f) => n + f.bytes.length, 0) * 1.37 > KINDLE_LIMIT) throw new UserError("kindle-too-large");
     const subject = books.length === 1 ? books[0].title : `${books.length} books`;
     // Mail attaches files by path, so the books wait in a scratch folder until it's sent.
@@ -483,7 +485,7 @@ const commands = {
     return { to, attachments };
   },
 
-  /** Converts to KEPUB and copies to the Kobo, as a job. */
+  /** Copies the books to the Kobo as KEPUB (built once and kept), as a job. */
   async "send.kobo"(ctx: Context, a: { ids: number[]; device: string }) {
     if (!(await listDevices(ctx.host)).some((d) => d.path === a.device)) throw new UserError("no-device");
     for (const id of a.ids) if ((await ctx.lib().get(id)).state === "locked") throw new UserError("locked-send");

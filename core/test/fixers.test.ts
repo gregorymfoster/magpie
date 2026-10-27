@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { unzipSync } from "fflate";
+import { unzipSync, zipSync } from "fflate";
+import { toKindle } from "../src/send/kindle.ts";
 import { fix, fixAndAccept, newPlan } from "../src/fix.ts";
 import { Book } from "../src/epub.ts";
 import { isJunkTitle, unshout } from "../src/identify/rules.ts";
@@ -189,4 +190,37 @@ test("checks: several chapters that open with a bold line Magpie isn't sure is a
     ["unsure-titles"],
   );
   assert.match(out.report.todos![0].message, /^3 chapters start with a bold line/);
+});
+
+test("Kindle-safe copy: obfuscated and broken fonts, scripts and window-sized CSS go; everything else stays", () => {
+  const css = `@font-face { font-family: Secret; src: url(fonts/secret.otf); }
+@font-face { font-family: Broken; src: url(fonts/broken.ttf); }
+@font-face { font-family: Good; src: url(fonts/good.ttf); }
+.banner { position: fixed; top: 0; font-weight: bold; }
+.hero { width: 100vw; margin: 1em; }`;
+  const fonts =
+    '<item id="f1" href="fonts/secret.otf" media-type="font/otf"/><item id="f2" href="fonts/broken.ttf" media-type="font/ttf"/><item id="f3" href="fonts/good.ttf" media-type="font/ttf"/>';
+  const good = new Uint8Array(16);
+  good.set([0, 1, 0, 0]);
+  const book = styled(`<script>alert(1)</script>${long("One.")}`, css);
+  const z = unzipSync(book);
+  z["content.opf"] = new TextEncoder().encode(new TextDecoder().decode(z["content.opf"]).replace("<manifest>", `<manifest>${fonts}`));
+  z["fonts/secret.otf"] = new Uint8Array(64);
+  z["fonts/broken.ttf"] = new TextEncoder().encode("<html>404 Not Found</html>");
+  z["fonts/good.ttf"] = good;
+  z["META-INF/encryption.xml"] = new TextEncoder().encode(
+    '<encryption xmlns="urn:oasis:names:tc:opendocument:xmlns:container" xmlns:enc="http://www.w3.org/2001/04/xmlenc#"><enc:EncryptedData><enc:EncryptionMethod Algorithm="http://www.idpf.org/2008/embedding"/><enc:CipherData><enc:CipherReference URI="fonts/secret.otf"/></enc:CipherData></enc:EncryptedData></encryption>',
+  );
+  const out = unzipSync(toKindle(zipSync(z)));
+  const read = (p: string) => new TextDecoder().decode(out[p]);
+  assert.ok(!out["META-INF/encryption.xml"] && !out["fonts/secret.otf"] && !out["fonts/broken.ttf"]);
+  assert.ok(out["fonts/good.ttf"]);
+  assert.doesNotMatch(read("content.opf"), /secret|broken/);
+  assert.match(read("content.opf"), /good\.ttf/);
+  const sheet = read("style.css");
+  assert.doesNotMatch(sheet, /Secret|Broken|position|100vw/);
+  assert.match(sheet, /Good/);
+  assert.match(sheet, /font-weight: bold/);
+  assert.match(sheet, /margin: 1em/);
+  assert.doesNotMatch(read("ch1.xhtml"), /script/);
 });

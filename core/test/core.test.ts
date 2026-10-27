@@ -481,6 +481,34 @@ test("Send to Kobo converts to KEPUB on the reader and leaves the Library's EPUB
   assert.deepEqual(await core.call("devices.books", { device: dev.path }), { ids: [b.id], others: 0 });
 });
 
+test("the KEPUB is built once and kept; changing the book builds a fresh one and clears the old", async () => {
+  const { core, file, volumes, home } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("a.epub", epub())] });
+  await core.idle();
+  mkdirSync(join(volumes, "KOBOeReader", ".kobo"), { recursive: true });
+  const [dev] = await core.call("devices.list");
+  const [b] = await core.call("books.list");
+  const kept = join(home, "Books/Magpie/devices/kepub");
+  await core.call("send.kobo", { ids: [b.id], device: dev.path });
+  await core.idle();
+  const [first] = readdirSync(kept);
+  assert.match(first, new RegExp(`^${b.id}-[0-9a-f]{16}-v1\\.epub$`));
+  await core.call("send.kobo", { ids: [b.id], device: dev.path });
+  await core.idle();
+  assert.deepEqual(readdirSync(kept), [first], "the second send reuses the kept copy");
+  await core.call("books.edit", { id: b.id, patch: { title: "Emma, Revised" } });
+  await core.call("send.kobo", { ids: [b.id], device: dev.path });
+  await core.idle();
+  const after = readdirSync(kept);
+  assert.equal(after.length, 1);
+  assert.notEqual(after[0], first);
+  assert.match(strFromU8(unzipSync(readFileSync(join(kept, after[0])))["content.opf"]), /Emma, Revised/);
+  await core.call("books.remove", { ids: [b.id] });
+  await core.call("books.purge");
+  assert.deepEqual(readdirSync(kept), [], "purging a book clears its copies");
+});
+
 test("a remembered Library on an unplugged disk reports missing instead of making a new one", async () => {
   const { home } = setup();
   mkdirSync(join(home, ".config/magpie"), { recursive: true });

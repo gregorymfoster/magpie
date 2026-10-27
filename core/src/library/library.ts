@@ -14,6 +14,7 @@ import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organiz
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
 import { MIGRATIONS } from "./schema.ts";
+import { FORMATS, build, type Format } from "../send/formats.ts";
 import { GENRES, GENRE_NAMES, KINDS, VIBES, VIBE_NAMES } from "../organize/vocabulary.ts";
 
 /**
@@ -154,7 +155,7 @@ export class Library {
 
   /** Opens the Library at root, creating it when the folder is new. */
   static async open(host: Host, root: string): Promise<Library> {
-    for (const d of ["books", "originals", "covers", "backups"]) await host.fs.mkdir(join(root, d));
+    for (const d of ["books", "originals", "covers", "backups", "devices"]) await host.fs.mkdir(join(root, d));
     const db = await host.sqlite.open(join(root, "library.db"));
     await db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;");
     const lib = new Library(host, root, db);
@@ -432,9 +433,40 @@ export class Library {
     const gone = await this.db.all("SELECT * FROM books WHERE removed_at IS NOT NULL AND removed_at <= ?", [cutoff]);
     for (const r of gone) {
       for (const k of ["file", "original", "cover"]) if (r[k]) await this.host.fs.remove(this.abs(r[k] as string));
+      await this.dropDeviceCopies(r.id as number);
       await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
     }
     return gone.length;
+  }
+
+  // ------------------------------------------------------------ device copies
+
+  /**
+   * The book as a reader wants it (KEPUB for a Kobo, Kindle-safe for Send to
+   * Kindle), built from the clean book on first send and kept in devices/.
+   * A copy is named by the clean file's hash, so any change to the book (an
+   * edit, a fix, an undo) means a fresh build and the stale one is cleared.
+   */
+  async deviceCopy(id: number, format: Format): Promise<Uint8Array> {
+    const r = await this.row(id);
+    if (r.state === "locked") throw new UserError("locked-send");
+    const bytes = await this.host.fs.read(this.abs(r.file as string));
+    const key = `${id}-${(await sha256(bytes)).slice(0, 16)}-v${FORMATS}.epub`;
+    const rel = `devices/${format}/${key}`;
+    if (await this.host.fs.exists(this.abs(rel))) return this.host.fs.read(this.abs(rel));
+    const out = build(format, bytes);
+    await this.host.fs.mkdir(this.abs(`devices/${format}`));
+    for (const e of await this.host.fs.list(this.abs(`devices/${format}`)))
+      if (e.name.startsWith(`${id}-`)) await this.host.fs.remove(this.abs(`devices/${format}/${e.name}`));
+    await this.host.fs.write(this.abs(rel), out);
+    return out;
+  }
+
+  private async dropDeviceCopies(id: number) {
+    for (const f of await this.host.fs.list(this.abs("devices")))
+      if (f.dir)
+        for (const e of await this.host.fs.list(this.abs(`devices/${f.name}`)))
+          if (e.name.startsWith(`${id}-`)) await this.host.fs.remove(this.abs(`devices/${f.name}/${e.name}`));
   }
 
   // ------------------------------------------------------------ shelves

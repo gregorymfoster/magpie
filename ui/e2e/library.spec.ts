@@ -45,6 +45,17 @@ test("a clean book wears the seal; one that needs work waits in Needs Work with 
   await expect(page.getByRole("dialog")).toBeVisible();
 });
 
+test("Keep the book's own styling is a checkbox in the inspector, and ⌘Z puts Magpie's clean-up back", async ({ page }) => {
+  await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
+  await page.reload();
+  await page.locator(".tile", { hasText: "Emma" }).click();
+  const keep = page.getByRole("checkbox", { name: /Keep the book’s own styling/ });
+  await expect(keep).not.toBeChecked();
+  await keep.click();
+  await expect(keep).toBeChecked();
+  await expect(page.locator(".status")).toContainText("Undo keep the book's styling");
+});
+
 test("suggested details: accept, see it written, then undo from the toast", async ({ page }) => {
   await call(page, "books.import", { paths: books({ "emma.epub": unknownAuthor() }) });
   await page.reload();

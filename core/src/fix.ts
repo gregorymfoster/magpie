@@ -13,15 +13,17 @@ import { manifest } from "./fixers/manifest.ts";
 import { cover } from "./fixers/cover.ts";
 import { metadata } from "./fixers/metadata.ts";
 import { toc } from "./fixers/toc.ts";
+import { layout } from "./fixers/layout.ts";
 import type { Change, Fixer } from "./fixers/types.ts";
 import { fieldWord, patchFor } from "./suggestions.ts";
 import { checkBook, type Todo } from "./checks.ts";
 import { coverImage, readInfo, suggest, writeInfo, type BookInfo, type InfoPatch, type Suggestion } from "./info.ts";
 
-export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, metadata, toc];
+// Layout runs before the contents fixer so chapter titles it turns into headings can be found.
+export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, layout, metadata, toc];
 
 /** Bump when a fixer changes what it writes, so the Library knows which books to re-fix. */
-export const ENGINE = 2;
+export const ENGINE = 3;
 
 export interface FixPlan {
   engine: number;
@@ -33,6 +35,8 @@ export interface FixPlan {
   found?: Suggestion[];
   /** The catalog record a lookup matched, kept for later use (sorting by year written, tags). Never written into the book. */
   catalog?: CatalogRecord;
+  /** "Keep the book's own styling": skip the layout fixer and leave the publisher's design as it is. */
+  keepStyle?: boolean;
   /** Pinned stand-ins for a fresh uuid and today's date (see Book.stamp). */
   stamp: { uuid: string; modified: string };
 }
@@ -77,6 +81,7 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
   const changes: Change[] = [];
   const errors: FixReport["errors"] = [];
   for (const f of FIXERS) {
+    if (f === layout && plan.keepStyle) continue;
     try {
       changes.push(...f.run(book));
     } catch (e) {
@@ -98,7 +103,7 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
     bytes: book.save(),
     info,
     cover: c && { bytes: book.files.get(c.path)!, mediaType: c.mediaType },
-    report: { changes, suggestions, errors, todos: checkBook(book, info, errors) },
+    report: { changes, suggestions, errors, todos: checkBook(book, info, errors, plan.keepStyle) },
   };
 }
 

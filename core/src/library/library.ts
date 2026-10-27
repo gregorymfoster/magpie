@@ -329,6 +329,20 @@ export class Library {
     return this.get(id);
   }
 
+  /** "Keep the book's own styling" on or off, for one book or many. One undo step. */
+  async keepStyle(ids: number[], keep: boolean): Promise<void> {
+    const steps = [];
+    for (const id of ids) {
+      const before = await this.snapshot(id);
+      if (!!before.plan.keepStyle === keep) continue;
+      const plan: FixPlan = { ...before.plan, keepStyle: keep || undefined };
+      if (!keep) delete plan.keepStyle;
+      await this.rebuild(id, plan);
+      steps.push({ id, before, after: { ...before, plan } });
+    }
+    if (steps.length) await this.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+  }
+
   /** Accept some suggestions and turn the rest down, for many books at once. One undo step. */
   async review(decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[], label = "Accept suggested details"): Promise<void> {
     const steps = [];

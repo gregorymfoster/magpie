@@ -352,6 +352,16 @@ const commands = {
     return r;
   },
 
+  /**
+   * "Keep the book's own styling": leave the publisher's fonts, sizes, spacing
+   * and colours as they are (keep: true), or let Magpie clean them up again.
+   */
+  async "books.keepStyle"(ctx: Context, a: { ids: number[]; keep: boolean }) {
+    for (const id of a.ids) if ((await ctx.lib().get(id)).state === "locked") throw new UserError("locked-edit");
+    await ctx.lib().keepStyle(a.ids, a.keep);
+    ctx.changed();
+  },
+
   /** The review sheet's Done: accepted and turned-down suggestions, many books at once. */
   async "books.review"(ctx: Context, a: { decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[] }) {
     await ctx.lib().review(a.decisions);

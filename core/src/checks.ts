@@ -8,11 +8,13 @@
 
 import { decodeUtf8, type Book } from "./epub.ts";
 import { contentDocs } from "./fixers/xhtml.ts";
+import { unsureTitles } from "./fixers/layout.ts";
+import { imageSize } from "./images.ts";
 import { JUNK_AUTHOR, isJunkTitle } from "./identify/rules.ts";
 import { coverImage, type BookInfo } from "./info.ts";
 import type { FixReport } from "./fix.ts";
 
-export type TodoId = "no-cover" | "small-cover" | "bad-cover" | "no-title" | "no-author" | "no-language" | "fixer-failed" | "no-text";
+export type TodoId = "no-cover" | "small-cover" | "bad-cover" | "no-title" | "no-author" | "no-language" | "fixer-failed" | "no-text" | "unsure-titles";
 
 export interface Todo {
   id: TodoId;
@@ -22,10 +24,11 @@ export interface Todo {
   action: "edit" | "preview" | "cover";
 }
 
-/** Covers shorter than this look soft on a 300 ppi reader. Kindle asks for 1600 or more. */
-export const MIN_COVER_HEIGHT = 800;
+/** Covers shorter than this look blurry even in a reader's library grid. (Kindle asks for 1600 for its sleep screen; most store covers are 500.) */
+export const MIN_COVER_HEIGHT = 480;
 
-export function checkBook(book: Book, info: BookInfo, errors: FixReport["errors"]): Todo[] {
+/** `keepStyle`: the person chose the publisher's design, so layout doubts aren't to-dos. */
+export function checkBook(book: Book, info: BookInfo, errors: FixReport["errors"], keepStyle = false): Todo[] {
   const out: Todo[] = [];
   const c = coverImage(book);
   if (!c) out.push({ id: "no-cover", message: "No cover. Readers will show a plain grey square.", action: "cover" });
@@ -45,6 +48,13 @@ export function checkBook(book: Book, info: BookInfo, errors: FixReport["errors"
       message: `Part of the repair couldn't finish (${errors.map((e) => e.fixer).join(", ")}). Look through it before sending.`,
       action: "preview",
     });
+  const unsure = keepStyle ? 0 : unsureTitles(book);
+  if (unsure >= 2)
+    out.push({
+      id: "unsure-titles",
+      message: `${unsure} chapters start with a bold line that may be a title. Magpie left them as they are; look at them in Preview.`,
+      action: "preview",
+    });
   if (!hasText(book)) out.push({ id: "no-text", message: "Magpie found no text in this book. It may be all images, or empty.", action: "preview" });
   return out;
 }
@@ -56,45 +66,4 @@ function hasText(book: Book): boolean {
     if (/[\p{L}\p{N}]{3}/u.test(body.replace(/<[^>]*>/g, " "))) return true;
   }
   return false;
-}
-
-/** Width and height from an image's header (JPEG, PNG, GIF, WebP), or null when it can't be read. SVG has no pixel size and passes. */
-export function imageSize(b: Uint8Array): { w: number; h: number } | null {
-  const u16 = (i: number) => (b[i] << 8) | b[i + 1];
-  const u32 = (i: number) => ((b[i] << 24) | (b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]) >>> 0;
-  const le16 = (i: number) => b[i] | (b[i + 1] << 8);
-  const le24 = (i: number) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
-  if (b.length > 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return { w: u32(16), h: u32(20) };
-  if (b.length > 10 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return { w: le16(6), h: le16(8) };
-  if (b.length > 30 && decodeUtf8(b.subarray(0, 4)) === "RIFF" && decodeUtf8(b.subarray(8, 12)) === "WEBP") {
-    const kind = decodeUtf8(b.subarray(12, 16));
-    if (kind === "VP8 ") return { w: le16(26) & 0x3fff, h: le16(28) & 0x3fff };
-    if (kind === "VP8L") {
-      const bits = b[21] | (b[22] << 8) | (b[23] << 16) | (b[24] << 24);
-      return { w: (bits & 0x3fff) + 1, h: ((bits >> 14) & 0x3fff) + 1 };
-    }
-    if (kind === "VP8X") return { w: le24(24) + 1, h: le24(27) + 1 };
-    return null;
-  }
-  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
-    let i = 2;
-    while (i + 9 < b.length) {
-      if (b[i] !== 0xff) return null;
-      const marker = b[i + 1];
-      if (marker === 0xff) {
-        i++;
-        continue;
-      }
-      // Start of frame (any kind except the DHT, JPG and DAC markers that share the range).
-      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) return { w: u16(i + 7), h: u16(i + 5) };
-      if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd7)) {
-        i += 2;
-        continue;
-      }
-      i += 2 + u16(i + 2);
-    }
-    return null;
-  }
-  if (/<svg[\s>]/.test(decodeUtf8(b.subarray(0, 2048)))) return { w: Infinity, h: Infinity };
-  return null;
 }

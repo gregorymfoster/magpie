@@ -8,7 +8,9 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Original.** The exact bytes someone added, stored once as `originals/<sha256>.epub` and never changed. Two books with the same hash are a duplicate.
 
-**Fix.** Running the fixers over an original to make the book's file. Silent and structural: zip wrapper, XHTML, manifest, cover, metadata gaps, contents page.
+**Fix.** Running the fixers over an original to make the book's file. Silent and structural: zip wrapper, XHTML, manifest, cover, layout, metadata gaps, contents page.
+
+**Layout.** The fixer that makes a book obey the reader's settings and read like a store book: publisher fonts, sizes, line heights and black-on-white come off body text, spacer paragraphs go, blank-line scene breaks become visible ones, plain chapter titles become headings, typed-in indents become real ones. **Keep the book's own styling** turns it off for a book (`plan.keepStyle`).
 
 **Fixer.** One step of a fix (`core/src/fixers/`). Each reports **changes** in plain English.
 

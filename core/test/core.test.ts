@@ -302,6 +302,27 @@ test("a missing, damaged or small cover is a to-do", async () => {
   ]);
 });
 
+test("Keep the book's own styling leaves the publisher's design alone, and is one undo", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const styled = unzipSync(epub());
+  styled["content.opf"] = new TextEncoder().encode(
+    strFromU8(styled["content.opf"]).replace("<manifest>", '<manifest><item id="css" href="style.css" media-type="text/css"/>'),
+  );
+  styled["style.css"] = new TextEncoder().encode("body { font-family: Garamond; font-size: 11pt }");
+  await core.call("books.import", { paths: [file("emma.epub", zipSync(styled))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const css = async () => strFromU8(unzipSync(readFileSync((await core.call("books.get", { id: b.id })).file))["style.css"]);
+  assert.doesNotMatch(await css(), /Garamond/);
+  await core.call("books.keepStyle", { ids: [b.id], keep: true });
+  assert.match(await css(), /Garamond/);
+  assert.equal((await core.call("books.get", { id: b.id })).plan.keepStyle, true);
+  assert.equal((await core.call("app.state")).undo, "Keep the book's styling");
+  await core.call("history.undo");
+  assert.doesNotMatch(await css(), /Garamond/);
+});
+
 test("books fixed by an older engine are re-fixed and re-checked once when the Library opens", async () => {
   const { core, file, home } = setup();
   await core.call("app.state");

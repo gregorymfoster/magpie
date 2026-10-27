@@ -7,7 +7,7 @@ import { isJunkTitle, unshout } from "../src/identify/rules.ts";
 import { toXhtml, wellFormednessErrors } from "../src/fixers/xhtml.ts";
 
 import { epub, jpeg, page } from "./fixtures.ts";
-import { imageSize } from "../src/checks.ts";
+import { imageSize } from "../src/images.ts";
 
 test("writes mimetype first and uncompressed", () => {
   const out = fixEpub(epub({ mimetypeLast: true }));
@@ -108,4 +108,85 @@ test("reads an image's size from its header: JPEG, PNG, GIF and WebP", () => {
   assert.deepEqual(imageSize(gif), { w: 300, h: 450 });
   assert.deepEqual(imageSize(webp), { w: 1600, h: 2400 });
   assert.equal(imageSize(new Uint8Array([1, 2, 3])), null);
+});
+
+const long = (s: string) =>
+  `<p>${s} ${"It was a truth universally acknowledged, and the neighbourhood held it so firmly that nobody ever asked. ".repeat(2)}</p>`;
+const styled = (body: string, css: string) =>
+  epub({
+    pages: { "ch1.xhtml": page(body).replace("<title>t</title>", '<title>t</title><link rel="stylesheet" type="text/css" href="style.css"/>') },
+    manifest: '<item id="css" href="style.css" media-type="text/css"/>',
+    extra: { "style.css": css },
+  });
+const files = (bytes: Uint8Array) => {
+  const z = unzipSync(bytes);
+  return (p: string) => new TextDecoder().decode(z[p]);
+};
+
+test("layout: publisher styling that overrides the reader's font, size, spacing and dark mode comes off body text; headings keep theirs", () => {
+  const css = `/* house style */
+body { font-family: "Times New Roman", serif; font-size: 12pt; color: #000; background: #fff; margin: 5%; }
+p { line-height: 18px; text-indent: 1.5em; margin: 0; }
+.calibre1 { font-size: 0.9em; font-family: Georgia; }
+h1 { font-family: "Fancy Display"; font-size: 24px; color: #800000; }
+@media amzn-kf8 { p { color: black; } }
+@page { margin: 30pt; }`;
+  const body = `<h1>Chapter One</h1>${long('<span class="x">One.</span>').replace("<p>", '<p class="calibre1">')}${long("Two.").replace("<p>", '<p class="calibre1">')}${long("Three.").replace("<p>", '<p class="calibre1">')}`;
+  const out = fixEpub(styled(body, css));
+  const sheet = files(out.bytes)("style.css");
+  assert.doesNotMatch(sheet, /Times New Roman|12pt|#000|#fff|18px|margin: 5%|Georgia|0\.9em|30pt/);
+  assert.match(sheet, /text-indent: 1\.5em/);
+  assert.match(
+    sheet,
+    /h1 \{\s*font-family: "Fancy Display";\s*font-size: 1\.5em;\s*color: #800000;/,
+    "headings keep their face and colour; the pixel size becomes relative",
+  );
+  assert.ok(out.report.changes.some((c) => c.fixer === "layout" && /dark mode/.test(c.message)));
+  assert.deepEqual(out.report.todos, []);
+});
+
+test("layout: spacer paragraphs go, blank lines between paragraphs become visible scene breaks, and plain chapter titles become headings", () => {
+  const body = `<p class="chapter">Chapter 2</p><p>&#160;</p>${long("One.")}${long("Two.")}<p>&#160;</p><p>&#160;</p>${long("Three.")}<p class="center">* * *</p>${long("&#160;&#160;&#160;Four.")}<p><br/></p>`;
+  const out = fixEpub(styled(body, "p { margin: 0 }"));
+  const read = files(out.bytes);
+  const ch = read("ch1.xhtml");
+  assert.match(ch, /<h2 class="chapter">Chapter 2<\/h2>/);
+  assert.equal(ch.match(/<hr class="scene-break"\/>/g)?.length, 1);
+  assert.match(ch, /<p class="center">\* \* \*<\/p>/, "a break the publisher drew is left as it is");
+  assert.doesNotMatch(ch, /&#160;| /);
+  assert.match(ch, /<link rel="stylesheet" type="text\/css" href="magpie.css"\/>/);
+  assert.match(read("content.opf"), /href="magpie.css" media-type="text\/css"/);
+  assert.match(read("magpie.css"), /img \{ max-width: 100%/);
+  const said = out.report.changes.filter((c) => c.fixer === "layout").map((c) => c.message);
+  assert.ok(
+    said.some((m) => /Removed 3 empty spacer paragraphs/.test(m)),
+    said.join("\n"),
+  );
+  assert.ok(said.some((m) => /Turned 1 scene break made of blank lines into a visible break/.test(m)));
+  assert.ok(said.some((m) => /Set 1 chapter title as a real heading/.test(m)));
+  assert.ok(said.some((m) => /hard-space indents of 1 paragraph with real indents/.test(m)));
+});
+
+test("layout: a book that spaces every paragraph with an empty one loses the spacers, not gains scene breaks", () => {
+  const body = ["One.", "Two.", "Three.", "Four.", "Five.", "Six."].map(long).join("<p>&#160;</p>");
+  const ch = files(fixEpub(styled(body, "p { margin: 0 }")).bytes)("ch1.xhtml");
+  assert.doesNotMatch(ch, /scene-break|&#160;/);
+  assert.equal(ch.match(/<p>/g)?.length, 6);
+});
+
+test("layout: Keep the book's own styling leaves the publisher's design alone", () => {
+  const book = styled(`<p class="chapter">Chapter 2</p>${long("One.")}${long("Two.")}${long("Three.")}`, "body { font-family: Garamond; color: #000 }");
+  const out = fix(book, { ...newPlan(stamp), keepStyle: true });
+  assert.ok(!out.report.changes.some((c) => c.fixer === "layout"));
+  assert.match(files(out.bytes)("style.css"), /Garamond/);
+});
+
+test("checks: several chapters that open with a bold line Magpie isn't sure is a title become one to-do", () => {
+  const ch = (t: string) => page(`<p><b>${t}</b></p>${long("One.")}${long("Two.")}${long("Three.")}`);
+  const out = fixEpub(epub({ pages: { "a.xhtml": ch("The Ball"), "b.xhtml": ch("A Letter"), "c.xhtml": ch("Highbury") } }));
+  assert.deepEqual(
+    out.report.todos?.map((t) => t.id),
+    ["unsure-titles"],
+  );
+  assert.match(out.report.todos![0].message, /^3 chapters start with a bold line/);
 });

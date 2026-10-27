@@ -175,6 +175,7 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
               ))}
             </div>
           )}
+          {d && b.state !== "locked" && !b.removedAt && <KeepStyle id={b.id} keep={!!d.plan.keepStyle} />}
         </div>
         <hr className="dash" />
         <div>
@@ -187,6 +188,20 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
         </div>
       </div>
     </aside>
+  );
+}
+
+/** "Keep the book's own styling": the publisher's fonts, sizes and colours stay as they came. Undoable like any change. */
+function KeepStyle({ id, keep }: { id: number; keep: boolean }) {
+  const call = useAction();
+  return (
+    <label className="pv-check">
+      <input type="checkbox" checked={keep} onChange={(e) => void call("books.keepStyle", { ids: [id], keep: e.target.checked })} />
+      <span>
+        Keep the book’s own styling
+        <small>Leave the publisher’s fonts, sizes, spacing and colours as they came, even where they override your reader’s settings.</small>
+      </span>
+    </label>
   );
 }
 

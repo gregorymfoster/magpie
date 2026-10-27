@@ -69,6 +69,10 @@ export async function tauriTransport(): Promise<Transport> {
       const r = await open({ multiple: true, title: "Add Books", filters: [{ name: "EPUB books", extensions: ["epub"] }] });
       return r ? (Array.isArray(r) ? r : [r]) : null;
     },
+    async pickImage() {
+      const r = await open({ title: "Choose a Cover", filters: [{ name: "Pictures", extensions: ["jpg", "jpeg", "png"] }] });
+      return typeof r === "string" ? r : null;
+    },
     async pickFolder(title) {
       const r = await open({ directory: true, title });
       return typeof r === "string" ? r : null;

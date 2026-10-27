@@ -302,6 +302,95 @@ test("a missing, damaged or small cover is a to-do", async () => {
   ]);
 });
 
+/** The test book with its cover image and manifest entry taken out. */
+function coverless() {
+  const b = unzipSync(epub());
+  delete b["cover.jpg"];
+  b["content.opf"] = new TextEncoder().encode(strFromU8(b["content.opf"]).replace(/<item id="cov"[^>]*\/>/, ""));
+  return zipSync(b);
+}
+
+/** The cover a built book declares, as bytes. */
+function declaredCover(path: string) {
+  const files = unzipSync(readFileSync(path));
+  const opf = strFromU8(files["content.opf"]);
+  const id = /<meta name="cover" content="([^"]+)"/.exec(opf)?.[1];
+  const href = id && new RegExp(`<item[^>]*id="${id}"[^>]*href="([^"]+)"|<item[^>]*href="([^"]+)"[^>]*id="${id}"`).exec(opf);
+  return href ? files[href[1] ?? href[2]] : undefined;
+}
+
+test("Choose a Cover puts the picture into the book, clears the to-do, and is one undo", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", coverless())] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  assert.equal(b.state, "work");
+  assert.equal(b.cover, undefined);
+
+  await assert.rejects(core.call("books.setCover", { id: b.id, path: file("notes.txt", new TextEncoder().encode("hello")) }), /Choose a JPEG or PNG/);
+  const pic = jpeg(1400, 2100);
+  const d = await core.call("books.setCover", { id: b.id, path: file("emma-cover.jpg", pic) });
+  assert.equal(d.state, "clean");
+  assert.deepEqual(d.plan.cover?.from, "you");
+  assert.deepEqual(declaredCover(d.file), pic, "the book itself declares the chosen picture, so every reader shows it");
+  assert.ok(d.cover && existsSync(d.cover), "the thumbnail follows");
+  assert.ok(d.report.changes.some((c) => /cover you chose/.test(c.message)));
+  assert.equal((await core.call("app.state")).undo, "Change cover");
+
+  await core.call("history.undo");
+  const back = await core.call("books.get", { id: b.id });
+  assert.equal(back.state, "work");
+  assert.deepEqual(
+    back.report.todos?.map((t) => t.id),
+    ["no-cover"],
+  );
+  assert.equal(back.cover, undefined, "undo takes the thumbnail away again");
+  assert.ok(!existsSync(d.cover!));
+});
+
+test("a new cover replaces the book's own, and the thumbnail gets a new name so the window shows it", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub())] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const pic = jpeg(1000, 1500);
+  const d = await core.call("books.setCover", { id: b.id, path: file("new.jpg", pic) });
+  assert.deepEqual(declaredCover(d.file), pic);
+  assert.notEqual(d.cover, b.cover);
+  assert.ok(!existsSync(b.cover!), "the old thumbnail is cleared");
+  const opf = strFromU8(unzipSync(readFileSync(d.file))["content.opf"]);
+  assert.equal(opf.match(/cover-image/g)?.length, 1, "only one image is the cover");
+});
+
+test("a Calibre book with no cover of its own gets Calibre's cover put in", async () => {
+  const { core, home } = setup();
+  await core.call("app.state");
+  const cal = join(home, "Calibre Library");
+  makeCalibre(cal, [{ title: "Emma", authors: ["Jane Austen"], epub: coverless() }]);
+  await core.call("calibre.import", { path: cal });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const d = await core.call("books.get", { id: b.id });
+  assert.equal(d.state, "clean");
+  assert.equal(d.plan.cover?.from, "calibre");
+  assert.deepEqual(declaredCover(d.file), jpeg(1200, 1800));
+  assert.ok(d.report.changes.some((c) => /Calibre's cover/.test(c.message)));
+});
+
+test("locked books can't get a new cover", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  await core.call("books.import", {
+    paths: [file("locked.epub", epub({ extra: { "META-INF/encryption.xml": encryption("http://www.w3.org/2001/04/xmlenc#aes128-cbc") } }))],
+  });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  assert.equal(b.state, "locked");
+  await assert.rejects(core.call("books.setCover", { id: b.id, path: file("c.jpg", jpeg(1400, 2100)) }), /DRM/);
+});
+
 test("Keep the book's own styling leaves the publisher's design alone, and is one undo", async () => {
   const { core, file } = setup();
   await core.call("app.state");
@@ -586,7 +675,7 @@ function makeCalibre(dir: string, books: { title: string; authors: string[]; ser
       path,
       b.index ?? 1,
     );
-    writeFileSync(join(dir, path, "cover.jpg"), new Uint8Array([0xff, 0xd8, 0xff, 0xe0]));
+    writeFileSync(join(dir, path, "cover.jpg"), jpeg(1200, 1800));
     for (const a of b.authors) {
       const aid = Number(db.prepare("INSERT INTO authors (name) VALUES (?)").run(a).lastInsertRowid);
       db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(id, aid);

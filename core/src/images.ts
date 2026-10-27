@@ -42,3 +42,12 @@ export function imageSize(b: Uint8Array): { w: number; h: number } | null {
   if (/<svg[\s>]/.test(decodeUtf8(b.subarray(0, 2048)))) return { w: Infinity, h: Infinity };
   return null;
 }
+
+/** "image/jpeg" or "image/png" when the bytes are one with a readable size: the two cover formats every reader shows. */
+export function coverType(b: Uint8Array): "image/jpeg" | "image/png" | null {
+  const size = imageSize(b);
+  if (!size || !size.w || !size.h) return null;
+  if (b[0] === 0xff && b[1] === 0xd8) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50) return "image/png";
+  return null;
+}

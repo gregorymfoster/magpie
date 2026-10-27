@@ -40,6 +40,8 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Device copy.** The file a reader gets, built from the clean book the first time it's sent and kept in `devices/<format>/` (KEPUB for a Kobo, a Kindle-safe EPUB for Send to Kindle). Named by the clean file's hash, so a changed book gets a fresh copy. People never see the word "format".
 
+**Chosen cover.** A picture put into the book as its cover, kept in `covers/chosen/` and named in the plan (`plan.cover`) with where it came from: you (Choose a Cover…) or Calibre (when the book had none). Replayed like any fix, so it undoes.
+
 **Preview.** A book laid out a screen at a time as a **reader** would show it, with that reader's text size, margins, spacing and fonts. For a fixed book it can show the original too, to see what the fix changed. Never for a locked book.
 
 **Reader.** A device the preview can imitate (`core/src/readers.ts`): a Kindle, a Kobo or an iPhone running Apple Books, with its real screen size.

@@ -39,6 +39,14 @@ export function httpTransport(): Transport {
         input.onchange = async () => resolve(input.files?.length ? await stage([...input.files]) : null);
         input.click();
       }),
+    pickImage: () =>
+      new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/jpeg,image/png";
+        input.onchange = async () => resolve(input.files?.length ? (await stage([input.files[0]]))[0] : null);
+        input.click();
+      }),
     pickFolder: async (title) => window.prompt(`${title} (a folder path on the machine running magpie serve)`),
     onFileDrop: () => () => {},
     copyText: (t) => navigator.clipboard.writeText(t),

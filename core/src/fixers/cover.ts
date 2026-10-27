@@ -83,3 +83,45 @@ function findCover(book: Book, opf: OpfDoc, meta: Element | undefined): { item: 
   if (named) return { item: named, why: 'an image named "cover"' };
   return;
 }
+
+/** Where a cover Magpie puts in came from, for the change message. */
+export type CoverFrom = "you" | "calibre" | "openlibrary" | "magpie";
+
+const FROM: Record<CoverFrom, string> = {
+  you: "Used the cover you chose",
+  calibre: "Put Calibre's cover into the book",
+  openlibrary: "Put the cover from Open Library into the book",
+  magpie: "Made a cover from the title and author",
+};
+
+/**
+ * Put a cover image into the book and declare it as the cover, both ways.
+ * The book's old cover image, if any, stays in the book (a cover page may
+ * still show it) but is no longer declared.
+ */
+export function putCover(book: Book, image: { bytes: Uint8Array; mediaType: string }, from: CoverFrom): Change[] {
+  if (!book.opfPath) return [];
+  const opf = book.opf();
+  const ext = image.mediaType === "image/png" ? "png" : "jpg";
+  let path = joinPath(dirname(book.opfPath), `magpie-cover.${ext}`);
+  for (let n = 2; book.has(path); n++) path = joinPath(dirname(book.opfPath), `magpie-cover-${n}.${ext}`);
+  book.files.set(path, image.bytes);
+  const item = opf.doc.createElementNS("http://www.idpf.org/2007/opf", "item");
+  item.setAttribute("id", opf.uniqueId("magpie-cover"));
+  item.setAttribute("href", path.split("/").pop()!);
+  item.setAttribute("media-type", image.mediaType);
+  opf.section("manifest").appendChild(item);
+  const id = item.getAttribute("id")!;
+  const meta = opf.metas().find((m) => m.getAttribute("name") === "cover");
+  if (meta) meta.setAttribute("content", id);
+  else opf.addMeta({ name: "cover", content: id });
+  if (opf.epub3) {
+    for (const i of opf.items()) {
+      const props = (i.getAttribute("properties") ?? "").replace(/\bcover-image\b/, "").trim();
+      if (props !== (i.getAttribute("properties") ?? "")) props ? i.setAttribute("properties", props) : i.removeAttribute("properties");
+    }
+    item.setAttribute("properties", "cover-image");
+  }
+  opf.save();
+  return [{ fixer: "cover", message: `${FROM[from]}, so it shows in Magpie and on every reader.` }];
+}

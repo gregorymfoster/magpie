@@ -10,7 +10,7 @@ import { Book } from "./epub.ts";
 import { container } from "./fixers/container.ts";
 import { xhtml } from "./fixers/xhtml.ts";
 import { manifest } from "./fixers/manifest.ts";
-import { cover } from "./fixers/cover.ts";
+import { cover, putCover, type CoverFrom } from "./fixers/cover.ts";
 import { metadata } from "./fixers/metadata.ts";
 import { toc } from "./fixers/toc.ts";
 import { layout } from "./fixers/layout.ts";
@@ -35,6 +35,8 @@ export interface FixPlan {
   found?: Suggestion[];
   /** The catalog record a lookup matched, kept for later use (sorting by year written, tags). Never written into the book. */
   catalog?: CatalogRecord;
+  /** A cover put into the book: one a person chose, or Calibre's when the book had none. `file` is relative to the Library. */
+  cover?: { file: string; from: CoverFrom };
   /** "Keep the book's own styling": skip the layout fixer and leave the publisher's design as it is. */
   keepStyle?: boolean;
   /** Pinned stand-ins for a fresh uuid and today's date (see Book.stamp). */
@@ -74,8 +76,13 @@ export function newPlan(stamp: FixPlan["stamp"], info: InfoPatch = {}): FixPlan 
   return { engine: ENGINE, info, stamp };
 }
 
+/** Files a plan points to, read by whoever holds them (the Library), so fix() stays pure. */
+export interface FixAssets {
+  cover?: { bytes: Uint8Array; mediaType: string };
+}
+
 /** Throws BookError when the file isn't an EPUB at all. */
-export function fix(original: Uint8Array, plan: FixPlan): Fixed {
+export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {}): Fixed {
   const book = Book.load(original);
   book.stamp = plan.stamp;
   const changes: Change[] = [];
@@ -83,6 +90,8 @@ export function fix(original: Uint8Array, plan: FixPlan): Fixed {
   for (const f of FIXERS) {
     if (f === layout && plan.keepStyle) continue;
     try {
+      // A chosen cover goes in before the cover fixer, which then finds it declared.
+      if (f === cover && plan.cover && assets.cover) changes.push(...putCover(book, assets.cover, plan.cover.from));
       changes.push(...f.run(book));
     } catch (e) {
       errors.push({ fixer: f.id, error: e instanceof Error ? e.message : String(e) });

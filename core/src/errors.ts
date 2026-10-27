@@ -22,6 +22,7 @@ const SENTENCES: Record<string, string> = {
   "bad-year": "The year should be four digits, like 1813.",
   "bad-series-number": "The series number should be a number, like 2 or 2.5.",
   "bad-language": "The language should be a code like en, fr or pt-BR.",
+  "not-a-cover": "That file isn't a picture Magpie can use as a cover. Choose a JPEG or PNG.",
   "missing-file": "Magpie couldn't find this file. It may have been moved or deleted.",
   "no-book": "That book isn't in your Library any more.",
   "no-job": "That job has finished and is no longer listed.",

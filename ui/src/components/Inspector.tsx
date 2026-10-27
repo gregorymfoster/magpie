@@ -7,7 +7,7 @@ import { Cover } from "./Cover.tsx";
 import { StatePill } from "./Books.tsx";
 import { authors, date, language, plural, size } from "../format.ts";
 
-export type Act = (a: "send" | "review" | "edit" | "preview" | "remove" | "restore", ids?: number[]) => void;
+export type Act = (a: "send" | "review" | "edit" | "preview" | "cover" | "remove" | "restore", ids?: number[]) => void;
 
 export function Inspector({ chosen, act, onTag }: { chosen: BookSummary[]; act: Act; onTag: (name: string) => void }) {
   if (!chosen.length)
@@ -210,8 +210,7 @@ function Todos({ todos, act }: { todos: Todo[]; act: Act }) {
   const fix: Record<Todo["action"], [string, Parameters<Act>[0]] | null> = {
     edit: ["Edit details", "edit"],
     preview: ["Preview", "preview"],
-    // Adding a cover arrives with generated and looked-up covers.
-    cover: null,
+    cover: ["Choose a Cover…", "cover"],
   };
   return (
     <div>

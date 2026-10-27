@@ -14,6 +14,8 @@ export interface Transport {
   stage(files: File[]): Promise<string[]>;
   /** The Add Books… dialog. Null when cancelled. */
   pickBooks(): Promise<string[] | null>;
+  /** Choose a JPEG or PNG (Choose a Cover…). Null when cancelled. */
+  pickImage(): Promise<string | null>;
   /** Choose a folder (Locate Library…, New Library…, a Calibre library). Null when cancelled. */
   pickFolder(title: string): Promise<string | null>;
   /** Drops from Finder, with paths. Browser drops go through stage() instead. */

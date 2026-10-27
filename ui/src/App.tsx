@@ -187,6 +187,13 @@ function Window() {
             const b = ids.length === 1 && books.find((x) => x.id === ids[0]);
             return b && b.state !== "locked" && setSheet({ type: "preview", id: b.id });
           }
+          case "cover": {
+            if (ids.length !== 1) return;
+            const path = await t.pickImage();
+            if (!path) return;
+            await act("books.setCover", { id: ids[0], path });
+            return toast({ message: "Cover changed", undo: () => void act("history.undo") });
+          }
           case "selectAll":
             return setSel(items.map((b) => b.id));
           case "remove": {

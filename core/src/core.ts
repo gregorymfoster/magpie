@@ -362,6 +362,14 @@ const commands = {
     ctx.changed();
   },
 
+  /** Put a JPEG or PNG into the book as its cover (Choose a Cover…). Undoable. */
+  async "books.setCover"(ctx: Context, a: { id: number; path: string }) {
+    if (!(await ctx.host.fs.exists(a.path))) throw new UserError("missing-file");
+    const book = await ctx.lib().setCover(a.id, await ctx.host.fs.read(a.path));
+    ctx.changed();
+    return book;
+  },
+
   /** The review sheet's Done: accepted and turned-down suggestions, many books at once. */
   async "books.review"(ctx: Context, a: { decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[] }) {
     await ctx.lib().review(a.decisions);

@@ -1,4 +1,5 @@
-// A Library is a folder: library.db, books/, originals/, covers/, backups/.
+// A Library is a folder: library.db, books/, originals/, covers/, backups/, devices/.
+// covers/ holds the thumbnails, and covers/chosen/ the covers put into books.
 // Every path stored is relative, so the folder can move to another disk.
 // This module is the only thing that reads or writes that folder.
 //
@@ -8,7 +9,8 @@
 
 import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
-import { ENGINE, fix, newPlan, type CatalogRecord, type FixPlan, type FixReport } from "../fix.ts";
+import { ENGINE, fix, newPlan, type CatalogRecord, type FixAssets, type FixPlan, type FixReport } from "../fix.ts";
+import { coverType } from "../images.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
@@ -97,7 +99,7 @@ export interface AddSource {
   origin?: "import" | "calibre";
   /** Trusted details (from Calibre), applied without review. */
   info?: InfoPatch;
-  /** A cover image to show when the book has none of its own (Calibre's cover.jpg). */
+  /** Calibre's cover.jpg. Put into the book when it has no cover of its own, or shown beside it when it can't be. */
   cover?: string;
   /** Calibre's tags, kept as they were. */
   tags?: string[];
@@ -155,7 +157,7 @@ export class Library {
 
   /** Opens the Library at root, creating it when the folder is new. */
   static async open(host: Host, root: string): Promise<Library> {
-    for (const d of ["books", "originals", "covers", "backups", "devices"]) await host.fs.mkdir(join(root, d));
+    for (const d of ["books", "originals", "covers", "covers/chosen", "backups", "devices"]) await host.fs.mkdir(join(root, d));
     const db = await host.sqlite.open(join(root, "library.db"));
     await db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;");
     const lib = new Library(host, root, db);
@@ -195,6 +197,14 @@ export class Library {
       if (e instanceof BookError && e.code === "drm") built = asLocked(bytes, src.info);
       else if (e instanceof BookError) return { kind: "unreadable", name, reason: e.code };
       else throw e;
+    }
+    // Calibre's metadata is trusted, its cover too: a book with none gets Calibre's put in.
+    if (!built.locked && !built.cover && src.cover && (await this.host.fs.exists(src.cover))) {
+      const kept = await this.keepCover(await this.host.fs.read(src.cover));
+      if (kept) {
+        plan.cover = { file: kept.file, from: "calibre" };
+        built = fix(bytes, plan, { cover: kept.image });
+      }
     }
     const original = `originals/${hash}.epub`;
     await this.host.fs.write(this.abs(original), bytes);
@@ -342,6 +352,18 @@ export class Library {
       steps.push({ id, before, after: { ...before, plan } });
     }
     if (steps.length) await this.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+  }
+
+  /** Put a picture into the book as its cover. One undo step. */
+  async setCover(id: number, bytes: Uint8Array): Promise<BookDetail> {
+    if ((await this.row(id)).state === "locked") throw new UserError("locked-edit");
+    const kept = await this.keepCover(bytes);
+    if (!kept) throw new UserError("not-a-cover");
+    const before = await this.snapshot(id);
+    const plan: FixPlan = { ...before.plan, cover: { file: kept.file, from: "you" } };
+    await this.rebuild(id, plan);
+    await this.record("Change cover", [{ id, before, after: { ...before, plan } }]);
+    return this.get(id);
   }
 
   /** Accept some suggestions and turn the rest down, for many books at once. One undo step. */
@@ -626,7 +648,7 @@ export class Library {
   private async rebuild(id: number, plan: FixPlan) {
     const r = await this.row(id);
     if (r.state === "locked") throw new UserError("locked-edit");
-    const built = fix(await this.host.fs.read(this.abs(r.original as string)), plan);
+    const built = fix(await this.host.fs.read(this.abs(r.original as string)), plan, await this.assets(plan));
     let file = r.file as string;
     const want = `books/${bookPath(built.info.authors, built.info.title || stem(r.origin_name as string))}`;
     if (!sameBase(file, want)) {
@@ -658,11 +680,41 @@ export class Library {
         id,
       ],
     );
+    // The thumbnail follows the book's cover. Its name carries the image's hash, so a changed cover is a new URL to the window.
+    if (built.cover) {
+      const rel = await this.saveCover(id, built.cover);
+      if (rel !== r.cover) {
+        if (r.cover) await this.host.fs.remove(this.abs(r.cover as string));
+        await this.db.run("UPDATE books SET cover = ? WHERE id = ?", [rel, id]);
+      }
+    } else if (r.cover && /^covers\/\d+-/.test(r.cover as string)) {
+      // A cover put in and then undone; a Calibre stand-in (covers/<id>.jpg) stays.
+      await this.host.fs.remove(this.abs(r.cover as string));
+      await this.db.run("UPDATE books SET cover = NULL WHERE id = ?", [id]);
+    }
+  }
+
+  /** A cover image copied into covers/chosen/, named by its hash. Null when it isn't a JPEG or PNG. */
+  private async keepCover(bytes: Uint8Array): Promise<{ file: string; image: NonNullable<FixAssets["cover"]> } | null> {
+    const mediaType = coverType(bytes);
+    if (!mediaType) return null;
+    const file = `covers/chosen/${(await sha256(bytes)).slice(0, 16)}.${mediaType === "image/png" ? "png" : "jpg"}`;
+    if (!(await this.host.fs.exists(this.abs(file)))) await this.host.fs.write(this.abs(file), bytes);
+    return { file, image: { bytes, mediaType } };
+  }
+
+  /** What a plan points to outside the original. A chosen cover that has gone missing is left out and the book keeps its own. */
+  private async assets(plan: FixPlan): Promise<FixAssets> {
+    if (!plan.cover || !(await this.host.fs.exists(this.abs(plan.cover.file)))) return {};
+    const bytes = await this.host.fs.read(this.abs(plan.cover.file));
+    const mediaType = coverType(bytes);
+    return mediaType ? { cover: { bytes, mediaType } } : {};
   }
 
   private async saveCover(id: number, own: { bytes: Uint8Array; mediaType: string } | null, fallback?: string): Promise<string | null> {
     if (own) {
-      const rel = `covers/${id}.${own.mediaType.split("/")[1].replace("jpeg", "jpg").replace("svg+xml", "svg")}`;
+      const ext = own.mediaType.split("/")[1].replace("jpeg", "jpg").replace("svg+xml", "svg");
+      const rel = `covers/${id}-${(await sha256(own.bytes)).slice(0, 8)}.${ext}`;
       await this.host.fs.write(this.abs(rel), own.bytes);
       return rel;
     }

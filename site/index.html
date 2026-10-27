@@ -7,7 +7,11 @@
     <meta name="description" content="A calm Mac app that repairs broken EPUBs, tidies their details and sends them to your Kindle or Kobo. Free, open source, and nothing leaves your Mac." />
     <meta property="og:title" content="Magpie" />
     <meta property="og:description" content="Fix the ebook library you already have. A free, open source Mac app." />
-    <meta property="og:image" content="https://magpie.gmfoster.com/img/hero-light.webp" />
+    <meta property="og:image" content="https://magpie.gmfoster.com/img/social.jpg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content="A paper-craft magpie with a wing of book pages, perched on a stack of books." />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -24,6 +28,7 @@
         --accent-hi: #8e3a35;
         --on-accent: #fff;
         --shot-shadow: 0 30px 80px rgba(40, 28, 20, 0.22), 0 4px 14px rgba(40, 28, 20, 0.1);
+        --art-rim: none;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -36,6 +41,7 @@
           --accent: #b4534c;
           --accent-hi: #c4625a;
           --shot-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), 0 4px 14px rgba(0, 0, 0, 0.3);
+          --art-rim: drop-shadow(0 0 0.6px rgba(255, 244, 228, 0.5));
         }
       }
       * {
@@ -183,6 +189,21 @@
         gap: 40px 36px;
         margin-top: 56px;
       }
+      .grid .spot {
+        display: block;
+        width: 132px;
+        height: 132px;
+        margin: 0 0 12px -8px;
+        filter: var(--art-rim);
+      }
+      .signoff {
+        display: block;
+        width: 320px;
+        max-width: 80%;
+        height: auto;
+        margin: 90px auto -60px;
+        filter: var(--art-rim);
+      }
       .grid h3 {
         font-size: 24px;
         margin: 0 0 6px;
@@ -320,26 +341,32 @@
         </div>
         <div class="grid">
           <div>
+            <img class="spot" src="img/feature-repairs.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Repairs broken books</h3>
             <p>Bad zip wrappers, invalid pages, chapters missing from the reading order, contents pages that point nowhere. Each fix is explained in a plain sentence.</p>
           </div>
           <div>
+            <img class="spot" src="img/feature-details.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Finds the right details</h3>
             <p>When a book calls itself "9780316_final(1)" Magpie reads its title page and suggests a better name. Nothing changes until you say so.</p>
           </div>
           <div>
+            <img class="spot" src="img/feature-reader.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Sends to your reader</h3>
             <p>A Mail draft to your Send to Kindle address with the book attached, or a Kobo-ready copy written straight to the reader when you plug it in.</p>
           </div>
           <div>
+            <img class="spot" src="img/feature-calibre.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Brings Calibre along</h3>
             <p>Magpie spots your Calibre library and copies your books over with their series, publishers and descriptions. Calibre's own files are never touched.</p>
           </div>
           <div>
+            <img class="spot" src="img/feature-undo.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Undo, always</h3>
             <p>Every change, from an edited title to a hundred removed books, comes back with ⌘Z. Removed books wait 30 days before they go for good.</p>
           </div>
           <div>
+            <img class="spot" src="img/feature-drm.webp" width="240" height="240" alt="" loading="lazy" />
             <h3>Never touches DRM</h3>
             <p>Magpie is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, and DRM-free store downloads. A locked book can sit in your Library with a lock on it, untouched.</p>
           </div>
@@ -389,6 +416,7 @@
         </div>
       </section>
 
+      <img class="signoff" src="img/signoff.webp" width="640" height="400" alt="" loading="lazy" />
       <footer>
         <span>Magpie is MIT licensed and made in the open.</span>
         <span><a href="https://github.com/gregorymfoster/magpie">Source</a> · <a href="https://github.com/gregorymfoster/magpie/issues">Report a problem</a> · <a href="https://github.com/gregorymfoster/magpie/releases">Releases</a></span>

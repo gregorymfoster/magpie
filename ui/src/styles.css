@@ -5,6 +5,7 @@
   --desk: #a39e97;
   --desk2: #8f8a83;
   --win: #fbf9f6;
+  --art-rim: none;
   --side: #f1ede7;
   --insp: var(--win);
   --bar: #f5f2ed;
@@ -85,6 +86,7 @@
     --shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
     --sheet-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
     --scrim: rgba(0, 0, 0, 0.35);
+    --art-rim: drop-shadow(0 0 0.6px rgba(255, 244, 228, 0.55)) drop-shadow(0 1px 8px rgba(255, 244, 228, 0.06));
     color-scheme: dark;
   }
 }
@@ -119,6 +121,7 @@
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
   --sheet-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   --scrim: rgba(0, 0, 0, 0.35);
+  --art-rim: drop-shadow(0 0 0.6px rgba(255, 244, 228, 0.55)) drop-shadow(0 1px 8px rgba(255, 244, 228, 0.06));
   color-scheme: dark;
 }
 /* Palette B: "Flannel & silver" (cooler heathered greys, raspberry-maroon, maroon thread, brushed-silver buttons) */
@@ -2557,36 +2560,17 @@ textarea::placeholder {
     opacity: 0;
   }
 }
-/* A printer's fleuron above a cleared Needs Review. It inks itself in once, right after the last book is settled. */
-.fleuron {
+/* Greg's paper-craft illustrations in the empty states. Black paper would sink into a dark window, so it gets a faint rim there. */
+.art {
   display: block;
-  width: 64px;
-  height: 30px;
-  margin: 0 auto 8px;
-  color: var(--accent);
+  margin: 0 auto 10px;
+  max-width: 100%;
+  height: auto;
+  filter: var(--art-rim);
 }
-.fleuron path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.3;
-  stroke-linecap: round;
-  stroke-dasharray: 120;
-}
-.fleuron circle {
-  fill: currentColor;
-}
-.fleuron.ink path {
-  animation: ink 1.1s var(--ease) both;
-}
-.fleuron.ink path:nth-child(2) {
-  animation-delay: 0.12s;
-}
-.fleuron.ink path:nth-child(3) {
-  animation-delay: 0.24s;
-}
-.fleuron.ink circle {
-  transform-origin: 32px 15px;
-  animation: pop 0.3s 0.7s var(--ease) both;
+/* Settling the last book in Needs Review: the magpie on its stack rises in, once. */
+.art.rise {
+  animation: rise 0.7s var(--ease) both;
 }
 /* A toast's time line: it shortens over the toast's life, pauses while the pointer is on it, and dismisses it when it runs out. */
 .toast .life {

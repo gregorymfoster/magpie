@@ -22,6 +22,9 @@ import { checkForUpdates, checkForUpdatesNowAndThen, onMenu, onUpdateStatus, res
 import { plural } from "./format.ts";
 import { settle } from "./motion.ts";
 import { Count, useLinger } from "./components/Motion.tsx";
+import reviewArt from "./art/review-cleared.webp";
+import noMatchesArt from "./art/no-matches.webp";
+import koboArt from "./art/kobo-empty.webp";
 
 type SheetState =
   | { type: "job"; id: number }
@@ -76,7 +79,7 @@ function Window() {
     setBack(ids);
     setTimeout(() => setBack([]), 1500);
   }, []);
-  // Settling the last book in Needs Work earns the fleuron's flourish, once.
+  // Settling the last book in Needs Work lets the magpie on its stack of books rise in, once.
   const reviewCount = state?.counts.work;
   const lastReview = useRef(reviewCount);
   const [cleared, setCleared] = useState(false);
@@ -328,7 +331,13 @@ function Window() {
   else if (!items.length)
     body = (
       <div className="empty">
-        {view === "work" && !q && <Fleuron ink={cleared} />}
+        {q ? (
+          <img className="art" src={noMatchesArt} width={200} height={150} alt="" />
+        ) : view === "work" ? (
+          <img className={"art" + (cleared ? " rise" : "")} src={reviewArt} width={280} height={200} alt="" />
+        ) : kobo ? (
+          <img className="art" src={koboArt} width={200} height={150} alt="" />
+        ) : null}
         <b>{q ? "No matches" : view === "work" ? "Every book is clean" : kobo ? "Nothing from your Library is on this Kobo yet" : "Nothing here"}</b>
         {q
           ? `No titles, authors or series contain “${q}”.`
@@ -500,18 +509,6 @@ function initialSheet(sel: number[]): SheetState {
   if (s === "edit" && sel.length) return { type: "edit", id: sel[0] };
   if (s === "preview" && sel.length) return { type: "preview", id: sel[0] };
   return null;
-}
-
-/** A printer's fleuron, drawn as three strokes so it can ink itself in. */
-function Fleuron({ ink }: { ink: boolean }) {
-  return (
-    <svg className={"fleuron" + (ink ? " ink" : "")} viewBox="0 0 64 30" aria-hidden>
-      <path d="M32 15c-6-9-16-10-22-4 4-1 9 0 12 3" />
-      <path d="M32 15c6-9 16-10 22-4-4-1-9 0-12 3" />
-      <path d="M6 20c8 3 18 1 26-5 8 6 18 8 26 5" />
-      <circle cx="32" cy="15" r="1.8" />
-    </svg>
-  );
 }
 
 function KindleCard({ onSend }: { onSend: () => void }) {

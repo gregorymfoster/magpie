@@ -1,5 +1,7 @@
 # Magpie
 
+<img src="docs/img/readme-header.jpg" alt="A paper-craft magpie carrying a loose page from a messy pile of books to a tidy shelf." width="100%" />
+
 Fix the ebook library you already have.
 
 Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs on your machine, so your books never leave it. No account, no upload, no subscription. If you press Look Up, Magpie asks Open Library for missing details (year, publisher, description) by title, author and ISBN, and shows you what it found before anything changes.

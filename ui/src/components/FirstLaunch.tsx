@@ -1,6 +1,7 @@
 import { BookMarked, Library, Plus } from "lucide-react";
 import { useAction, useCall, useTransport } from "../api.tsx";
 import { plural, tilde } from "../format.ts";
+import art from "../art/first-launch.webp";
 
 /** An empty Library opens on the drop target, with Calibre offered right there if it's on this Mac. */
 export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre: () => void }) {
@@ -10,8 +11,8 @@ export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre
   const act = useAction();
   return (
     <div className="first">
+      <img className="art" src={art} width={300} height={200} alt="" />
       <div className="drop-target">
-        <BookMarked size={28} strokeWidth={1.5} />
         <b>Drop your books here</b>
         <span>EPUB files or whole folders. Magpie copies each one in, fixes what’s broken, and keeps the original.</span>
         <button className="btn pri" style={{ marginTop: 10 }} onClick={onAdd}>

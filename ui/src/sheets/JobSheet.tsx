@@ -7,6 +7,7 @@ import { FileText, Globe, Lock } from "lucide-react";
 import type { Job, JobResult } from "@magpie/core";
 import { Sheet } from "../components/Sheet.tsx";
 import { DoneCheck, jobProgress } from "../components/Progress.tsx";
+import { PaceRing } from "../components/Motion.tsx";
 import { plural } from "../format.ts";
 
 const CHIP: Record<JobResult["outcome"], [string, string]> = {
@@ -91,7 +92,21 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
             )
           )
         ) : (
-          jobProgress(job)
+          <>
+            {jobProgress(job)}
+            {lookup && (
+              <p className="asking">
+                <PaceRing />
+                {job.results.length ? (
+                  <span key={job.results.length}>
+                    Asked about <em>{job.results[job.results.length - 1].label}</em>
+                  </span>
+                ) : (
+                  <span>Asking Open Library, one book a second</span>
+                )}
+              </p>
+            )}
+          </>
         )}
         <div className={"files" + (done ? "" : " live")}>
           {(done ? byConcern(job.results) : job.results.slice(-200).reverse()).map((r, i) => (

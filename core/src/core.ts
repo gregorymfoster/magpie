@@ -473,6 +473,11 @@ const commands = {
     return getSettings(ctx);
   },
 
+  /** The running tally in Settings: every fix Magpie has made to the books still in the Library. */
+  async "library.repairs"(ctx: Context) {
+    return { repairs: await ctx.lib().repairs() };
+  },
+
   /** For GitHub issues: versions, counts and which fixers ran or failed. No titles, no contents. */
   async "app.diagnostics"(ctx: Context) {
     const lib = ctx.lib();

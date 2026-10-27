@@ -1,6 +1,7 @@
 // Settings (⌘,). One page per section; each setting lives in exactly one place.
 
 import { useEffect, useState } from "react";
+import { still } from "../motion.ts";
 import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { useToast } from "../components/Toasts.tsx";
@@ -78,6 +79,34 @@ function General({ palette, setPalette }: { palette: string; setPalette: (p: str
   );
 }
 
+/** The invisible work made visible: every fix Magpie has made, counting up as the page opens. */
+function Repairs() {
+  const { data } = useCall("library.repairs");
+  const to = data?.repairs ?? 0;
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (still() || !to) return setN(to);
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const k = Math.min(1, (now - start) / 1200);
+      setN(Math.round(to * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [to]);
+  if (!data) return null;
+  return (
+    <div className="tally">
+      <b>{n.toLocaleString("en-US")}</b>
+      <span>
+        {to === 1 ? "repair" : "repairs"} Magpie has made to your books, from missing covers to broken tables of contents. Your originals were never touched.
+      </span>
+    </div>
+  );
+}
+
 function LibraryPage({ onClose }: { onClose: () => void }) {
   const { data: s } = useCall("app.state");
   const { data: settings } = useCall("settings.get");
@@ -92,6 +121,7 @@ function LibraryPage({ onClose }: { onClose: () => void }) {
   };
   return (
     <>
+      <Repairs />
       <Row title="Location" sub={tilde(s?.library.path ?? "")}>
         <button className="btn" onClick={() => move("Open a Library")}>
           Open Other…

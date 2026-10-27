@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder, Feather, Lightbulb, Sparkles, Layers, User, Tag, ChevronRight, Wand2 } from "lucide-react";
 import type { AppState, Device, Groups, Job } from "@magpie/core";
 import { DoneCheck, jobProgress } from "./Progress.tsx";
+import { Count, useLinger } from "./Motion.tsx";
 import { plural, tilde } from "../format.ts";
 
 export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
@@ -49,7 +50,11 @@ export function Sidebar({
     <button className={"row" + (view === id ? " on" : "") + (sub ? " sub" : "")} onClick={() => setView(id)} aria-current={view === id ? "page" : undefined}>
       {icon}
       <span className="lbl">{label}</span>
-      {count !== undefined && <span className={"ct" + (hot && count ? " hot" : "")}>{count.toLocaleString("en-US")}</span>}
+      {count !== undefined && (
+        <span className={"ct" + (hot && count ? " hot" : "")}>
+          <Count n={count} />
+        </span>
+      )}
     </button>
   );
   const Sec = ({ id, label, children }: { id: Section; label: string; children: React.ReactNode }) => (
@@ -64,6 +69,8 @@ export function Sidebar({
   const running = state.jobs.find((j) => j.state === "running" || j.state === "queued");
   const finished = useFinished(running, state.jobs);
   const sorting = state.jobs.some((j) => j.kind === "organize" && (j.state === "running" || j.state === "queued"));
+  // While books are being sorted, and for a moment after, shelves open into the sidebar as they're found.
+  const [filling] = useLinger(sorting, 3000);
   const authors = groups ? [...groups.authors].sort((a, b) => b.count - a.count || 0) : [];
   const shownAuthors = allAuthors
     ? (groups?.authors ?? [])
@@ -86,8 +93,8 @@ export function Sidebar({
         {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 {...i} />} label="Removed" count={state.counts.removed} />}
         {groups && (groups.shelves.length > 0 || groups.unsorted > 0 || sorting) && (
           <Sec id="shelves" label="Shelves">
-            {groups.shelves.map((s) => (
-              <div key={s.name}>
+            {groups.shelves.map((s, n) => (
+              <div key={s.name} className={filling ? "filling" : undefined} style={filling ? { animationDelay: `${n * 80}ms` } : undefined}>
                 <Row id={`tag:${s.name}`} icon={s.name === "Fiction" ? <Feather {...i} /> : <Lightbulb {...i} />} label={s.name} count={s.count} />
                 {s.genres.map((g) => (
                   <Row key={g.name} id={`tag:${g.name}`} label={g.name} count={g.count} sub />

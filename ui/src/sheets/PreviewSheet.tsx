@@ -79,15 +79,26 @@ export function PreviewSheet({ id, onClose }: { id: number; onClose: () => void 
     // Late fonts can change the count; stay on the page being read.
     void frame.current?.contentDocument?.fonts?.ready.then(() => measure(false));
   };
+  // A page turned by a key or a tap slides in from the side it came from, as on newer Kindles and Kobos.
+  const turning = useRef<1 | -1 | 0>(0);
   useEffect(() => {
     frame.current?.contentWindow?.scrollTo(page * r.screen.w, 0);
+    const f = frame.current;
+    if (!f || !turning.current) return;
+    f.classList.remove("turn-next", "turn-back");
+    void f.offsetWidth;
+    f.classList.add(turning.current === 1 ? "turn-next" : "turn-back");
+    turning.current = 0;
   }, [page, r.screen.w]);
 
   const last = (p?.chapters.length ?? 1) - 1;
   const turn = useCallback(
     (by: 1 | -1) => {
       if (!p || !ready) return;
-      if (page + by >= 0 && page + by < pages) return setPage(page + by);
+      if (page + by >= 0 && page + by < pages) {
+        turning.current = by;
+        return setPage(page + by);
+      }
       const c = p.chapter + by;
       if (c < 0 || c > last) return;
       want.current = { at: by === 1 ? "first" : "last" };

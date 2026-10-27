@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { Check, AlertCircle } from "lucide-react";
+import stampArt from "../img/stamp-magpie.png";
 
 interface Toast {
   id: number;
@@ -10,6 +11,8 @@ interface Toast {
   action?: { label: string; run: () => void };
   /** Stays until its button is pressed. */
   sticky?: boolean;
+  /** A rare moment worth marking (a Library milestone): the magpie stamp presses in, with a line under the message. */
+  stamp?: { detail: string };
 }
 
 const Ctx = createContext<(t: Omit<Toast, "id">) => void>(() => {});
@@ -34,9 +37,23 @@ export function Toasts({ children }: { children: ReactNode }) {
       {children}
       <div className="toasts" role="status">
         {list.map((t) => (
-          <div key={t.id} className="toast">
-            {t.error ? <AlertCircle size={13} /> : <Check size={13} />}
-            {t.message}
+          <div key={t.id} className={"toast" + (t.stamp ? " stamped" : "")}>
+            {t.stamp ? (
+              <>
+                <span className="stamp">
+                  <img src={stampArt} alt="" draggable={false} />
+                </span>
+                <span>
+                  <b>{t.message}</b>
+                  <span>{t.stamp.detail}</span>
+                </span>
+              </>
+            ) : (
+              <>
+                {t.error ? <AlertCircle size={13} /> : <Check size={13} />}
+                {t.message}
+              </>
+            )}
             {t.undo && (
               <button
                 onClick={() => {
@@ -48,7 +65,7 @@ export function Toasts({ children }: { children: ReactNode }) {
               </button>
             )}
             {t.action && <button onClick={t.action.run}>{t.action.label}</button>}
-            {!t.sticky && <i className="life" style={{ animationDuration: t.error ? "7s" : "4.2s" }} onAnimationEnd={() => drop(t.id)} />}
+            {!t.sticky && <i className="life" style={{ animationDuration: t.error || t.stamp ? "7s" : "4.2s" }} onAnimationEnd={() => drop(t.id)} />}
           </div>
         ))}
       </div>

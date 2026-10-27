@@ -2604,3 +2604,207 @@ textarea::placeholder {
 .insp .ip {
   animation: fade 0.16s ease-out;
 }
+/* A count rolls to its new value: up from below when it grows, down from above when it shrinks. */
+.count {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+.count.roll-up {
+  animation: roll-up 0.32s var(--ease);
+}
+.count.roll-down {
+  animation: roll-down 0.32s var(--ease);
+}
+@keyframes roll-up {
+  from {
+    transform: translateY(55%);
+    opacity: 0;
+  }
+}
+@keyframes roll-down {
+  from {
+    transform: translateY(-55%);
+    opacity: 0;
+  }
+}
+/* The toolbar's Review button arrives and leaves without shoving its neighbours. */
+.review-btn {
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 140px;
+  animation: grow-in 0.32s var(--ease);
+}
+.review-btn.leaving {
+  animation: shrink-out 0.32s var(--ease) both;
+  pointer-events: none;
+}
+@keyframes grow-in {
+  from {
+    max-width: 0;
+    opacity: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+@keyframes shrink-out {
+  to {
+    max-width: 0;
+    opacity: 0;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: -6px;
+    border-width: 0;
+  }
+}
+/* Shelves open into the sidebar one after another as books are sorted onto them. */
+.side .filling {
+  animation: settle 0.32s var(--ease) both;
+}
+/* The drop target fades in, its bookmark lifts toward the files, and it eases away after the drop. */
+.dropover {
+  animation: fade 0.18s ease-out;
+}
+.dropover svg {
+  animation: reach 0.4s 0.05s var(--ease) both;
+}
+.dropover.leaving {
+  animation: unfade 0.2s ease-in both;
+}
+.dropover.leaving > div {
+  transition: transform 0.2s ease-in;
+  transform: scale(0.97);
+}
+@keyframes reach {
+  to {
+    transform: translateY(-4px);
+  }
+}
+/* Look Up's pace: a ring that fills once a second, the polite rate Open Library is asked at. */
+.asking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 10px;
+  font-size: 12px;
+  color: var(--fg2);
+  min-width: 0;
+}
+.asking > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  animation: fade 0.2s ease-out;
+}
+.asking em {
+  font: 500 13.5px var(--serif);
+  font-style: normal;
+  color: var(--fg);
+}
+.pace {
+  flex: none;
+}
+.pace circle {
+  fill: none;
+  stroke-width: 2;
+}
+.pace .track {
+  stroke: var(--sunk);
+}
+.pace .arc {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  animation: pace 1s linear infinite;
+}
+@keyframes pace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pace .arc {
+    stroke-dashoffset: 0;
+  }
+}
+/* A good outcome (Found, Sent, Sorted) pops into a row that just arrived. */
+.files.live .file.fresh .pill.ok {
+  animation: pop 0.3s 0.12s var(--ease) both;
+}
+/* Preview pages slide in from the side they came from. No curl: it's a preview, not a reader. */
+.pv-screen iframe.turn-next {
+  animation: turn-next 0.22s var(--ease);
+}
+.pv-screen iframe.turn-back {
+  animation: turn-back 0.22s var(--ease);
+}
+@keyframes turn-next {
+  from {
+    transform: translateX(24px);
+    opacity: 0.3;
+  }
+}
+@keyframes turn-back {
+  from {
+    transform: translateX(-24px);
+    opacity: 0.3;
+  }
+}
+/* A milestone toast: the magpie stamp presses in. */
+.toast.stamped {
+  padding: 9px 14px 11px 9px;
+  gap: 11px;
+  max-width: 380px;
+}
+.toast.stamped b {
+  display: block;
+  font: 500 14.5px/1.2 var(--serif);
+}
+.toast.stamped b + span {
+  display: block;
+  opacity: 0.7;
+  font-size: 11.5px;
+  margin-top: 1px;
+}
+.toast .stamp {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--win) 25%, transparent);
+  animation: stamp 0.5s 0.15s var(--ease) both;
+}
+.toast .stamp img {
+  width: 26px;
+  height: 26px;
+}
+@keyframes stamp {
+  0% {
+    transform: scale(1.6) rotate(-12deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(0.94) rotate(2deg);
+    opacity: 1;
+  }
+}
+/* Settings › Library opens on the running tally of repairs. */
+.tally {
+  padding: 4px 0 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.tally b {
+  display: block;
+  font: 500 34px/1.1 var(--serif);
+  font-variant-numeric: tabular-nums;
+}
+.tally span {
+  color: var(--fg2);
+  font-size: 12.5px;
+}

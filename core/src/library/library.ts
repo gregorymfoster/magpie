@@ -278,6 +278,12 @@ export class Library {
     return { all: c.all ?? 0, review: c.review ?? 0, fixed: c.fixed ?? 0, removed: c.removed ?? 0 };
   }
 
+  /** How many fixes Magpie has made across the books still in the Library. */
+  async repairs(): Promise<number> {
+    const rows = await this.db.all<{ report: string }>("SELECT report FROM books WHERE removed_at IS NULL");
+    return rows.reduce((n, r) => n + (JSON.parse(r.report) as FixReport).changes.length, 0);
+  }
+
   // ------------------------------------------------------------ changing
 
   /** Set details (accepted suggestions or a person's edits) and rebuild. One undo step. */

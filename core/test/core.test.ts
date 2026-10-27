@@ -62,6 +62,20 @@ test("importing copies the book in, fixes it silently, keeps the original and na
   assert.ok(existsSync(src), "the source file is copied, not moved");
 });
 
+test("library.repairs counts every fix Magpie has made to the books still in the Library", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  assert.deepEqual(await core.call("library.repairs"), { repairs: 0 });
+  await core.call("books.import", { paths: [file("emma (1).epub", epub({ mimetypeLast: true }))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const made = (await core.call("books.get", { id: b.id })).report.changes.length;
+  assert.ok(made > 0);
+  assert.deepEqual(await core.call("library.repairs"), { repairs: made });
+  await core.call("books.remove", { ids: [b.id] });
+  assert.deepEqual(await core.call("library.repairs"), { repairs: 0 }, "removed books don't count");
+});
+
 test("a folder imports every EPUB inside it; duplicates and non-books get a sentence", async () => {
   const { core, file, home } = setup();
   await core.call("app.state");

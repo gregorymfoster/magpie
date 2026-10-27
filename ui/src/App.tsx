@@ -21,6 +21,7 @@ import { SettingsSheet, type Section } from "./sheets/SettingsSheet.tsx";
 import { checkForUpdates, checkForUpdatesNowAndThen, onMenu, onUpdateStatus, restart } from "./shell.ts";
 import { plural } from "./format.ts";
 import { settle } from "./motion.ts";
+import { Count, useLinger } from "./components/Motion.tsx";
 
 type SheetState =
   | { type: "job"; id: number }
@@ -33,6 +34,7 @@ type SheetState =
   | null;
 
 const url = new URLSearchParams(location.search);
+const MILESTONES = [100, 500, 1000, 5000, 10000];
 const stored = (k: string, d: string) => {
   try {
     return localStorage.getItem(k) ?? d;
@@ -78,12 +80,35 @@ function Window() {
   const reviewCount = state?.counts.review;
   const lastReview = useRef(reviewCount);
   const [cleared, setCleared] = useState(false);
+  // Passing 100, 500, 1,000, 5,000 or 10,000 books gets one quiet toast, once ever per milestone.
+  const all = state?.counts.all;
+  const lastAll = useRef(all);
+  useEffect(() => {
+    const before = lastAll.current;
+    lastAll.current = all;
+    if (before === undefined || all === undefined) return;
+    const passed = MILESTONES.filter((m) => before < m && all >= m).pop();
+    if (!passed || stored(`magpie.milestone.${passed}`, "")) return;
+    try {
+      localStorage.setItem(`magpie.milestone.${passed}`, "1");
+    } catch {}
+    toast({
+      message: `Your Library just passed ${passed.toLocaleString("en-US")} books`,
+      stamp: { detail: "Every one checked on the way in, with its original kept safe on this Mac." },
+    });
+  }, [all, toast]);
+  // The toolbar's Review button shrinks away at zero instead of vanishing and shoving its neighbours.
+  const [showReview, reviewLeaving] = useLinger(!!reviewCount, 320);
+  const shownReview = useRef(reviewCount || 1);
+  if (reviewCount) shownReview.current = reviewCount;
   useEffect(() => {
     if (reviewCount === 0 && (lastReview.current ?? 0) > 0) setCleared(true);
     if (reviewCount) setCleared(false);
     lastReview.current = reviewCount;
   }, [reviewCount]);
   const [drag, setDrag] = useState(false);
+  // The drop target eases away after a drop instead of blinking off.
+  const [showDrop, dropLeaving] = useLinger(drag, 220);
   const [showInsp, setShowInsp] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
   const lastClick = useRef<number | null>(null);
@@ -385,10 +410,16 @@ function Window() {
               <Globe size={13} />
               <span className="hide-sm">Look Up</span>
             </button>
-            {state.counts.review > 0 && (
-              <button className="btn pri" onClick={() => setSheet({ type: "review" })}>
+            {showReview && (
+              <button
+                className={"btn pri review-btn" + (reviewLeaving ? " leaving" : "")}
+                onClick={() => setSheet({ type: "review" })}
+                aria-label={`Review ${shownReview.current}`}
+                aria-hidden={reviewLeaving || undefined}
+                tabIndex={reviewLeaving ? -1 : undefined}
+              >
                 <Wand2 size={13} />
-                Review {state.counts.review}
+                Review <Count n={shownReview.current} />
               </button>
             )}
             <button className="btn" onClick={() => void run("send")} title="Send to a device (⇧⌘S)">
@@ -420,8 +451,8 @@ function Window() {
             )}
           </div>
         </div>
-        {drag && (
-          <div className="dropover">
+        {showDrop && (
+          <div className={"dropover" + (dropLeaving ? " leaving" : "")}>
             <div>
               <BookMarked size={26} />
               <b>Drop to add to Magpie</b>

@@ -4,12 +4,16 @@
 //   npm run bench                        # every change: run fixers, score, write bench/results/
 //
 // A file counts as fixed only if every check passes. A crash, a timeout or a
-// missing output is a failure, never a skip.
+// missing output is a failure, never a skip. Two numbers sit beside "fixed":
+// text preserved (every paragraph of the input is still there, letter for
+// letter: a gate) and the clean rate (books with no to-dos and no suggestions
+// left, which is what the Library shows as Clean).
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
-import { fixAndAccept } from "../core/src/fix.ts";
+import { parse } from "parse5";
+import { fix, fixAndAccept, newPlan } from "../core/src/fix.ts";
 import { Book, textOf, decodeUtf8 } from "../core/src/epub.ts";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -44,19 +48,24 @@ const rows: Row[] = JSON.parse(readFileSync(join(CORPUS, "manifest.json"), "utf8
 
 // ---------------------------------------------------------------- run Magpie
 mkdirSync(OUT, { recursive: true });
-const runs = new Map<string, { ok: boolean; ms: number; changes: number; error?: string }>();
+const runs = new Map<string, { ok: boolean; ms: number; changes: number; error?: string; clean?: { imported: boolean; accepted: boolean } }>();
+const isClean = (report: { todos?: unknown[]; suggestions: unknown[] }) => !report.todos?.length && !report.suggestions.length;
 for (const r of rows) {
   const dst = join(OUT, "magpie", r.file);
   mkdirSync(dirname(dst), { recursive: true });
   const t = performance.now();
   try {
-    const res = fixAndAccept(readFileSync(join(CORPUS, "files", r.file)));
+    const input = readFileSync(join(CORPUS, "files", r.file));
+    const res = fixAndAccept(input);
     writeFileSync(dst, res.bytes);
+    // As imported: what the Library shows before anyone looks. Accepted: after "accept all suggestions".
+    const imported = isClean(fix(input, newPlan(new Book().stamp)).report);
     runs.set(r.file, {
       ok: true,
       ms: performance.now() - t,
       changes: res.report.changes.length,
       error: res.report.errors.map((e) => `${e.fixer}: ${e.error}`).join("; ") || undefined,
+      clean: { imported, accepted: isClean(res.report) },
     });
   } catch (e) {
     runs.set(r.file, { ok: false, ms: performance.now() - t, changes: 0, error: String(e) });
@@ -108,7 +117,18 @@ interface Inspect {
   language: string;
   cover: { declared: boolean; bytes: number };
   headings: string[];
+  /** hr.scene-break elements in the reading order. */
+  sceneBreaks: number;
+  /** Paragraphs with no text and no picture: spacers, or scene breaks typed as blank lines. */
+  emptyParas: number;
+  /** Paragraphs that start with typed hard spaces. */
+  nbspIndents: number;
+  /** The publisher body-text CSS the layout twins inject, still present. */
+  publisherCss: boolean;
 }
+
+// What d_layout_body_css in corpus/generate.py injects.
+const PUBLISHER_CSS = /Times New Roman|font-size:\s*16px|color:\s*#000000|background-color:\s*#ffffff/i;
 
 function inspect(bytes: Uint8Array): Inspect | null {
   try {
@@ -122,17 +142,34 @@ function inspect(bytes: Uint8Array): Inspect | null {
     const item = opf.epub3 ? (metaItem && propItem === metaItem ? metaItem : (metaItem ?? undefined)) : metaItem;
     const declared = !!item && /^image\//.test(item.getAttribute("media-type") ?? "") && book.has(opf.itemPath(item));
     const headings: string[] = [];
+    let sceneBreaks = 0;
+    let emptyParas = 0;
+    let nbspIndents = 0;
+    let publisherCss = false;
     for (const ref of opf.itemrefs()) {
       const it = opf.itemById(ref.getAttribute("idref") ?? "");
       if (!it || !book.has(opf.itemPath(it))) continue;
-      for (const m of decodeUtf8(book.files.get(opf.itemPath(it))!).matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)) headings.push(m[1].replace(/<[^>]+>/g, "").trim());
+      const html = decodeUtf8(book.files.get(opf.itemPath(it))!);
+      for (const m of html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)) headings.push(m[1].replace(/<[^>]+>/g, "").trim());
+      sceneBreaks += [...html.matchAll(/<hr\b[^>]*class="[^"]*\bscene-break\b/gi)].length;
+      for (const m of html.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>|<p\b[^>]*\/>/gi)) {
+        const inner = m[1] ?? "";
+        if (!/<(img|svg|image)\b/i.test(inner) && !inner.replace(/<[^>]+>|&nbsp;|&#160;|&#xa0;|\s|\u00a0/gi, "")) emptyParas++;
+        else if (/^(<[^>]+>)*(&nbsp;|&#160;|&#xa0;|\u00a0){2,}/i.test(inner)) nbspIndents++;
+      }
+      for (const m of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) publisherCss ||= PUBLISHER_CSS.test(m[1]);
     }
+    for (const [path, data] of book.files) if (/\.css$/i.test(path)) publisherCss ||= PUBLISHER_CSS.test(decodeUtf8(data));
     return {
       title: textOf(opf.dc("title")[0]),
       author: textOf(opf.dc("creator")[0]),
       language: textOf(opf.dc("language")[0]),
       cover: { declared, bytes: declared ? book.files.get(opf.itemPath(item!))!.length : 0 },
       headings,
+      sceneBreaks,
+      emptyParas,
+      nbspIndents,
+      publisherCss,
     };
   } catch {
     return null;
@@ -150,6 +187,41 @@ const cleanTwin = (r: Row) => rows.find((x) => x.split !== "real" && !x.defects?
 const twinInfo = new Map<string, Inspect>();
 for (const r of rows) if (r.defects && !r.defects.length) twinInfo.set(r.file, inspect(readFileSync(join(CORPUS, "files", r.file)))!);
 
+/**
+ * Every paragraph, heading and list item in the book's pages, as its letters
+ * and digits only, counted. Reads every page in the zip (not just the reading
+ * order, which a broken input may have lost) and skips contents pages. Two
+ * books with the same counts have the same text, however their files are
+ * split, named or ordered.
+ */
+function blockTexts(bytes: Uint8Array): Map<string, number> | null {
+  try {
+    const book = Book.load(bytes);
+    const out = new Map<string, number>();
+    type Node = { nodeName: string; tagName?: string; value?: string; childNodes?: Node[] };
+    const text = (n: Node): string => (n.nodeName === "#text" ? (n.value ?? "") : (n.childNodes ?? []).map(text).join(""));
+    const walk = (n: Node) => {
+      if (n.tagName && /^(p|h[1-6]|li)$/.test(n.tagName)) {
+        const t = text(n).replace(/[^\p{L}\p{N}]+/gu, "");
+        if (t) out.set(t, (out.get(t) ?? 0) + 1);
+      }
+      if (n.tagName === "head" || n.tagName === "nav") return;
+      for (const c of n.childNodes ?? []) walk(c);
+    };
+    for (const [path, data] of book.files) {
+      if (!/\.x?html?$/i.test(path)) continue;
+      const html = decodeUtf8(data);
+      if (/epub:type\s*=\s*["']toc["']/.test(html)) continue;
+      walk(parse(html) as unknown as Node);
+    }
+    return out;
+  } catch {
+    return null;
+  }
+}
+const sameTexts = (a: Map<string, number> | null, b: Map<string, number> | null) => !!a && !!b && a.size === b.size && [...a].every(([k, v]) => b.get(k) === v);
+const inputTexts = new Map(rows.map((r) => [r.file, blockTexts(readFileSync(join(CORPUS, "files", r.file)))]));
+
 interface Verdict {
   ran: boolean;
   strict: boolean; // no EPUBCheck errors
@@ -157,7 +229,9 @@ interface Verdict {
   cover: boolean;
   metadata: boolean; // title, author, language match the truth
   content: boolean; // every chapter is still there, in order
-  ready: boolean; // kindle + cover + metadata + content: what a reader would notice
+  layout: boolean; // scene breaks kept, no spacer paragraphs, no typed indents, no publisher body CSS
+  text: boolean; // every paragraph of the input is still there, letter for letter
+  ready: boolean; // kindle + cover + metadata + content + layout + text: what a reader would notice
   fixed: boolean; // ready, and also passes EPUBCheck with no errors
   errorIds: string[];
 }
@@ -171,6 +245,8 @@ function judge(sys: string, r: Row): Verdict {
     cover: false,
     metadata: false,
     content: false,
+    layout: false,
+    text: false,
     ready: false,
     fixed: false,
     errorIds: ["NO-OUTPUT"],
@@ -182,9 +258,23 @@ function judge(sys: string, r: Row): Verdict {
   const errorIds = [...new Set(errs.map((c) => c.id))];
   const strict = errs.length === 0;
   const kindle = !errs.some((c) => c.severity === "FATAL" || KINDLE_CRITICAL.test(c.id));
-  if (r.split === "real") return { ran: true, strict, kindle, cover: true, metadata: true, content: true, ready: kindle, fixed: strict, errorIds };
+  const text = sameTexts(inputTexts.get(r.file)!, blockTexts(readFileSync(s.path(r.file))));
+  if (r.split === "real")
+    return {
+      ran: true,
+      strict,
+      kindle,
+      cover: true,
+      metadata: true,
+      content: true,
+      layout: true,
+      text,
+      ready: kindle && text,
+      fixed: strict && text,
+      errorIds,
+    };
   const info = inspect(readFileSync(s.path(r.file)));
-  if (!info) return { ...fail, ran: true, errorIds };
+  if (!info) return { ...fail, ran: true, text, errorIds };
   const twin = twinInfo.get(cleanTwin(r)!.file)!;
   const cover = info.cover.declared && info.cover.bytes >= 0.3 * twin.cover.bytes;
   const metadata = norm(info.title) === norm(r.title) && norm(info.author) === norm(r.author) && info.language.toLowerCase().startsWith(r.language!);
@@ -195,8 +285,11 @@ function judge(sys: string, r: Row): Verdict {
     if (want.length !== twin.headings.length - 1) want = twin.headings;
   }
   const content = JSON.stringify(info.headings) === JSON.stringify(want);
-  const ready = kindle && cover && metadata && content;
-  return { ran: true, strict, kindle, cover, metadata, content, ready, fixed: ready && strict, errorIds };
+  // A deleted chapter may take a scene break with it.
+  const breaks = r.defects?.includes("manifest_missing_file") ? info.sceneBreaks <= twin.sceneBreaks : info.sceneBreaks === twin.sceneBreaks;
+  const layout = breaks && !info.emptyParas && !info.nbspIndents && !info.publisherCss;
+  const ready = kindle && cover && metadata && content && layout && text;
+  return { ran: true, strict, kindle, cover, metadata, content, layout, text, ready, fixed: ready && strict, errorIds };
 }
 
 // ---------------------------------------------------------------- score
@@ -217,9 +310,9 @@ const table = (title: string, subset: Row[], keys: (keyof Verdict)[]) => {
 const broken = rows.filter((r) => r.defects?.length);
 const clean = rows.filter((r) => r.defects && !r.defects.length);
 const real = rows.filter((r) => r.split === "real");
-const allKeys: (keyof Verdict)[] = ["fixed", "ready", "strict", "kindle", "cover", "metadata", "content"];
+const allKeys: (keyof Verdict)[] = ["fixed", "ready", "strict", "kindle", "cover", "metadata", "content", "layout", "text"];
 lines.push(
-  `# Magpie bench\n\nGenerated ${new Date().toISOString()}. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, and every chapter in order. "fixed" is ready plus zero EPUBCheck errors.`,
+  `# Magpie bench\n\nGenerated ${new Date().toISOString()}. "ready" means a reader would see a good book: no Kindle-critical errors (our guess at the list, pending the email test), the right cover declared, correct title, author and language, every chapter in order, a clean layout (scene breaks kept, no spacer paragraphs, typed indents or publisher body-text CSS) and every paragraph of the input still there letter for letter ("text"). "fixed" is ready plus zero EPUBCheck errors.`,
 );
 table(
   "Broken files, held-out books (the number that counts)",
@@ -232,7 +325,22 @@ table(
   allKeys,
 );
 table("Clean files (should stay clean: anything below 100% is a regression)", clean, allKeys);
-table("Real-world files (no ground truth; EPUBCheck only)", real, ["strict", "kindle"]);
+table("Real-world files (no ground truth; EPUBCheck and text only)", real, ["strict", "kindle", "text"]);
+
+// Clean rate: Magpie only, since it's Magpie's own verdict on its own output.
+lines.push("\n### Clean rate (Magpie: no to-dos and no suggestions left)\n");
+lines.push("| files | n | as imported | after accepting suggestions |", "|---|---|---|---|");
+for (const [label, subset] of [
+  ["Clean twins", clean],
+  ["Broken, held-out", broken.filter((r) => r.split === "heldout")],
+  ["Broken, tuning", broken.filter((r) => r.split === "tuning")],
+  ["Real-world", real],
+] as const) {
+  const c = subset.map((r) => runs.get(r.file)!.clean);
+  lines.push(
+    `| ${label} | ${subset.length} | ${pct(c.filter((x) => x?.imported).length, subset.length)} | ${pct(c.filter((x) => x?.accepted).length, subset.length)} |`,
+  );
+}
 
 lines.push("\n### Fixed rate by defect category (all broken files, single-defect copies only)\n");
 lines.push(`| category | n | ${sysNames.join(" | ")} |`, `|---|---|${sysNames.map(() => "---").join("|")}|`);
@@ -251,7 +359,7 @@ const unfixed = broken.filter((r) => !verdicts[r.file].magpie.fixed);
 lines.push(`\n### Magpie misses (${unfixed.length})\n`);
 for (const r of unfixed) {
   const v = verdicts[r.file].magpie;
-  const why = (["strict", "cover", "metadata", "content"] as const).filter((k) => !v[k]).join(", ");
+  const why = (["strict", "cover", "metadata", "content", "layout", "text"] as const).filter((k) => !v[k]).join(", ");
   lines.push(`- ${r.file} [${r.defects!.join(", ")}] failed: ${why}${v.errorIds.length ? ` (${v.errorIds.join(", ")})` : ""}`);
 }
 
@@ -268,10 +376,13 @@ writeFileSync(join(dest, "summary.md"), lines.join("\n") + "\n");
 writeFileSync(join(dest, "verdicts.json"), JSON.stringify(verdicts, null, 1));
 console.log(lines.join("\n"));
 
-// The gate: every broken file fixed, every clean file left clean, nothing crashed.
-const regressions = [...unfixed, ...clean.filter((r) => !verdicts[r.file].magpie.fixed)];
-if (regressions.length || crashes.length) {
-  console.error(`\nbench FAILED: ${regressions.length} not fixed, ${crashes.length} crashed`);
+// The gate: every broken file fixed, every clean file left clean and Clean,
+// every paragraph kept in every file (real ones too), nothing crashed.
+const regressions = [...unfixed, ...clean.filter((r) => !verdicts[r.file].magpie.fixed || !runs.get(r.file)!.clean?.imported)];
+const lostText = rows.filter((r) => !verdicts[r.file].magpie.text);
+if (regressions.length || crashes.length || lostText.length) {
+  for (const r of lostText) console.error(`text not preserved: ${r.file}`);
+  console.error(`\nbench FAILED: ${regressions.length} not fixed, ${lostText.length} lost text, ${crashes.length} crashed`);
   process.exit(1);
 }
 console.error(`\nbench ok: wrote ${join(dest, "summary.md")}`);

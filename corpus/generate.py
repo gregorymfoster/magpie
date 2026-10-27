@@ -12,7 +12,7 @@ the package structure, the title page and the copyright page.
 
 Usage: python3 corpus/generate.py [--seed N] [--out corpus/files]
 """
-import argparse, io, json, random, re, shutil, uuid, zipfile
+import argparse, io, itertools, json, random, re, shutil, uuid, zipfile
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -219,7 +219,11 @@ def build_book(b, style, rng, font=False):
     toc = []
     for i in range(1, n_ch + 1):
         heading = f"Chapter {i}" if lang == "en" else f"{i}"
-        pars = "\n".join(f"<p>{p}</p>" for p in prose(rng, rng.randint(4, 9)))
+        plist = [f"<p>{p}</p>" for p in prose(rng, rng.randint(4, 9))]
+        # A scene break the author drew: every book has one in chapter 1, some have more.
+        if i == 1 or rng.random() < 0.3:
+            plist.insert(rng.randint(2, len(plist) - 2), '<hr class="scene-break"/>')
+        pars = "\n".join(plist)
         body = f'<section id="ch{i}"><h2>{heading}</h2>\n{pars}</section>' if epub3 else f'<div id="ch{i}"><h2>{heading}</h2>\n{pars}</div>'
         href = f"text/chapter{i:02d}.xhtml"
         files["OEBPS/" + href] = xhtml(heading, body, lang, epub3).encode()
@@ -435,6 +439,47 @@ def d_font_corrupt(f, r):
     return {}
 
 
+# ---- layout defects: the book is valid but reads badly on a device
+
+def chapters(f):
+    return sorted(k for k in f if "chapter" in k)
+
+
+def d_layout_body_css(f, r):
+    # Publisher CSS that pins body text and overrides the reader's settings
+    f["OEBPS/css/style.css"] += (b'p { font-family: "Times New Roman", serif; font-size: 16px; line-height: 1.2; '
+                                 b'color: #000000; background-color: #ffffff; }\n')
+    return {}
+
+
+def d_layout_spacer_paragraphs(f, r):
+    # Empty paragraphs between paragraphs, used for spacing
+    for k in chapters(f):
+        f[k] = re.sub(rb"</p>\n<p>", b"</p>\n<p><br/></p>\n<p>", f[k])
+    return {}
+
+
+def d_layout_blank_scene_breaks(f, r):
+    # Scene breaks typed as blank lines, which vanish at the top of a page
+    for k in chapters(f):
+        f[k] = f[k].replace(b'<hr class="scene-break"/>', b"<p>&#160;</p>")
+    return {}
+
+
+def d_layout_chapter_title_p(f, r):
+    # Chapter titles set as styled paragraphs instead of headings
+    for k in chapters(f):
+        f[k] = re.sub(rb"<h2>(.*?)</h2>", rb'<p class="chapter-title">\1</p>', f[k])
+    return {}
+
+
+def d_layout_nbsp_indent(f, r):
+    # Indents typed as hard spaces
+    for k in chapters(f):
+        f[k] = re.sub(rb"(<p(?: [^>]*)?>)(?=[A-Za-z])", rb"\1&#160;&#160;&#160;&#160;", f[k])
+    return {}
+
+
 def d_duplicate_ids(f, r):
     k = chapter(f, r)
     f[k] = f[k].replace(b"<p>", b'<p id="p1">', 2); return {}
@@ -470,10 +515,23 @@ DEFECTS = {
     "toc_nav_missing": ("toc", d_toc_nav_missing, False),
     "font_corrupt": ("font", d_font_corrupt, True),
     "duplicate_ids": ("xhtml", d_duplicate_ids, True),
+    "layout_body_css": ("layout", d_layout_body_css, True),
+    "layout_spacer_paragraphs": ("layout", d_layout_spacer_paragraphs, True),
+    "layout_blank_scene_breaks": ("layout", d_layout_blank_scene_breaks, True),
+    "layout_chapter_title_p": ("layout", d_layout_chapter_title_p, True),
+    "layout_nbsp_indent": ("layout", d_layout_nbsp_indent, True),
 }
 # container-level defects that make the zip unreadable to most tools are kept apart
 # from the rest so a multi-defect file still exercises the other fixers.
 CONTAINER = {k for k, v in DEFECTS.items() if v[0] == "container"}
+# Pairs that can't share a copy: the second undoes or hides the first.
+CLASHES = [
+    {"href_spaces", "manifest_missing_file"},
+    # with spacers between every paragraph, a blank line can't be told from spacing
+    {"layout_spacer_paragraphs", "layout_blank_scene_breaks"},
+    # tag soup rewrites the chapter's first heading by hand
+    {"xhtml_tag_soup", "layout_chapter_title_p"},
+]
 
 
 def write_epub(files, path, mimetype_last=False, mimetype_deflate=False):
@@ -492,7 +550,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", default=str(Path(__file__).parent / "files"))
-    ap.add_argument("--broken-per-book", type=int, default=4)
+    ap.add_argument("--broken-per-book", type=int, default=5)
     args = ap.parse_args()
     rng = random.Random(args.seed)
     out = Path(args.out)
@@ -500,6 +558,7 @@ def main():
         shutil.rmtree(out)
     (out / "clean").mkdir(parents=True); (out / "broken").mkdir(); (out / "real").mkdir()
     rows = []
+    ALL, cycle = list(DEFECTS), itertools.count()
     for bi, b in enumerate(BOOKS):
         style = STYLES[bi % 3]
         files, meta = build_book(b, style, rng, font=rng.random() < 0.3)
@@ -513,14 +572,19 @@ def main():
         names = [k for k, v in DEFECTS.items() if v[2] or meta["epub_version"] == "3.0"]
         for j in range(args.broken_per_book):
             f2 = dict(files)
-            # first copy: one defect; others: 2-3 defects, at most one container-level
+            # first copy: one defect, cycling through them so every defect gets single-defect copies;
+            # others: 2-3 defects, at most one container-level
             n = 1 if j == 0 else rng.randint(2, 3)
             picked = []
+            if j == 0:
+                while (d := ALL[next(cycle) % len(ALL)]) not in names:
+                    pass
+                picked = [d]
             while len(picked) < n:
                 d = rng.choice(names)
                 if d in picked or (d in CONTAINER and any(p in CONTAINER for p in picked)):
                     continue
-                if d == "href_spaces" and "manifest_missing_file" in picked or d == "manifest_missing_file" and "href_spaces" in picked:
+                if any({d, p} in CLASHES for p in picked):
                     continue
                 picked.append(d)
             flags = {}

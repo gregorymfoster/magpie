@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder, Feather, Lightbulb, Sparkles, Layers, User, Tag, ChevronRight, Wand2 } from "lucide-react";
-import type { AppState, Device, Groups } from "@magpie/core";
-import { jobProgress } from "./Progress.tsx";
-import { tilde } from "../format.ts";
+import type { AppState, Device, Groups, Job } from "@magpie/core";
+import { DoneCheck, jobProgress } from "./Progress.tsx";
+import { plural, tilde } from "../format.ts";
 
 export type View = "all" | "review" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
 
@@ -24,6 +24,7 @@ export function Sidebar({
   view,
   setView,
   onSort,
+  onJob,
 }: {
   state: AppState;
   devices: Device[];
@@ -31,6 +32,8 @@ export function Sidebar({
   view: View;
   setView: (v: View) => void;
   onSort: () => void;
+  /** Reopens a job's sheet, from the footer's "Added 24 books". */
+  onJob?: (id: number) => void;
 }) {
   const [closed, setClosed] = useState(stored);
   const [allAuthors, setAllAuthors] = useState(false);
@@ -59,6 +62,7 @@ export function Sidebar({
     </>
   );
   const running = state.jobs.find((j) => j.state === "running" || j.state === "queued");
+  const finished = useFinished(running, state.jobs);
   const sorting = state.jobs.some((j) => j.kind === "organize" && (j.state === "running" || j.state === "queued"));
   const authors = groups ? [...groups.authors].sort((a, b) => b.count - a.count || 0) : [];
   const shownAuthors = allAuthors
@@ -143,15 +147,49 @@ export function Sidebar({
       <div className="side-foot">
         {running ? (
           <div className="job">{jobProgress(running)}</div>
+        ) : finished ? (
+          <button className="finished" onClick={() => onJob?.(finished.id)} title="Show what happened">
+            <DoneCheck size={14} />
+            <span>{finishedLabel(finished)}</span>
+          </button>
         ) : (
-          <>
+          <span className="path">
             <Folder size={12} />
             <span title={state.library.path} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {tilde(state.library.path)}
             </span>
-          </>
+          </span>
         )}
       </div>
     </aside>
   );
+}
+
+/** When the running job ends, the footer says how it went for a few seconds before going back to the Library's path. */
+function useFinished(running: Job | undefined, jobs: Job[]): Job | null {
+  const last = useRef<number | null>(null);
+  const [finished, setFinished] = useState<Job | null>(null);
+  useEffect(() => {
+    if (running) {
+      last.current = running.id;
+      setFinished(null);
+      return;
+    }
+    const ended = jobs.find((j) => j.id === last.current && j.state === "done");
+    last.current = null;
+    if (!ended) return;
+    setFinished(ended);
+    const t = setTimeout(() => setFinished(null), 4000);
+    return () => clearTimeout(t);
+    // Only a change of running job matters; the job list changes on every tick.
+  }, [running?.id]);
+  return finished;
+}
+
+function finishedLabel(j: Job): string {
+  const n = (o: string) => j.results.filter((r) => r.outcome === o).length;
+  if (j.kind === "kobo") return `Sent ${plural(n("sent"), "book")}`;
+  if (j.kind === "lookup") return `Found details for ${plural(n("found"), "book")}`;
+  if (j.kind === "organize") return `Sorted ${plural(j.total, "book")}`;
+  return `Added ${plural(n("added"), "book")}`;
 }

@@ -78,7 +78,8 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
   ];
   return (
     <aside className="insp" aria-label="Inspector">
-      <div className="ip">
+      {/* Keyed by book so moving the selection cross-fades the details. */}
+      <div className="ip" key={b.id}>
         {b.state === "locked" || b.removedAt ? (
           <div className="cvw">
             <Cover b={b} />

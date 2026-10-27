@@ -17,14 +17,18 @@ export const useToast = () => useContext(Ctx);
 
 let next = 1;
 
-/** At most three at a time, so holding ⌘Z can't stack a hundred. */
+/**
+ * At most three at a time, so holding ⌘Z can't stack a hundred. A thin line
+ * along the bottom shortens over the toast's life and dismisses it when it
+ * runs out; the pointer resting on the toast pauses it.
+ */
 export function Toasts({ children }: { children: ReactNode }) {
   const [list, setList] = useState<Toast[]>([]);
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = next++;
     setList((l) => [...l.slice(-2), { ...t, id }]);
-    if (!t.sticky) setTimeout(() => setList((l) => l.filter((x) => x.id !== id)), t.error ? 7000 : 4200);
   }, []);
+  const drop = (id: number) => setList((l) => l.filter((x) => x.id !== id));
   return (
     <Ctx.Provider value={push}>
       {children}
@@ -37,13 +41,14 @@ export function Toasts({ children }: { children: ReactNode }) {
               <button
                 onClick={() => {
                   t.undo!();
-                  setList((l) => l.filter((x) => x.id !== t.id));
+                  drop(t.id);
                 }}
               >
                 Undo
               </button>
             )}
             {t.action && <button onClick={t.action.run}>{t.action.label}</button>}
+            {!t.sticky && <i className="life" style={{ animationDuration: t.error ? "7s" : "4.2s" }} onAnimationEnd={() => drop(t.id)} />}
           </div>
         ))}
       </div>

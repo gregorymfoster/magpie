@@ -25,7 +25,13 @@ async function seed(page: Page) {
 
 test("stills", async ({ browser }) => {
   mkdirSync(join(home(), "Volumes/KOBOeReader/.kobo"), { recursive: true });
-  const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+  // Stills are of screens at rest; the video below keeps the motion.
+  const ctx = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    viewport: { width: 1280, height: 800 },
+    deviceScaleFactor: 2,
+    reducedMotion: "reduce",
+  });
   const page = await ctx.newPage();
   await reset(page);
   const id = async (title: string) => (await call(page, "books.list", { search: title }))[0].id;

@@ -9,6 +9,27 @@ type Select = (id: number, e: React.MouseEvent) => void;
 const PAGE = 240;
 
 /**
+ * Books that joined the Library in the last few seconds rise into place one
+ * after another. Each book gets its delay the first time it's drawn, and only
+ * the first screenful staggers, so a 10,000-book import isn't held up.
+ */
+const arriving = new Map<number, number>();
+const seen = new Set<number>();
+const STAGGER = 45;
+const FIRST_SCREEN = 24;
+function arrival(b: BookSummary): { fresh: boolean; style?: React.CSSProperties } {
+  if (!seen.has(b.id)) {
+    seen.add(b.id);
+    if (Date.now() - Date.parse(b.addedAt) < 15_000) {
+      arriving.set(b.id, Math.min(arriving.size, FIRST_SCREEN) * STAGGER);
+      setTimeout(() => arriving.delete(b.id), 3000);
+    }
+  }
+  const delay = arriving.get(b.id);
+  return delay === undefined ? { fresh: false } : { fresh: true, style: { animationDelay: `${delay}ms` } };
+}
+
+/**
  * Big Libraries (a 10,000-book Calibre import) would put every cover in the
  * page at once. Show a page of books and add the next page when the end
  * scrolls into view; selecting and searching still work on every book.
@@ -64,7 +85,9 @@ function useKeys(items: BookSummary[], sel: number[], onSel: Select, onOpen: (id
   return { box, onKeyDown, tabIndex };
 }
 
-export function Grid({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel: number[]; onSel: Select; onOpen: (id: number) => void }) {
+type Props = { items: BookSummary[]; sel: number[]; onSel: Select; onOpen: (id: number) => void; back?: number[] };
+
+export function Grid({ items, sel, onSel, onOpen, back = [] }: Props) {
   const reveal = useReveal(items.length);
   const { shown, sentinel } = reveal;
   const keys = useKeys(items, sel, onSel, onOpen, reveal);
@@ -72,28 +95,32 @@ export function Grid({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
   return (
     <>
       <div className="grid" role="listbox" aria-multiselectable aria-label="Books" ref={(el) => void (keys.box.current = el)} onKeyDown={keys.onKeyDown}>
-        {items.slice(0, shown).map((b) => (
-          <button
-            key={b.id}
-            role="option"
-            aria-selected={on.has(b.id)}
-            tabIndex={keys.tabIndex(b.id)}
-            className={"tile" + (on.has(b.id) ? " on" : "")}
-            onClick={(e) => onSel(b.id, e)}
-            onDoubleClick={() => onOpen(b.id)}
-            data-book={b.id}
-          >
-            <Cover b={b} />
-            <div>
-              <div className="t">{b.title}</div>
-              <div className="a">
-                {b.state === "review" && <span className="dot rv" />}
-                {b.state === "locked" && <Lock size={10} strokeWidth={2.2} aria-label="Locked with DRM" />}
-                {authors(b.authors)}
+        {items.slice(0, shown).map((b) => {
+          const a = arrival(b);
+          return (
+            <button
+              key={b.id}
+              role="option"
+              aria-selected={on.has(b.id)}
+              tabIndex={keys.tabIndex(b.id)}
+              className={"tile" + (on.has(b.id) ? " on" : "") + (a.fresh ? " fresh" : "") + (back.includes(b.id) ? " back" : "")}
+              style={a.style}
+              onClick={(e) => onSel(b.id, e)}
+              onDoubleClick={() => onOpen(b.id)}
+              data-book={b.id}
+            >
+              <Cover b={b} />
+              <div>
+                <div className="t">{b.title}</div>
+                <div className="a">
+                  {b.state === "review" && <span className="dot rv" />}
+                  {b.state === "locked" && <Lock size={10} strokeWidth={2.2} aria-label="Locked with DRM" />}
+                  {authors(b.authors)}
+                </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       {sentinel}
     </>
@@ -188,7 +215,7 @@ function ColumnMenu({ at, ids, toggle, onClose }: { at: { x: number; y: number }
   );
 }
 
-export function List({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel: number[]; onSel: Select; onOpen: (id: number) => void }) {
+export function List({ items, sel, onSel, onOpen, back = [] }: Props) {
   const reveal = useReveal(items.length);
   const { shown, sentinel } = reveal;
   const keys = useKeys(items, sel, onSel, onOpen, reveal);
@@ -248,7 +275,7 @@ export function List({ items, sel, onSel, onOpen }: { items: BookSummary[]; sel:
               key={b.id}
               tabIndex={keys.tabIndex(b.id)}
               aria-selected={on.has(b.id)}
-              className={on.has(b.id) ? "on" : ""}
+              className={(on.has(b.id) ? "on" : "") + (back.includes(b.id) ? " back" : "")}
               onClick={(e) => onSel(b.id, e)}
               onDoubleClick={() => onOpen(b.id)}
               data-book={b.id}

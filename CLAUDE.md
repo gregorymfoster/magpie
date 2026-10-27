@@ -36,7 +36,7 @@ Read `GLOSSARY.md` before naming things. Decisions and why are in `docs/adr/`. W
 - Every write a user can make is undoable (`history.undo`). New write commands must record history.
 - Errors shown to people are sentences from `core/src/errors.ts`, never raw exceptions.
 - File names Magpie writes have no spaces: `Jane-Austen/Emma.epub` (`core/src/naming.ts`).
-- UI: colours come from CSS variables in `ui/src/styles.css`, no spinners (progress says what it's doing), no em-dashes in UI copy. `scripts/ratchet.ts` enforces this; `// ratchet-ok` opts a line out when you mean it.
+- UI: colours come from CSS variables in `ui/src/styles.css`, no spinners (progress says what it's doing), no em-dashes in UI copy. Motion only explains a change, uses `--ease`, and does nothing under Reduce Motion (`ui/src/motion.ts` for waits in code). `scripts/ratchet.ts` enforces this; `// ratchet-ok` opts a line out when you mean it.
 - Suggestions under 0.8 confidence start unticked. Calibre's metadata is trusted.
 - Prettier, print width 160. `just fmt`.
 

@@ -4,6 +4,8 @@ import { expect, test } from "@playwright/test";
 import { books, call, CLASSICS, classic, emma, longBook, reset, unknownAuthor } from "./helpers.ts";
 
 test.skip(!process.env.SHOTS, "only with SHOTS=1 (just shots)");
+// Stills show every screen at rest: no cover halfway through fading up, no book still rising in.
+test.use({ reducedMotion: "reduce" });
 
 const SCREENS: [string, string][] = [
   ["first-launch", "/"],
@@ -42,7 +44,12 @@ test("hero", async ({ browser }) => {
       for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.textContent?.includes("/tmp/")) n.textContent = "~/Books/Magpie";
     });
   for (const theme of ["light", "dark"]) {
-    const ctx = await browser.newContext({ baseURL: test.info().project.use.baseURL, viewport: { width: 1280, height: 780 }, deviceScaleFactor: 2 });
+    const ctx = await browser.newContext({
+      baseURL: test.info().project.use.baseURL,
+      viewport: { width: 1280, height: 780 },
+      deviceScaleFactor: 2,
+      reducedMotion: "reduce",
+    });
     const page = await ctx.newPage();
     await reset(page);
     await call(page, "books.import", { paths: books(Object.fromEntries(CLASSICS.map((c, i) => [`${i}.epub`, classic(c, i)]))) });

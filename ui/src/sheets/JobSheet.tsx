@@ -2,10 +2,11 @@
 // runs and a summary when it's done. Closing it early leaves the job running
 // in the sidebar footer.
 
+import { useState } from "react";
 import { FileText, Globe, Lock } from "lucide-react";
 import type { Job, JobResult } from "@magpie/core";
 import { Sheet } from "../components/Sheet.tsx";
-import { jobProgress } from "../components/Progress.tsx";
+import { DoneCheck, jobProgress } from "../components/Progress.tsx";
 import { plural } from "../format.ts";
 
 const CHIP: Record<JobResult["outcome"], [string, string]> = {
@@ -21,6 +22,8 @@ const CHIP: Record<JobResult["outcome"], [string, string]> = {
 
 export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; onClose: () => void; onReview: () => void; reviewCount: number }) {
   const done = job.state === "done" || job.state === "cancelled";
+  // Rows already there when the sheet opened don't slide in.
+  const [seenAtOpen] = useState(job.results.length);
   const n = (o: JobResult["outcome"]) => job.results.filter((r) => r.outcome === o).length;
   const sending = job.kind === "kobo";
   const lookup = job.kind === "lookup";
@@ -34,7 +37,10 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
   return (
     <Sheet label={title} onClose={onClose}>
       <div className="sh-h">
-        <h2>{title}</h2>
+        <h2 className={done ? "with-check" : undefined}>
+          {done && <DoneCheck />}
+          {title}
+        </h2>
         <p>
           {lookup
             ? done
@@ -87,9 +93,10 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
         ) : (
           jobProgress(job)
         )}
-        <div className="files">
+        <div className={"files" + (done ? "" : " live")}>
           {(done ? byConcern(job.results) : job.results.slice(-200).reverse()).map((r, i) => (
-            <div key={i} className="file" title={r.message}>
+            // While it runs, each row keeps its key so only rows that just arrived slide in.
+            <div key={done ? i : job.results.length - i} className={"file" + (!done && job.results.length - i > seenAtOpen ? " fresh" : "")} title={r.message}>
               <FileText size={13} />
               <span className="fn">{r.label}</span>
               {r.message && r.outcome !== "duplicate" && (

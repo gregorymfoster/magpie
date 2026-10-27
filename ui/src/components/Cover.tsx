@@ -35,14 +35,22 @@ export function Cover({ b, className = "" }: { b: Pick<BookSummary, "title" | "a
   const t = useTransport();
   // A cover file the book declares but that won't decode gets the typographic cover instead of a broken image.
   const [broken, setBroken] = useState<string | null>(null);
-  if (b.cover && broken !== b.cover) {
-    const src = b.cover;
-    return (
-      <div className={`cv ${className}`}>
-        <img className="cover-img" src={t.fileUrl(src)} alt="" loading="lazy" draggable={false} onError={() => setBroken(src)} />
-      </div>
-    );
-  }
+  // The typographic cover is drawn first and the image fades up over it once decoded. One already decoded
+  // (the cache, or switching views) is shown at once, so covers don't fade every time the list changes.
+  const [ready, setReady] = useState<"" | "fade" | "at-once">("");
+  const img =
+    b.cover && broken !== b.cover ? (
+      <img
+        className={"cover-img" + (ready ? " ready" : "") + (ready === "at-once" ? " at-once" : "")}
+        src={t.fileUrl(b.cover)}
+        alt=""
+        loading="lazy"
+        draggable={false}
+        ref={(el) => void (el?.complete && el.naturalWidth && !ready && setReady("at-once"))}
+        onLoad={() => setReady((r) => r || "fade")}
+        onError={() => setBroken(b.cover!)}
+      />
+    ) : null;
   const h = hash(b.title + b.authors.join());
   const bg = TONES[h % TONES.length];
   const style = h % 3;
@@ -67,6 +75,7 @@ export function Cover({ b, className = "" }: { b: Pick<BookSummary, "title" | "a
           <div className="ca">{by}</div>
         </div>
       )}
+      {img}
     </div>
   );
 }

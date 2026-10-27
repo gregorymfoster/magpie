@@ -10,6 +10,7 @@ import { Sheet } from "../components/Sheet.tsx";
 import { Cover } from "../components/Cover.tsx";
 import { useToast } from "../components/Toasts.tsx";
 import { plural } from "../format.ts";
+import { settle } from "../motion.ts";
 
 const FIELD: Record<Suggestion["field"], string> = {
   title: "Title",
@@ -29,6 +30,8 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const act = useAction();
   const toast = useToast();
   const [picks, setPicks] = useState<Record<number, boolean[]>>({});
+  // The book whose accepted changes are settling in, just before it's written and the next one slides in.
+  const [took, setTook] = useState<number | null>(null);
 
   if (list && !list.length)
     return (
@@ -62,7 +65,11 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
     }
   };
   const acceptOne = async () => {
+    if (took !== null) return;
+    setTook(d.id);
+    await settle(p.some(Boolean) ? 450 : 0);
     await apply([decide(d, p)], "Details updated");
+    setTook(null);
     if (ids.length <= 1) onClose();
   };
   const acceptAll = async () => {
@@ -92,7 +99,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
             </button>
           ))}
         </div>
-        <div className="rv-r">
+        <div className="rv-r" key={d.id}>
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 10 }}>
             <div style={{ width: 40 }}>
               <Cover b={d} />
@@ -115,7 +122,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
             </thead>
             <tbody>
               {sugg.map((s, j) => (
-                <tr key={j} className={p[j] ? "pick" : ""}>
+                <tr key={j} className={(p[j] ? "pick" : "") + (took === d.id && p[j] ? " took" : "")}>
                   <td>
                     <button
                       className={"cb" + (p[j] ? " on" : "")}
@@ -127,7 +134,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
                     </button>
                   </td>
                   <td className="f">{FIELD[s.field]}</td>
-                  <td className="old">{s.current || <span className="empty-old">empty</span>}</td>
+                  <td className="old">{s.current ? <span className="was">{s.current}</span> : <span className="empty-old">empty</span>}</td>
                   <td>
                     <div className={"new" + (s.field === "description" ? " long" : "")} title={s.field === "description" ? s.value : undefined}>
                       {s.value}

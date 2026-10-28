@@ -36,7 +36,6 @@ const SENTENCES: Record<string, string> = {
   offline: "Magpie couldn't reach Open Library. Check the internet connection and look up again; books already done are kept.",
   "lookup-nothing": "Not enough to look up: the book has no usable title or ISBN.",
   "lookup-no-match": "Open Library has no clear match. Check the title and author, or fill in the details yourself.",
-  "lookup-complete": "Nothing missing: the book already has a year, publisher, language and description.",
   "calibre-no-epub": "Calibre has this book only as MOBI, AZW3 or PDF, which Magpie can't read yet.",
 };
 

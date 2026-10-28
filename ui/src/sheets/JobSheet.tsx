@@ -46,7 +46,7 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
         <p>
           {lookup
             ? done
-              ? "What Open Library found is waiting in Needs Review. Nothing is written into a book until you accept it."
+              ? "Details Open Library found are waiting in Needs Review, and nothing is written into a book until you accept them. Ratings are in the Rating column and the inspector."
               : "Open Library is asked about one book a second, by title, author and ISBN. The books themselves never leave this Mac."
             : sending
               ? done

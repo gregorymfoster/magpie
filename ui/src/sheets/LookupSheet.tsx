@@ -31,8 +31,8 @@ export function LookupSheet({ onClose, onJob }: { onClose: () => void; onJob: (j
         <h2>{n ? `Look up details for ${plural(n, "book")}?` : "Nothing to look up"}</h2>
         <p>
           {n
-            ? "Magpie asks Open Library for what your books are missing: the year, publisher, language, description, or an author it couldn’t read. What it finds waits in Needs Review, and nothing changes until you accept it."
-            : "Every book either has its details or has been looked up already."}
+            ? "Magpie asks Open Library for what your books are missing (the year, publisher, language, description, or an author it couldn’t read) and how its readers rate them. Details wait in Needs Review, and nothing changes until you accept them."
+            : "Every book has been looked up already."}
         </p>
       </div>
       {n > 0 && (

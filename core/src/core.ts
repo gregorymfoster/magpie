@@ -17,7 +17,7 @@ import type { Book } from "./epub.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { KINDLE_LIMIT } from "./send/kindle.ts";
-import { coverUrl, descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wants, wantsCover, workUrl, type CatalogDoc } from "./identify/catalog.ts";
+import { MIN_RATINGS, coverUrl, descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wantsCover, workUrl, type CatalogDoc } from "./identify/catalog.ts";
 import { coverType, imageSize } from "./images.ts";
 import { MIN_COVER_HEIGHT } from "./checks.ts";
 
@@ -208,7 +208,6 @@ function runners(ctx: Context) {
       const label = info.title;
       if (info.state === "locked" || info.removedAt) return { label, outcome: "skipped", bookId: id } satisfies JobResult;
       const coverWanted = wantsCover(info.report);
-      if (!wants(info) && !coverWanted) return { label, outcome: "skipped", message: explain("lookup-complete"), bookId: id } satisfies JobResult;
       const search = async (url: string | null) => (url ? (((await ctx.host.web.getJson(url)) as { docs?: CatalogDoc[] }).docs ?? []) : []);
       let m;
       try {
@@ -234,13 +233,15 @@ function runners(ctx: Context) {
         if (kept)
           found.push({ field: "cover", current: "", value: kept.file, source: `Open Library, matched by ${m.by}`, confidence: m.confidence, from: "catalog" });
       }
-      const step = await ctx.lib().lookedUp(id, found, recordOf(m));
+      const record = recordOf(m);
+      const step = await ctx.lib().lookedUp(id, found, record);
       ctx.changed();
-      const fields = found.map((s) => (s.field === "authors" ? "author" : s.field));
+      const fields: string[] = found.map((s) => (s.field === "authors" ? "author" : s.field));
+      if (record.rating && record.ratings! >= MIN_RATINGS) fields.push("a rating");
       return {
         label,
-        outcome: found.length ? "found" : "skipped",
-        message: found.length ? `Found ${list(fields)}.` : "Matched, but Open Library had nothing the book is missing.",
+        outcome: fields.length ? "found" : "skipped",
+        message: fields.length ? `Found ${list(fields)}.` : "Matched, but Open Library had nothing the book is missing.",
         bookId: id,
         undo: step,
       } satisfies JobResult;
@@ -250,13 +251,16 @@ function runners(ctx: Context) {
 
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
-/** Books worth a lookup: not locked, missing something, and (unless `again`) never looked up. */
+/**
+ * Books worth a lookup: not locked, and never looked up or matched before ratings were asked for.
+ * With `again`, every one, since ratings change. A book with every detail still gets its rating.
+ */
 async function lookupCandidates(ctx: Context, again: boolean): Promise<number[]> {
   const out: number[] = [];
   for (const b of (await ctx.lib().list({})).sort((x, y) => x.id - y.id)) {
     if (b.state === "locked") continue;
-    const d = await ctx.lib().get(b.id);
-    if ((wants(d) || wantsCover(d.report)) && (again || d.plan.found === undefined)) out.push(b.id);
+    const { plan } = await ctx.lib().get(b.id);
+    if (again || plan.found === undefined || (plan.catalog && plan.catalog.ratings === undefined)) out.push(b.id);
   }
   return out;
 }
@@ -444,9 +448,10 @@ const commands = {
 
   /**
    * Look Up Details: ask Open Library for what books are missing (year,
-   * publisher, language, description, a missing author). Sends only titles,
-   * authors and ISBNs. Results wait in Needs Review; the whole run is one undo.
-   * With no ids, every book that is missing something and hasn't been looked up.
+   * publisher, language, description, a missing author) and how its readers
+   * rate them. Sends only titles, authors and ISBNs. Details wait in Needs
+   * Review; a rating is kept in the Library. The whole run is one undo.
+   * With no ids, every book that hasn't been looked up.
    */
   async "books.lookup"(ctx: Context, a: { ids?: number[]; again?: boolean } = {}) {
     const ids = a.ids ?? (await lookupCandidates(ctx, !!a.again));

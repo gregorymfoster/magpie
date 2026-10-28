@@ -54,6 +54,10 @@ export interface CatalogRecord {
   /** The year the work was first published, which the book's own date (usually the edition's) often isn't. */
   firstYear?: number;
   subjects: string[];
+  /** How many Open Library readers rated the work. Absent on records from before ratings were asked for. */
+  ratings?: number;
+  /** Their average, out of 5. */
+  rating?: number;
   /** When it was looked up. */
   at: string;
 }

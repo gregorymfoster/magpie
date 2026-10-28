@@ -166,13 +166,23 @@ test("the keyboard moves through books like Finder, and Return opens Edit Detail
   await expect(page.locator('.tile[tabindex="0"]')).toHaveCount(1);
 });
 
-test("Look Up asks first, says what is sent, and what Open Library finds waits for review", async ({ page }) => {
+test("Look Up asks first, says what is sent, what Open Library finds waits for review, and its readers' rating shows on the book", async ({ page }) => {
   const home = test.info().config.metadata.home as string;
   writeFileSync(
     `${home}/web.json`,
     JSON.stringify({
       "title=Emma&author=Jane+Austen": {
-        docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815, cover_i: 5 }],
+        docs: [
+          {
+            key: "/works/OL66562W",
+            title: "Emma",
+            author_name: ["Jane Austen"],
+            first_publish_year: 1815,
+            cover_i: 5,
+            ratings_average: 4.01,
+            ratings_count: 312,
+          },
+        ],
       },
       "/works/OL66562W.json": { description: "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends." },
       "covers.openlibrary.org/b/id/5-L.jpg": { base64: Buffer.from(jpeg(600, 900)).toString("base64") },
@@ -199,6 +209,7 @@ test("Look Up asks first, says what is sent, and what Open Library finds waits f
   await review.getByRole("button", { name: "Accept 3 changes" }).click();
   await page.locator(".tile", { hasText: "Emma" }).click();
   await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("1815");
+  await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("4.0 from 312 readers");
 });
 
 test("books land on shelves; the sidebar filters by shelf, author and series; tags go on and come off", async ({ page }) => {

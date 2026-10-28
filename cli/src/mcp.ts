@@ -33,6 +33,7 @@ const summary = (b: BookSummary) => ({
   authors: b.authors,
   ...(b.series && { series: b.series, seriesIndex: b.seriesIndex }),
   ...(b.year && { year: b.year }),
+  ...(b.rating && { rating: `${b.rating} out of 5 from ${b.ratings} readers on Open Library` }),
   language: b.language,
   state: b.state,
   ...(b.tags.length && { tags: b.tags.map((t) => t.name) }),
@@ -144,7 +145,7 @@ export function mcpServer(core: Core, version: string) {
     {
       title: "Look up details online",
       description:
-        "Ask Open Library for details these books are missing (year, publisher, language, description, a missing author). Sends only titles, authors and ISBNs, never the books. Nothing is written: what's found waits as suggestions for review_suggestions. Paced at about one request a second, so keep it to a handful of books; the user can look up the whole Library from Magpie's toolbar.",
+        "Ask Open Library for details these books are missing (year, publisher, language, description, a missing author) and how its readers rate them (rating out of 5 and how many rated, on the book once enough did). Sends only titles, authors and ISBNs, never the books. Nothing is written: what's found waits as suggestions for review_suggestions. Paced at about one request a second, so keep it to a handful of books; the user can look up the whole Library from Magpie's toolbar.",
       inputSchema: { ids: z.array(z.number().int()).min(1).max(50) },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     },

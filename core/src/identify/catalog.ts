@@ -12,7 +12,7 @@ import type { BookInfo, Suggestion } from "../info.ts";
 import { JUNK_AUTHOR, isJunkTitle } from "./rules.ts";
 
 const BASE = "https://openlibrary.org";
-const FIELDS = "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn,cover_i";
+const FIELDS = "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn,cover_i,ratings_average,ratings_count";
 
 export interface CatalogDoc {
   key: string;
@@ -26,17 +26,14 @@ export interface CatalogDoc {
   isbn?: string[];
   /** Open Library's cover picture for the work, if it has one. */
   cover_i?: number;
+  ratings_average?: number;
+  ratings_count?: number;
 }
 
 export interface Match {
   doc: CatalogDoc;
   by: "isbn" | "title and author" | "title";
   confidence: number;
-}
-
-/** Fields a lookup could fill. A book with all of them has nothing to look up. */
-export function wants(info: BookInfo): boolean {
-  return !info.year || !info.publisher || !info.language || !info.description || !info.authors.length || JUNK_AUTHOR.test(info.authors[0] ?? "");
 }
 
 /** A book whose cover Magpie drew, or whose own is small or damaged: Look Up Details looks for the real one. */
@@ -99,12 +96,19 @@ export function suggestionsFrom(info: BookInfo, m: Match, description?: string):
   return out;
 }
 
+/** Fewer ratings than this say more about a few readers than about the book, so none is shown. */
+export const MIN_RATINGS = 5;
+
 export function recordOf(m: Match): CatalogRecord {
+  // A title-only match might be another book, and a rating can't wait in review to be checked, so it's kept only from a sure match.
+  const ratings = m.confidence >= 0.9 ? (m.doc.ratings_count ?? 0) : 0;
   return {
     source: "openlibrary",
     key: m.doc.key,
     firstYear: m.doc.first_publish_year,
     subjects: (m.doc.subject ?? []).slice(0, 40),
+    ratings,
+    rating: ratings && m.doc.ratings_average ? Math.round(m.doc.ratings_average * 100) / 100 : undefined,
     at: new Date().toISOString(),
   };
 }

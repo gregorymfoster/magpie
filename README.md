@@ -4,7 +4,7 @@
 
 Fix the ebook library you already have.
 
-Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs on your machine, so your books never leave it. No account, no upload, no subscription. If you press Look Up, Magpie asks Open Library for missing details (year, publisher, description) by title, author and ISBN, and shows you what it found before anything changes.
+Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs on your machine, so your books never leave it. No account, no upload, no subscription. If you press Look Up, Magpie asks Open Library for missing details (year, publisher, description) and how its readers rate the book, by title, author and ISBN, and shows you what it found before anything changes.
 
 Magpie never touches DRM. A store-locked book can sit in your Library with a lock on it, exactly as it came, but Magpie won't fix, convert or send it. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
 

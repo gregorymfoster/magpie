@@ -72,6 +72,10 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
     ["Series", b.series && `${b.series}${b.seriesIndex ? ` · ${b.seriesIndex}` : ""}`],
     ["First published", b.firstYear],
     ["This edition", b.year],
+    [
+      "Rating",
+      b.rating && <span title="The average from readers on Open Library, out of 5">{`${b.rating.toFixed(1)} from ${plural(b.ratings!, "reader")}`}</span>,
+    ],
     ["Publisher", d?.publisher],
     ["Language", language(b.language)],
     ["ISBN", d?.isbn],

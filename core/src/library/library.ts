@@ -10,6 +10,7 @@
 import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
 import { ENGINE, fix, newPlan, type CatalogRecord, type FixAssets, type FixPlan, type FixReport } from "../fix.ts";
+import { MIN_RATINGS } from "../identify/catalog.ts";
 import { coverType } from "../images.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
@@ -68,6 +69,9 @@ export interface BookSummary {
   publisher?: string;
   /** The year the work first came out, when Look Up Details found it (the book's own year is usually the edition's). */
   firstYear?: number;
+  /** How Open Library's readers rate the work, out of 5, and how many did; only when enough did (MIN_RATINGS). */
+  rating?: number;
+  ratings?: number;
   /** How many things stand between the book and Clean: to-dos plus suggestions waiting. */
   todo: number;
 }
@@ -763,8 +767,9 @@ export class Library {
       s.todo = (report.todos?.length ?? 0) + report.suggestions.length;
     }
     if (r.publisher) s.publisher = r.publisher as string;
-    const first = (JSON.parse(r.plan as string) as FixPlan).catalog?.firstYear;
-    if (first) s.firstYear = first;
+    const catalog = (JSON.parse(r.plan as string) as FixPlan).catalog;
+    if (catalog?.firstYear) s.firstYear = catalog.firstYear;
+    if (catalog?.rating && (catalog.ratings ?? 0) >= MIN_RATINGS) Object.assign(s, { rating: catalog.rating, ratings: catalog.ratings });
     if (r.series) s.series = r.series as string;
     if (r.series_index != null) s.seriesIndex = r.series_index as number;
     if (r.year != null) s.year = r.year as number;

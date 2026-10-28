@@ -158,6 +158,14 @@ export const COLUMNS: Column[] = [
         ""
       )),
   },
+  {
+    id: "rating",
+    label: "Rating",
+    width: "64px",
+    className: "num",
+    // How Open Library's readers rate it, out of 5, once Look Up Details has asked.
+    cell: (b) => (b.rating ? <span title={`From ${b.ratings} readers on Open Library`}>{b.rating.toFixed(1)}</span> : ""),
+  },
   { id: "shelf", label: "Shelf", width: "96px", cell: (b) => names(b, isKind), className: "mut" },
   { id: "genre", label: "Genre", width: "15%", cell: (b) => names(b, (n) => GENRE_NAMES.has(n)), className: "mut" },
   { id: "vibe", label: "Vibe", width: "12%", cell: (b) => names(b, (n) => VIBE_NAMES.has(n)), className: "mut" },

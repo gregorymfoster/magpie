@@ -886,6 +886,47 @@ test("Look Up Details skips an Open Library cover that is too small or won't dow
   }
 });
 
+test("Look Up Details brings back how Open Library's readers rate a book, kept in the Library and shown once enough people have rated it", async () => {
+  const rated = (doc: object, average: number, count: number) => ({ docs: [{ ...doc, ratings_average: average, ratings_count: count }] });
+  const { core, file } = setup({
+    ...OPEN_LIBRARY,
+    "isbn=9780345535689": rated(OPEN_LIBRARY["isbn=9780345535689"].docs[0], 4.666, 3),
+    "title=Emma&author=Jane+Austen": rated(OPEN_LIBRARY["title=Emma&author=Jane+Austen"].docs[0], 4.0123, 312),
+    "isbn=9780141439600": rated({ key: "/works/OL2W", title: "Persuasion", author_name: ["Jane Austen"], isbn: ["9780141439600"] }, 3.96, 87),
+  });
+  await core.call("app.state");
+  const complete = epub({
+    opfMeta:
+      '<dc:identifier id="id">urn:isbn:9780141439600</dc:identifier><dc:title>Persuasion</dc:title><dc:creator>Jane Austen</dc:creator><dc:language>en</dc:language><dc:date>1817</dc:date><dc:publisher>Penguin</dc:publisher><dc:description>Anne Elliot gets a second chance.</dc:description>',
+  });
+  await core.call("books.import", { paths: [file("emma.epub", epub()), file("cope.epub", withIsbn()), file("persuasion.epub", complete)] });
+  await core.idle();
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 3 }, "a book with every detail is still worth asking about, for its rating");
+  const job = await core.call("books.lookup", {});
+  await core.idle();
+  assert.deepEqual(
+    (await core.call("jobs.get", { id: job!.id })).results.map((r) => [r.label, r.outcome, r.message]),
+    [
+      ["Emma", "found", "Found year, description and a rating."],
+      ["The Great Work of Your Life", "found", "Found year, publisher and description."],
+      ["Persuasion", "found", "Found a rating."],
+    ],
+  );
+  const byTitle = Object.fromEntries((await core.call("books.list", {})).map((b) => [b.title, b]));
+  assert.equal(byTitle["Emma"].rating, 4.01);
+  assert.equal(byTitle["Emma"].ratings, 312);
+  assert.equal(byTitle["Persuasion"].rating, 3.96);
+  assert.equal(byTitle["Persuasion"].state, "clean", "a rating isn't a suggestion: nothing waits for review");
+  assert.equal(byTitle["The Great Work of Your Life"].rating, undefined, "three ratings say little, so none is shown");
+  const persuasion = await core.call("books.get", { id: byTitle["Persuasion"].id });
+  assert.doesNotMatch(strFromU8(unzipSync(readFileSync(persuasion.file))["content.opf"]), /rating/, "the rating lives in the Library, never in the book");
+  assert.deepEqual(await core.call("books.lookupCount"), { count: 0 });
+
+  // Part of the run's one undo.
+  await core.call("history.undo");
+  assert.equal((await core.call("books.list", {})).find((b) => b.title === "Persuasion")!.rating, undefined);
+});
+
 test("Look Up Details is careful: the book's own pages win, an unclear match suggests nothing, offline gets a sentence, DRM is skipped", async () => {
   const { core, file } = setup({
     ...OPEN_LIBRARY,

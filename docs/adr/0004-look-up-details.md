@@ -19,3 +19,9 @@ Lookups run in their own job lane so a long run never holds up adding books, and
 ## Consequences
 
 The privacy promise becomes "your books never leave this Mac; titles are sent to Open Library when you press Look Up". Settings › Privacy, the README and the sheets say so. Tests never touch the network: `MAGPIE_WEB` hands the Node host canned answers. Series aren't in Open Library's search, so Look Up doesn't fill them.
+
+## Addendum, 2026-10-28: ratings
+
+Greg asked for Goodreads ratings. Goodreads closed its API in 2020 and forbids scraping, StoryGraph has none, and Hardcover's is a personal token meant for personal use, so none of them fits this rule. Open Library's search already answers with its own readers' ratings (`ratings_average`, `ratings_count`), so Look Up asks for those two fields on the same request. Nothing new leaves the Mac and no new site is asked.
+
+A rating is kept on `FixPlan.catalog` (`rating`, `ratings`) and shown in the inspector and the list's Rating column; it is never written into the book and never waits in review. It is taken only from a sure match (ISBN, or title and author), and shown only once at least five people have rated the work (`MIN_RATINGS`), because Open Library's counts are small. Since every book has a rating to find, Look Up now offers every book that hasn't been looked up, not just books missing details, and books matched before ratings existed are offered once more.

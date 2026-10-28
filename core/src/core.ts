@@ -17,7 +17,9 @@ import type { Book } from "./epub.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { KINDLE_LIMIT } from "./send/kindle.ts";
-import { descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wants, workUrl, type CatalogDoc } from "./identify/catalog.ts";
+import { coverUrl, descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wants, wantsCover, workUrl, type CatalogDoc } from "./identify/catalog.ts";
+import { coverType, imageSize } from "./images.ts";
+import { MIN_COVER_HEIGHT } from "./checks.ts";
 
 export type CoreEvent =
   /** Books were added, changed or removed: refetch lists and counts. */
@@ -205,7 +207,8 @@ function runners(ctx: Context) {
       const info = await ctx.lib().get(id);
       const label = info.title;
       if (info.state === "locked" || info.removedAt) return { label, outcome: "skipped", bookId: id } satisfies JobResult;
-      if (!wants(info)) return { label, outcome: "skipped", message: explain("lookup-complete"), bookId: id } satisfies JobResult;
+      const coverWanted = wantsCover(info.report);
+      if (!wants(info) && !coverWanted) return { label, outcome: "skipped", message: explain("lookup-complete"), bookId: id } satisfies JobResult;
       const search = async (url: string | null) => (url ? (((await ctx.host.web.getJson(url)) as { docs?: CatalogDoc[] }).docs ?? []) : []);
       let m;
       try {
@@ -223,6 +226,14 @@ function runners(ctx: Context) {
       }
       const description = info.description ? undefined : descriptionOf(await ctx.host.web.getJson(workUrl(m.doc.key)).catch(() => null));
       const found = suggestionsFrom(info, m, description);
+      if (coverWanted && m.doc.cover_i) {
+        // A cover that won't download, isn't a picture or is too small to be better is simply not suggested.
+        const bytes = await ctx.host.web.getBytes(coverUrl(m.doc.cover_i)).catch(() => null);
+        const size = bytes && coverType(bytes) ? imageSize(bytes) : null;
+        const kept = bytes && size && size.h >= MIN_COVER_HEIGHT ? await ctx.lib().keepCover(bytes) : null;
+        if (kept)
+          found.push({ field: "cover", current: "", value: kept.file, source: `Open Library, matched by ${m.by}`, confidence: m.confidence, from: "catalog" });
+      }
       const step = await ctx.lib().lookedUp(id, found, recordOf(m));
       ctx.changed();
       const fields = found.map((s) => (s.field === "authors" ? "author" : s.field));
@@ -245,7 +256,7 @@ async function lookupCandidates(ctx: Context, again: boolean): Promise<number[]>
   for (const b of (await ctx.lib().list({})).sort((x, y) => x.id - y.id)) {
     if (b.state === "locked") continue;
     const d = await ctx.lib().get(b.id);
-    if (wants(d) && (again || d.plan.found === undefined)) out.push(b.id);
+    if ((wants(d) || wantsCover(d.report)) && (again || d.plan.found === undefined)) out.push(b.id);
   }
   return out;
 }

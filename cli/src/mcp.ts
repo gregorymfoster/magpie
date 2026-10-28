@@ -59,7 +59,7 @@ const jobSummary = (j: Job) => ({
 });
 
 export function mcpServer(core: Core, version: string) {
-  const FIELDS = ["title", "authors", "year", "publisher", "language", "description"] as const;
+  const FIELDS = ["title", "authors", "year", "publisher", "language", "description", "cover"] as const;
   const server = new McpServer(
     { name: "magpie", title: "Magpie", version },
     {

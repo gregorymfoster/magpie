@@ -334,7 +334,7 @@ export class Library {
   /** Set details (accepted suggestions or a person's edits) and rebuild. One undo step. */
   async edit(id: number, patch: InfoPatch, label = "Edit details"): Promise<BookDetail> {
     const before = await this.snapshot(id);
-    const plan: FixPlan = { ...before.plan, info: { ...before.plan.info, ...patch } };
+    const plan = withPatch(before.plan, patch);
     await this.rebuild(id, plan);
     await this.record(label, [{ id, before, after: { ...before, plan } }]);
     return this.get(id);
@@ -372,8 +372,7 @@ export class Library {
     for (const d of decisions) {
       const before = await this.snapshot(d.id);
       const plan: FixPlan = {
-        ...before.plan,
-        info: { ...before.plan.info, ...d.accept },
+        ...withPatch(before.plan, d.accept),
         dismissed: [...new Set([...(before.plan.dismissed ?? []), ...d.dismiss])],
       };
       await this.rebuild(d.id, plan);
@@ -695,7 +694,7 @@ export class Library {
   }
 
   /** A cover image copied into covers/chosen/, named by its hash. Null when it isn't a JPEG or PNG. */
-  private async keepCover(bytes: Uint8Array): Promise<{ file: string; image: NonNullable<FixAssets["cover"]> } | null> {
+  async keepCover(bytes: Uint8Array): Promise<{ file: string; image: NonNullable<FixAssets["cover"]> } | null> {
     const mediaType = coverType(bytes);
     if (!mediaType) return null;
     const file = `covers/chosen/${(await sha256(bytes)).slice(0, 16)}.${mediaType === "image/png" ? "png" : "jpg"}`;
@@ -832,4 +831,15 @@ export async function sha256(bytes: Uint8Array): Promise<string> {
 function uuidFrom(hash: string): string {
   const h = hash.slice(0, 32);
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-8${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
+/** A plan with details set. An accepted cover (a file Magpie keeps in covers/chosen/) goes on `plan.cover`, not into the details. */
+function withPatch(plan: FixPlan, patch: InfoPatch): FixPlan {
+  const { cover, ...info } = patch;
+  const next: FixPlan = { ...plan, info: { ...plan.info, ...info } };
+  if (cover !== undefined) {
+    if (!/^covers\/chosen\/[0-9a-f]{16}\.(jpg|png)$/.test(cover)) throw new UserError("not-a-cover");
+    next.cover = { file: cover, from: "openlibrary" };
+  }
+  return next;
 }

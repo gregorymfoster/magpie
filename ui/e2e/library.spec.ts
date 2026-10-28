@@ -171,11 +171,18 @@ test("Look Up asks first, says what is sent, and what Open Library finds waits f
   writeFileSync(
     `${home}/web.json`,
     JSON.stringify({
-      "title=Emma&author=Jane+Austen": { docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815 }] },
+      "title=Emma&author=Jane+Austen": {
+        docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815, cover_i: 5 }],
+      },
       "/works/OL66562W.json": { description: "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends." },
+      "covers.openlibrary.org/b/id/5-L.jpg": { base64: Buffer.from(jpeg(600, 900)).toString("base64") },
     }),
   );
-  await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
+  // No cover of its own, so Magpie draws one and Look Up also asks for the real one.
+  const noCover = unzipSync(emma());
+  delete noCover["cover.jpg"];
+  noCover["content.opf"] = new TextEncoder().encode(new TextDecoder().decode(noCover["content.opf"]).replace(/<item id="cov"[^>]*\/>/, ""));
+  await call(page, "books.import", { paths: books({ "emma.epub": zipSync(noCover) }) });
   await page.reload();
   await page.getByRole("button", { name: "Look Up" }).click();
   const sheet = page.getByRole("dialog");
@@ -188,7 +195,8 @@ test("Look Up asks first, says what is sent, and what Open Library finds waits f
   await expect(review).toContainText("Published");
   await expect(review).toContainText("1815");
   await expect(review).toContainText("Open Library, matched by title and author");
-  await review.getByRole("button", { name: "Accept 2 changes" }).click();
+  await expect(review.getByRole("img", { name: "Suggested cover" })).toBeVisible();
+  await review.getByRole("button", { name: "Accept 3 changes" }).click();
   await page.locator(".tile", { hasText: "Emma" }).click();
   await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("1815");
 });

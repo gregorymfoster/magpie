@@ -838,6 +838,54 @@ test("Look Up Details fills what books are missing from Open Library, waits for 
   assert.match(strFromU8(unzipSync(readFileSync(accepted.file))["content.opf"]), /<dc:date>1815<\/dc:date>/);
 });
 
+test("Look Up Details finds the real cover for a book whose cover Magpie drew, as a suggestion that undoes", async () => {
+  const web = structuredClone(OPEN_LIBRARY) as Record<string, { docs?: Record<string, unknown>[] }>;
+  web["title=Emma&author=Jane+Austen"].docs![0].cover_i = 123;
+  const real = jpeg(600, 900);
+  const { core, file } = setup({ ...web, "covers.openlibrary.org/b/id/123-L.jpg": { base64: Buffer.from(real).toString("base64") } });
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", coverless())] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  assert.equal((await core.call("books.get", { id: b.id })).report.coverMade, true);
+  await core.call("books.lookup", {});
+  await core.idle();
+  const d = await core.call("books.get", { id: b.id });
+  const cover = d.report.suggestions.find((s) => s.field === "cover");
+  assert.ok(cover, "the cover is a suggestion, like the year");
+  assert.match(cover.value, /^covers\/chosen\/[0-9a-f]{16}\.jpg$/);
+  assert.equal(cover.confidence, 0.9);
+  assert.notDeepEqual(declaredCover(d.file), real, "nothing goes into the book before review");
+
+  await core.call("books.review", { decisions: [{ id: b.id, accept: patchFor([cover]), dismiss: [] }] });
+  const took = await core.call("books.get", { id: b.id });
+  assert.deepEqual(declaredCover(took.file), real);
+  assert.equal(took.plan.cover?.from, "openlibrary");
+  assert.equal(took.report.coverMade, undefined);
+  assert.ok(!took.report.suggestions.some((s) => s.field === "cover"));
+  await core.call("history.undo");
+  assert.equal((await core.call("books.get", { id: b.id })).report.coverMade, true, "undo puts the drawn cover back");
+});
+
+test("Look Up Details skips an Open Library cover that is too small or won't download", async () => {
+  for (const answer of [{ base64: Buffer.from(jpeg(200, 300)).toString("base64") }, null]) {
+    const web = structuredClone(OPEN_LIBRARY) as Record<string, unknown>;
+    (web["title=Emma&author=Jane+Austen"] as { docs: Record<string, unknown>[] }).docs[0].cover_i = 7;
+    const { core, file } = setup({ ...web, "covers.openlibrary.org/b/id/7-L.jpg": answer });
+    await core.call("app.state");
+    await core.call("books.import", { paths: [file("emma.epub", coverless())] });
+    await core.idle();
+    await core.call("books.lookup", {});
+    await core.idle();
+    const [b] = await core.call("books.list");
+    const d = await core.call("books.get", { id: b.id });
+    assert.deepEqual(
+      d.report.suggestions.map((s) => s.field),
+      ["year", "description"],
+    );
+  }
+});
+
 test("Look Up Details is careful: the book's own pages win, an unclear match suggests nothing, offline gets a sentence, DRM is skipped", async () => {
   const { core, file } = setup({
     ...OPEN_LIBRARY,

@@ -163,8 +163,10 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
                 <div key={`s${i}`}>
                   <AlertCircle size={12} style={{ color: "var(--warn)" }} />
                   <span>
-                    {s.field === "description" ? (
-                      <>Suggested a description, from {s.source}.</>
+                    {s.field === "description" || s.field === "cover" ? (
+                      <>
+                        Suggested a {s.field}, from {s.source}.
+                      </>
                     ) : (
                       <>
                         Suggested {s.field === "authors" ? "author" : s.field}: “{s.value}”, from {s.source}.

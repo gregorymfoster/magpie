@@ -8,6 +8,7 @@ export function patchFor(accepted: Suggestion[]): InfoPatch {
   for (const s of accepted) {
     if (s.field === "authors") out.authors = s.value.split(/\s+(?:&|and)\s+/);
     else if (s.field === "year") out.year = Number(s.value);
+    else if (s.field === "cover") out.cover = s.value;
     else out[s.field] = s.value;
   }
   return out;

@@ -22,15 +22,17 @@ export interface BookInfo {
 export type InfoField = "title" | "authors" | "series" | "seriesIndex" | "publisher" | "year" | "language" | "description" | "isbn";
 export { patchFor } from "./suggestions.ts";
 
-export type InfoPatch = Partial<BookInfo>;
+/** Details to write, plus `cover`: an accepted cover suggestion's file, which goes on the plan rather than into the details. */
+export type InfoPatch = Partial<BookInfo> & { cover?: string };
 
 /** Fields a suggestion can fill: from the book's own pages (title, author) or a catalog lookup. */
-export type SuggestField = "title" | "authors" | "year" | "publisher" | "language" | "description";
+export type SuggestField = "title" | "authors" | "year" | "publisher" | "language" | "description" | "cover";
 
 export interface Suggestion {
   field: SuggestField;
   /** What the book says now ("" when it says nothing). */
   current: string;
+  /** For a cover, the picture's file in the Library (covers/chosen/…). */
   value: string;
   /** Where Magpie read it, in words. */
   source: string;

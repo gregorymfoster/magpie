@@ -101,20 +101,7 @@ export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
           .on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`${cmd} exited with ${code}`)))),
       );
     },
-    web: {
-      getJson: env.MAGPIE_WEB
-        ? async (url) => {
-            const answers: Record<string, unknown> = JSON.parse(await readFile(env.MAGPIE_WEB!, "utf8"));
-            const hit = Object.keys(answers).find((k) => url.includes(k));
-            if (hit === undefined || answers[hit] === null) throw new Error(`offline: ${url}`);
-            return answers[hit];
-          }
-        : paced(async (url) => {
-            const r = await fetch(url, { headers: { "User-Agent": `Magpie/${VERSION} (https://github.com/gregorymfoster/magpie)` } });
-            if (!r.ok) throw new Error(`${r.status} from ${url}`);
-            return r.json();
-          }),
-    },
+    web: env.MAGPIE_WEB ? canned(env.MAGPIE_WEB) : online(),
     env: {
       home,
       config: env.MAGPIE_CONFIG ?? join(home, process.platform === "darwin" ? "Library/Application Support/Magpie" : ".config/magpie"),
@@ -159,4 +146,31 @@ function modelEmbedder(dir: string): (texts: string[]) => Promise<Float32Array[]
     return bertEmbedder(tokenizer, ortRun(session, ort.Tensor));
   };
   return async (texts) => (await (ready ??= load()))(texts);
+}
+
+/** The internet, paced: one request a second across JSON and pictures. */
+function online(): Host["web"] {
+  const get = paced(async (url: string) => {
+    const r = await fetch(url, { headers: { "User-Agent": `Magpie/${VERSION} (https://github.com/gregorymfoster/magpie)` } });
+    if (!r.ok) throw new Error(`${r.status} from ${url}`);
+    return r;
+  });
+  return {
+    getJson: async (url) => (await get(url)).json(),
+    getBytes: async (url) => new Uint8Array(await (await get(url)).arrayBuffer()),
+  };
+}
+
+/** MAGPIE_WEB's canned answers. A picture is given as { "base64": "…" }. */
+function canned(file: string): Host["web"] {
+  const answer = async (url: string) => {
+    const answers: Record<string, unknown> = JSON.parse(await readFile(file, "utf8"));
+    const hit = Object.keys(answers).find((k) => url.includes(k));
+    if (hit === undefined || answers[hit] === null) throw new Error(`offline: ${url}`);
+    return answers[hit];
+  };
+  return {
+    getJson: answer,
+    getBytes: async (url) => new Uint8Array(Buffer.from(((await answer(url)) as { base64: string }).base64, "base64")),
+  };
 }

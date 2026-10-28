@@ -41,9 +41,10 @@ export interface Host {
    * The one way out to the internet: a GET that returns parsed JSON, used only
    * by Look Up Details (Open Library), and only when a person asks. Hosts pace
    * these to about one a second so a big Library is a polite neighbour.
-   * Rejects when offline or on a non-2xx answer.
+   * Rejects when offline or on a non-2xx answer. getBytes is the same for a
+   * picture (a cover from covers.openlibrary.org), following redirects.
    */
-  web: { getJson(url: string): Promise<unknown> };
+  web: { getJson(url: string): Promise<unknown>; getBytes(url: string): Promise<Uint8Array> };
   /**
    * A small text model on this machine (bge-small-en-v1.5, bundled), used to
    * sort books onto shelves. Turns each text into a unit-length vector. Nothing

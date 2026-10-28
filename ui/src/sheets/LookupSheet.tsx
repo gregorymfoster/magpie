@@ -40,8 +40,8 @@ export function LookupSheet({ onClose, onJob }: { onClose: () => void; onJob: (j
           <p className="lookup-note">
             <Globe size={13} />
             <span>
-              Only each book’s title, author and ISBN are sent, to openlibrary.org. The books themselves never leave this Mac. Asking politely takes about{" "}
-              {plural(minutes, "minute")}; you can keep working, and adding books isn’t held up.
+              Only each book’s title, author and ISBN are sent, to openlibrary.org. The books themselves never leave this Mac. Covers it finds come back as
+              pictures for you to check. Asking politely takes about {plural(minutes, "minute")}; you can keep working, and adding books isn’t held up.
             </span>
           </p>
         </div>

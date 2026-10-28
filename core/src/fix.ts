@@ -67,12 +67,14 @@ export interface FixReport {
   errors: { fixer: string; error: string }[];
   /** What still stands between the book and Clean, besides suggestions (checks.ts). Missing in reports from before engine 2. */
   todos?: Todo[];
+  /** The book had no cover, so Magpie drew one. Look Up Details then looks for the real one. */
+  coverMade?: true;
 }
 
 export interface Fixed {
   bytes: Uint8Array;
   info: BookInfo;
-  /** `made` when Magpie drew it because the book had none. */
+  /** `made` when Magpie drew it because the book had none (also on the report as `coverMade`). */
   cover: { bytes: Uint8Array; mediaType: string; made?: true } | null;
   report: FixReport;
 }
@@ -109,7 +111,9 @@ export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {})
     if (i === -1) merged.push(f);
     else if (f.confidence > merged[i].confidence) merged[i] = f;
   }
-  const suggestions = merged.filter((s) => plan.info[s.field] === undefined && !plan.dismissed?.includes(s.field));
+  // A cover suggestion gives way to any cover put in (chosen, Calibre's or this one accepted).
+  const taken = (s: Suggestion) => (s.field === "cover" ? !!plan.cover : plan.info[s.field] !== undefined);
+  const suggestions = merged.filter((s) => !taken(s) && !plan.dismissed?.includes(s.field));
   if (Object.keys(plan.info).length) writeInfo(book, plan.info);
   let info = readInfo(book);
   let made: true | undefined;
@@ -128,7 +132,7 @@ export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {})
     bytes: book.save(),
     info,
     cover: c && { bytes: book.files.get(c.path)!, mediaType: c.mediaType, made },
-    report: { changes, suggestions, errors, todos: checkBook(book, info, errors, plan.keepStyle) },
+    report: { changes, suggestions, errors, todos: checkBook(book, info, errors, plan.keepStyle), ...(made && { coverMade: made }) },
   };
 }
 

@@ -31,14 +31,19 @@ function workerHost(r: Comlink.Remote<TauriHost>, env: HostEnv): Host {
     sqlite: { open: async (p, o) => db(await r.dbOpen(p, !!o?.readonly)) },
     open: (p) => r.open(p),
     mail: (d) => r.mail(d),
-    // Straight from the worker: only openlibrary.org is allowed out (connect-src in tauri.conf.json).
-    web: {
-      getJson: paced(async (url) => {
+    // Straight from the worker: only Open Library is allowed out (connect-src in tauri.conf.json;
+    // covers.openlibrary.org hands pictures over from archive.org).
+    web: (() => {
+      const get = paced(async (url: string) => {
         const res = await fetch(url);
         if (!res.ok) throw new Error(`${res.status} from ${url}`);
-        return res.json();
-      }),
-    },
+        return res;
+      });
+      return {
+        getJson: async (url: string) => (await get(url)).json(),
+        getBytes: async (url: string) => new Uint8Array(await (await get(url)).arrayBuffer()),
+      };
+    })(),
     embed: modelEmbed(),
     env,
   };

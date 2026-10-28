@@ -12,6 +12,8 @@ Look Up Details asks Open Library (openlibrary.org: open data, no account, no ke
 
 Everything it finds is a suggestion stored on the book's plan (`FixPlan.found`) and shown on the review sheet next to the book's own suggestions, marked as coming from Open Library. Nothing is written into a book until it's accepted. Matching is strict: ISBN (0.95), or title plus author surname (0.9); a title alone is 0.7 and starts unticked; anything less suggests nothing. A publisher is only taken from an ISBN match, because a work has many editions. The matched record (work key, first-published year, subjects) is kept on the plan as `FixPlan.catalog` for sorting and tagging; it is never written into the book.
 
+Covers come back the same way (added 2026-10-28, Greg's pick on the covers question). A book whose cover Magpie drew, or whose own cover is small or damaged, also asks for the matched work's picture from covers.openlibrary.org (which may hand it over from archive.org; both are allowed in the app's connect-src). Nothing more is sent: the picture is named by the id the search already returned. It is kept in `covers/chosen/` and offered as a cover suggestion at the match's confidence; a picture shorter than 480 pixels, or one that won't download, is not offered. Accepting it sets `FixPlan.cover` with `from: "openlibrary"`, so it undoes like any other change.
+
 Lookups run in their own job lane so a long run never holds up adding books, and a whole run is one undo.
 
 ## Consequences

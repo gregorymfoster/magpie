@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { BookOpen, Check, Globe, Info, Lock } from "lucide-react";
 import type { BookDetail, Suggestion } from "@magpie/core";
 import { patchFor } from "@magpie/core/suggestions";
-import { useAction, useCall } from "../api.tsx";
+import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { Cover } from "../components/Cover.tsx";
 import { useToast } from "../components/Toasts.tsx";
@@ -19,6 +19,7 @@ const FIELD: Record<Suggestion["field"], string> = {
   publisher: "Publisher",
   language: "Language",
   description: "Description",
+  cover: "Cover",
 };
 
 export function ReviewSheet({ onClose }: { onClose: () => void }) {
@@ -27,6 +28,8 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const [cur, setCur] = useState(0);
   const id = ids[Math.min(cur, ids.length - 1)];
   const { data: d } = useCall("books.get", { id }, { enabled: id !== undefined });
+  const { data: app } = useCall("app.state");
+  const t = useTransport();
   const act = useAction();
   const toast = useToast();
   const [picks, setPicks] = useState<Record<number, boolean[]>>({});
@@ -134,11 +137,23 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
                     </button>
                   </td>
                   <td className="f">{FIELD[s.field]}</td>
-                  <td className="old">{s.current ? <span className="was">{s.current}</span> : <span className="empty-old">empty</span>}</td>
+                  <td className="old">
+                    {s.field === "cover" ? (
+                      <Cover b={d} className="dt-cv" />
+                    ) : s.current ? (
+                      <span className="was">{s.current}</span>
+                    ) : (
+                      <span className="empty-old">empty</span>
+                    )}
+                  </td>
                   <td>
-                    <div className={"new" + (s.field === "description" ? " long" : "")} title={s.field === "description" ? s.value : undefined}>
-                      {s.value}
-                    </div>
+                    {s.field === "cover" ? (
+                      <img className="dt-cv new-cv" src={t.fileUrl(`${app?.library.path}/${s.value}`)} alt="Suggested cover" />
+                    ) : (
+                      <div className={"new" + (s.field === "description" ? " long" : "")} title={s.field === "description" ? s.value : undefined}>
+                        {s.value}
+                      </div>
+                    )}
                     <div className="src">
                       {s.from === "catalog" ? (
                         <>

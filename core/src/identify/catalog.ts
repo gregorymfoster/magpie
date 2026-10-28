@@ -7,12 +7,12 @@
 // the title and an author's surname must both agree. Anything weaker starts
 // unticked or isn't suggested at all: a wrong year is worse than no year.
 
-import type { CatalogRecord } from "../fix.ts";
+import type { CatalogRecord, FixReport } from "../fix.ts";
 import type { BookInfo, Suggestion } from "../info.ts";
 import { JUNK_AUTHOR, isJunkTitle } from "./rules.ts";
 
 const BASE = "https://openlibrary.org";
-const FIELDS = "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn";
+const FIELDS = "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn,cover_i";
 
 export interface CatalogDoc {
   key: string;
@@ -24,6 +24,8 @@ export interface CatalogDoc {
   language?: string[];
   subject?: string[];
   isbn?: string[];
+  /** Open Library's cover picture for the work, if it has one. */
+  cover_i?: number;
 }
 
 export interface Match {
@@ -36,6 +38,14 @@ export interface Match {
 export function wants(info: BookInfo): boolean {
   return !info.year || !info.publisher || !info.language || !info.description || !info.authors.length || JUNK_AUTHOR.test(info.authors[0] ?? "");
 }
+
+/** A book whose cover Magpie drew, or whose own is small or damaged: Look Up Details looks for the real one. */
+export function wantsCover(report: FixReport): boolean {
+  return !!report.coverMade || !!report.todos?.some((t) => t.action === "cover");
+}
+
+/** The large picture for a cover id. `default=false` makes a missing one a 404 rather than a blank image. */
+export const coverUrl = (id: number) => `https://covers.openlibrary.org/b/id/${id}-L.jpg?default=false`;
 
 /** The search URL for a book, or null when there's too little to search on. */
 export function searchUrl(info: BookInfo): string | null {

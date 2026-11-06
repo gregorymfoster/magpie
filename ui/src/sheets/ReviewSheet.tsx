@@ -4,7 +4,7 @@
 import { useMemo, useState } from "react";
 import { BookOpen, Check, Globe, Info, Lock } from "lucide-react";
 import type { BookDetail, Suggestion } from "@magpie/core";
-import { patchFor } from "@magpie/core/suggestions";
+import { SURE, patchFor } from "@magpie/core/suggestions";
 import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { Cover } from "../components/Cover.tsx";
@@ -53,7 +53,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   if (!d || !list) return null;
 
   const sugg = d.report.suggestions;
-  const p = picks[d.id] ?? sugg.map((s) => s.confidence >= 0.8);
+  const p = picks[d.id] ?? sugg.map((s) => s.confidence >= SURE);
   const decide = (b: BookDetail, ticks: boolean[]) => ({
     id: b.id,
     accept: patchFor(b.report.suggestions.filter((_, j) => ticks[j])),
@@ -78,7 +78,7 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
   const acceptAll = async () => {
     const all = await Promise.all(list.map((b) => act("books.get", { id: b.id })));
     await apply(
-      all.map((b) => decide(b, picks[b.id] ?? b.report.suggestions.map((s) => s.confidence >= 0.8))),
+      all.map((b) => decide(b, picks[b.id] ?? b.report.suggestions.map((s) => s.confidence >= SURE))),
       `Updated ${plural(all.length, "book")}`,
     );
     onClose();

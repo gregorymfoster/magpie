@@ -51,6 +51,7 @@ test("lists its tools, with no way to empty Removed", async () => {
     "get_book",
     "import_books",
     "edit_book",
+    "fix_books",
     "review_suggestions",
     "remove_books",
     "undo",

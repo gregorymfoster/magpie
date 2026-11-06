@@ -989,6 +989,101 @@ test("a details edit made while Look Up Details is working on the same book stay
   assert.equal((await core.call("books.get", { id: emma.id })).title, "Emma");
 });
 
+test("Fix fills in what Open Library is sure of, sorts the books again, and undoes as one step", async () => {
+  const { core, file } = setup(OPEN_LIBRARY);
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub()), file("cope.epub", withIsbn())] });
+  await core.idle();
+  const ids = (await core.call("books.list", { sort: "title" })).map((b) => b.id);
+  assert.deepEqual((await core.call("books.get", { id: ids[0] })).tags, [], "nothing to shelve Emma by before the fix");
+  const job = await core.call("books.fix", { ids });
+  assert.equal(job.label, "Fixing 2 books");
+  await core.idle();
+  const done = await core.call("jobs.get", { id: job.id });
+  assert.deepEqual(
+    done.results.map((r) => [r.label, r.outcome, r.message]),
+    [
+      ["Emma", "found", "Filled in year and description."],
+      ["The Great Work of Your Life", "found", "Filled in year, publisher and description."],
+    ],
+  );
+  const [emma, cope] = await Promise.all(ids.map((id) => core.call("books.get", { id })));
+  assert.equal(emma.year, 1815, "written into the book, not left waiting for review");
+  assert.equal(emma.state, "clean");
+  assert.equal(emma.report.suggestions.length, 0);
+  assert.match(strFromU8(unzipSync(readFileSync(emma.file))["content.opf"]), /<dc:date>1815<\/dc:date>/);
+  assert.equal(cope.publisher, "Bantam");
+  assert.deepEqual(
+    emma.tags.map((t) => t.name),
+    ["Fiction"],
+    "sorted again with the subjects Open Library knows",
+  );
+
+  // Undo takes back the sort, then the whole fix.
+  assert.equal((await core.call("history.undo")).undone, "Sort fixed books");
+  assert.deepEqual((await core.call("books.get", { id: emma.id })).tags, []);
+  assert.equal((await core.call("history.undo")).undone, "Fix books");
+  const back = await core.call("books.get", { id: emma.id });
+  assert.equal(back.year, undefined);
+  assert.equal(back.description, undefined);
+  assert.equal(back.plan.catalog, undefined);
+  assert.equal((await core.call("books.get", { id: cope.id })).publisher, undefined);
+});
+
+test("Fix leaves an unsure match waiting in Needs Review", async () => {
+  const web = structuredClone(OPEN_LIBRARY) as Record<string, unknown>;
+  // No author in the book: a title alone matches at 0.7, which starts unticked, so Fix doesn't take it.
+  web["title=Emma&fields"] = { docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815 }] };
+  const { core, file } = setup(web);
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub({ opfMeta: "<dc:title>Emma</dc:title><dc:language>en</dc:language>" }))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  await core.call("books.fix", { ids: [b.id] });
+  await core.idle();
+  const after = await core.call("books.get", { id: b.id });
+  assert.equal(after.year, undefined);
+  assert.ok(
+    after.report.suggestions.some((s) => s.field === "year" && s.confidence < 0.8),
+    "still offered on the review sheet",
+  );
+  assert.equal(after.state, "review");
+});
+
+test("a details edit made while Fix is working on the same book stays when the fix is undone", async () => {
+  const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
+  const MAGPIE_WEB = join(home, "web.json");
+  writeFileSync(MAGPIE_WEB, JSON.stringify(OPEN_LIBRARY));
+  const gate = pause(nodeHost({ MAGPIE_HOME: home, MAGPIE_WEB, MAGPIE_MODEL: NO_MODEL }), "/originals/");
+  const core = createCore(gate.host);
+  await core.call("app.state");
+  await core.call("settings.set", { organize: false });
+  mkdirSync(join(home, "Downloads"));
+  writeFileSync(join(home, "Downloads/emma.epub"), epub());
+  await core.call("books.import", { paths: [join(home, "Downloads/emma.epub")] });
+  await core.idle();
+  const [emma] = await core.call("books.list");
+
+  // The fix is writing the year it found when the person sets their own.
+  gate.arm();
+  await core.call("books.fix", { ids: [emma.id] });
+  await gate.reached;
+  const edit = core.call("books.edit", { id: emma.id, patch: { year: 1816 } });
+  await settle();
+  gate.open();
+  await edit;
+  await core.idle();
+
+  assert.equal((await core.call("books.get", { id: emma.id })).year, 1816);
+  assert.equal((await core.call("history.undo")).undone, "Fix book");
+  const after = await core.call("books.get", { id: emma.id });
+  assert.equal(after.year, 1816, "undoing the fix doesn't take back the person's year");
+  assert.equal(after.description, undefined, "but does take back what the fix filled in");
+  // Undoing the edit puts back what it replaced: the year the person saw before they changed it.
+  assert.equal((await core.call("history.undo")).undone, "Edit details");
+  assert.equal((await core.call("books.get", { id: emma.id })).year, 1815);
+});
+
 test("Look Up Details finds the real cover for a book whose cover Magpie drew, as a suggestion that undoes", async () => {
   const web = structuredClone(OPEN_LIBRARY) as Record<string, { docs?: Record<string, unknown>[] }>;
   web["title=Emma&author=Jane+Austen"].docs![0].cover_i = 123;
@@ -1016,6 +1111,26 @@ test("Look Up Details finds the real cover for a book whose cover Magpie drew, a
   assert.ok(!took.report.suggestions.some((s) => s.field === "cover"));
   await core.call("history.undo");
   assert.equal((await core.call("books.get", { id: b.id })).report.coverMade, true, "undo puts the drawn cover back");
+});
+
+test("Fix puts in Open Library's cover for a book whose cover Magpie drew, and undoing it puts the drawn one back", async () => {
+  const web = structuredClone(OPEN_LIBRARY) as Record<string, { docs?: Record<string, unknown>[] }>;
+  web["title=Emma&author=Jane+Austen"].docs![0].cover_i = 123;
+  const real = jpeg(600, 900);
+  const { core, file } = setup({ ...web, "covers.openlibrary.org/b/id/123-L.jpg": { base64: Buffer.from(real).toString("base64") } });
+  await core.call("app.state");
+  await core.call("settings.set", { organize: false });
+  await core.call("books.import", { paths: [file("emma.epub", coverless())] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const job = await core.call("books.fix", { ids: [b.id] });
+  await core.idle();
+  assert.equal((await core.call("jobs.get", { id: job.id })).results[0].message, "Filled in year, description and cover.");
+  const d = await core.call("books.get", { id: b.id });
+  assert.deepEqual(declaredCover(d.file), real);
+  assert.equal(d.plan.cover?.from, "openlibrary");
+  assert.equal((await core.call("history.undo")).undone, "Fix book");
+  assert.equal((await core.call("books.get", { id: b.id })).report.coverMade, true);
 });
 
 test("Look Up Details skips an Open Library cover that is too small or won't download", async () => {

@@ -319,3 +319,33 @@ test("Space previews a book on a reader; pages turn into the next chapter, and O
   await sheet.getByRole("button", { name: "Done" }).click();
   await expect(sheet).toHaveCount(0);
 });
+
+test("Fix on a selection fills in what Open Library is sure of, says what was sent, and ⌘Z takes it back", async ({ page }) => {
+  const home = test.info().config.metadata.home as string;
+  writeFileSync(
+    `${home}/web.json`,
+    JSON.stringify({
+      "title=Emma&author=Jane+Austen": { docs: [{ key: "/works/OL66562W", title: "Emma", author_name: ["Jane Austen"], first_publish_year: 1815 }] },
+      "/works/OL66562W.json": { description: "Emma Woodhouse, handsome, clever, and rich, meddles in the love lives of her friends." },
+    }),
+  );
+  await call(page, "books.import", { paths: books({ "emma.epub": emma(), "long.epub": longBook() }) });
+  await page.reload();
+  await page.locator(".tile").first().click();
+  await page.keyboard.press("ControlOrMeta+a");
+  const inspector = page.getByRole("complementary", { name: "Inspector" });
+  await expect(inspector).toContainText("2 books selected");
+  await expect(inspector.getByRole("button", { name: "Fix" })).toBeVisible();
+  await page.locator(".tile", { hasText: "Emma" }).click();
+  await inspector.getByRole("button", { name: "Fix" }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByRole("heading", { name: "Fixed 1 book" })).toBeVisible();
+  await expect(sheet).toContainText("Only titles, authors and ISBNs are sent.");
+  await expect(sheet).toContainText("Filled in year and description.");
+  await sheet.getByRole("button", { name: "Done" }).click();
+  await expect(sheet).toBeHidden();
+  await expect(inspector).toContainText("1815");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.getByText("Undid fix book")).toBeVisible();
+  await expect(inspector).not.toContainText("1815");
+});

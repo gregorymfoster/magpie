@@ -1,11 +1,11 @@
-import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock, BookOpen } from "lucide-react";
+import { Send, Wand2, PencilLine, Trash2, Check, AlertCircle, Lock, BookOpen, Sparkles } from "lucide-react";
 import type { BookSummary, Todo } from "@magpie/core";
 import { useAction, useCall } from "../api.tsx";
 import { Cover } from "./Cover.tsx";
 import { StatePill } from "./Books.tsx";
 import { authors, date, language, plural, size } from "../format.ts";
 
-export type Act = (a: "send" | "review" | "edit" | "preview" | "cover" | "remove" | "restore", ids?: number[]) => void;
+export type Act = (a: "send" | "fix" | "review" | "edit" | "preview" | "cover" | "remove" | "restore", ids?: number[]) => void;
 
 export function Inspector({ chosen, act }: { chosen: BookSummary[]; act: Act }) {
   if (!chosen.length)
@@ -20,6 +20,7 @@ export function Inspector({ chosen, act }: { chosen: BookSummary[]; act: Act }) 
   if (chosen.length > 1) {
     const review = chosen.filter((b) => b.state === "review").length;
     const work = chosen.filter((b) => b.state === "review" || b.state === "work").length;
+    const fixable = chosen.some((b) => b.state !== "locked" && !b.removedAt);
     return (
       <aside className="insp" aria-label="Inspector">
         <div className="ip">
@@ -42,6 +43,12 @@ export function Inspector({ chosen, act }: { chosen: BookSummary[]; act: Act }) 
               <Send size={13} />
               Send
             </button>
+            {fixable && (
+              <button className="btn" onClick={() => act("fix")} title="Repair, look up and fill in what's missing (⇧⌘F)">
+                <Sparkles size={13} />
+                Fix
+              </button>
+            )}
             {review > 0 && (
               <button className="btn" onClick={() => act("review")}>
                 <Wand2 size={13} />
@@ -108,15 +115,20 @@ function One({ b, act }: { b: BookSummary; act: Act }) {
                 <Send size={13} />
                 Send
               </button>
-              {b.state === "review" && (
+              {/* A book with suggestions waiting is reviewed first; Fix is still in the Book menu and on a selection. */}
+              {b.state === "review" ? (
                 <button className="btn" onClick={() => act("review")}>
                   <Wand2 size={13} />
                   Review
                 </button>
+              ) : (
+                <button className="btn" onClick={() => act("fix")} title="Repair, look up and fill in what's missing (⇧⌘F)">
+                  <Sparkles size={13} />
+                  Fix
+                </button>
               )}
-              <button className="btn" onClick={() => act("edit")} title="Edit details (⌘I)">
+              <button className="btn" onClick={() => act("edit")} title="Edit details (⌘I)" aria-label="Edit">
                 <PencilLine size={13} />
-                Edit
               </button>
               <button className="btn" onClick={() => act("preview")} title="Preview on a reader (Space)" aria-label="Preview on a reader">
                 <BookOpen size={13} />

@@ -4,13 +4,13 @@
 // at next launch. Every item must be safe to run twice (importing the same
 // file twice finds the duplicate).
 //
-// Two lanes run side by side: lookups wait on the network at a polite pace
+// Two lanes run side by side: lookups (and Fix, which looks up) wait on the network at a polite pace
 // and can take an hour on a big Library, so they never hold up adding books.
 
 import type { Db, SqlValue } from "./host.ts";
 import { UserError, explain } from "./errors.ts";
 
-export type JobKind = "import" | "calibre" | "kobo" | "lookup" | "organize" | "refresh";
+export type JobKind = "import" | "calibre" | "kobo" | "lookup" | "fix" | "organize" | "refresh";
 export type JobState = "queued" | "running" | "done" | "cancelled";
 
 export interface JobResult {
@@ -45,7 +45,7 @@ export type Runner = (item: unknown) => Promise<JobResult>;
  */
 export type Finisher = (job: Job, end: { sql: string; params: SqlValue[] }) => Promise<void>;
 
-const NET: JobKind[] = ["lookup"];
+const NET: JobKind[] = ["lookup", "fix"];
 type Lane = "local" | "net";
 const laneOf = (kind: JobKind): Lane => (NET.includes(kind) ? "net" : "local");
 

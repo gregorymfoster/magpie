@@ -61,9 +61,9 @@ class Context {
   }
 
   /** Sort books onto shelves as a job: one undo step for the lot. */
-  async sort(ids: number[]) {
+  async sort(ids: number[], label = ids.length === 1 ? "Sort book" : "Sort Library") {
     if (!ids.length) return null;
-    const step = await this.lib().openStep(ids.length === 1 ? "Sort book" : "Sort Library");
+    const step = await this.lib().openStep(label);
     return this.queue().enqueue(
       "organize",
       ids.length === 1 ? "Sorting a book onto shelves" : `Sorting ${ids.length} books onto shelves`,
@@ -124,6 +124,18 @@ class Context {
           [end],
         );
         this.changed();
+      },
+      // A whole Fix is one ⌘Z too; then the books are sorted again with what was found, as its own step.
+      fix: async (job, end) => {
+        await this.lib().recordLookups(
+          job.total === 1 ? "Fix book" : "Fix books",
+          job.results.flatMap((r) => (r.undo ? [r.undo as LookupPrev] : [])),
+          [end],
+        );
+        this.changed();
+        const ids = job.results.flatMap((r) => (r.undo ? [r.bookId!] : []));
+        if (job.state === "done" && (await this.lib().setting("organize", DEFAULTS.organize)))
+          await this.sort(ids, ids.length === 1 ? "Sort fixed book" : "Sort fixed books");
       },
     });
     this.jobs.resume();
@@ -203,52 +215,87 @@ function runners(ctx: Context) {
       await ctx.host.fs.write(join(device, "Magpie", deviceName(book.authors, book.title, "kepub.epub")), kepub);
       return { label: book.title, outcome: "sent", bookId: id } satisfies JobResult;
     },
-    lookup: async (item: unknown) => {
-      const { id } = item as { id: number };
-      const info = await ctx.lib().get(id);
-      const label = info.title;
-      if (info.state === "locked" || info.removedAt) return { label, outcome: "skipped", bookId: id } satisfies JobResult;
-      const coverWanted = wantsCover(info.report);
-      const search = async (url: string | null) => (url ? (((await ctx.host.web.getJson(url)) as { docs?: CatalogDoc[] }).docs ?? []) : []);
-      let m;
-      try {
-        // By ISBN first; an ISBN Open Library doesn't know falls back to title and author.
-        m = match(info, await search(searchUrl(info)));
-        if (!m && info.isbn) m = match({ ...info, isbn: undefined }, await search(searchUrl({ ...info, isbn: undefined })));
-      } catch {
-        return { label, outcome: "failed", message: explain("offline"), bookId: id } satisfies JobResult;
-      }
-      if (!m && !searchUrl({ ...info, isbn: undefined }))
-        return { label, outcome: "skipped", message: explain("lookup-nothing"), bookId: id } satisfies JobResult;
-      if (!m) {
-        const step = await ctx.lib().lookedUp(id, []);
-        return { label, outcome: "skipped", message: explain("lookup-no-match"), bookId: id, undo: step } satisfies JobResult;
-      }
-      const description = info.description ? undefined : descriptionOf(await ctx.host.web.getJson(workUrl(m.doc.key)).catch(() => null));
-      const found = suggestionsFrom(info, m, description);
-      if (coverWanted && m.doc.cover_i) {
-        // A cover that won't download, isn't a picture or is too small to be better is simply not suggested.
-        const bytes = await ctx.host.web.getBytes(coverUrl(m.doc.cover_i)).catch(() => null);
-        const size = bytes && coverType(bytes) ? imageSize(bytes) : null;
-        const kept = bytes && size && size.h >= MIN_COVER_HEIGHT ? await ctx.lib().keepCover(bytes) : null;
-        if (kept)
-          found.push({ field: "cover", current: "", value: kept.file, source: `Open Library, matched by ${m.by}`, confidence: m.confidence, from: "catalog" });
-      }
-      const record = recordOf(m);
-      const step = await ctx.lib().lookedUp(id, found, record);
-      ctx.changed();
-      const fields: string[] = found.map((s) => (s.field === "authors" ? "author" : s.field));
-      if (record.rating && record.ratings! >= MIN_RATINGS) fields.push("a rating");
-      return {
-        label,
-        outcome: fields.length ? "found" : "skipped",
-        message: fields.length ? `Found ${list(fields)}.` : "Matched, but Open Library had nothing the book is missing.",
-        bookId: id,
-        undo: step,
-      } satisfies JobResult;
-    },
+    lookup: (item: unknown) => lookUp(ctx, (item as { id: number }).id, false),
+    fix: (item: unknown) => lookUp(ctx, (item as { id: number }).id, true),
   };
 }
+
+/**
+ * One book's Look Up Details. With `fix` (the Fix command), the book is first
+ * brought up to today's engine, and every suggestion sure enough to start
+ * ticked is accepted as it's written (Library.lookedUp); less sure ones wait in Needs Review.
+ */
+async function lookUp(ctx: Context, id: number, fix: boolean): Promise<JobResult> {
+  if (fix)
+    await ctx
+      .lib()
+      .refresh(id)
+      .catch(() => {});
+  const info = await ctx.lib().get(id);
+  const label = info.title;
+  if (info.state === "locked") return { label, outcome: "skipped", message: fix ? explain("locked-edit") : undefined, bookId: id };
+  if (info.removedAt) return { label, outcome: "skipped", bookId: id };
+  // When Open Library can't help, a lookup leaves the book be (or marks it looked up); a Fix still takes the book's own sure suggestions.
+  const unmatched = async (outcome: "failed" | "skipped", message: string, found?: Suggestion[]): Promise<JobResult> => {
+    if (!fix && found === undefined) return { label, outcome, message, bookId: id };
+    const step = await ctx.lib().lookedUp(id, found, undefined, fix);
+    ctx.changed();
+    const filled = filledWords(step.filled);
+    if (filled.length) return { label, outcome: "found", message: `Filled in ${list(filled)} from the book's own pages. ${message}`, bookId: id, undo: step };
+    return { label, outcome, message, bookId: id, undo: step };
+  };
+  const coverWanted = wantsCover(info.report);
+  const search = async (url: string | null) => (url ? (((await ctx.host.web.getJson(url)) as { docs?: CatalogDoc[] }).docs ?? []) : []);
+  let m;
+  try {
+    // By ISBN first; an ISBN Open Library doesn't know falls back to title and author.
+    m = match(info, await search(searchUrl(info)));
+    if (!m && info.isbn) m = match({ ...info, isbn: undefined }, await search(searchUrl({ ...info, isbn: undefined })));
+  } catch {
+    return unmatched("failed", explain("offline"));
+  }
+  if (!m && !searchUrl({ ...info, isbn: undefined })) return unmatched("skipped", explain("lookup-nothing"));
+  if (!m) return unmatched("skipped", explain("lookup-no-match"), []);
+  const description = info.description ? undefined : descriptionOf(await ctx.host.web.getJson(workUrl(m.doc.key)).catch(() => null));
+  const found = suggestionsFrom(info, m, description);
+  if (coverWanted && m.doc.cover_i) {
+    // A cover that won't download, isn't a picture or is too small to be better is simply not suggested.
+    const bytes = await ctx.host.web.getBytes(coverUrl(m.doc.cover_i)).catch(() => null);
+    const size = bytes && coverType(bytes) ? imageSize(bytes) : null;
+    const kept = bytes && size && size.h >= MIN_COVER_HEIGHT ? await ctx.lib().keepCover(bytes) : null;
+    if (kept)
+      found.push({ field: "cover", current: "", value: kept.file, source: `Open Library, matched by ${m.by}`, confidence: m.confidence, from: "catalog" });
+  }
+  const record = recordOf(m);
+  const step = await ctx.lib().lookedUp(id, found, record, fix);
+  ctx.changed();
+  const rated = !!record.rating && record.ratings! >= MIN_RATINGS;
+  if (fix) {
+    const filled = filledWords(step.filled);
+    const waiting = (await ctx.lib().get(id)).report.suggestions.length;
+    const parts = [
+      filled.length ? `Filled in ${list(filled)}.` : waiting ? "" : "Nothing was missing.",
+      waiting ? `${plural(waiting, "detail")} to check in Needs Review.` : "",
+    ];
+    return { label, outcome: filled.length ? "found" : "checked", message: parts.filter(Boolean).join(" "), bookId: id, undo: step };
+  }
+  const fields: string[] = found.map((s) => (s.field === "authors" ? "author" : s.field));
+  if (rated) fields.push("a rating");
+  return {
+    label,
+    outcome: fields.length ? "found" : "skipped",
+    message: fields.length ? `Found ${list(fields)}.` : "Matched, but Open Library had nothing the book is missing.",
+    bookId: id,
+    undo: step,
+  };
+}
+
+/** What a Fix filled in, for a sentence: "year", "description" and "cover". */
+function filledWords(p: InfoPatch | undefined): string[] {
+  return Object.keys(p ?? {}).map((k) => (k === "authors" ? "author" : k === "seriesIndex" ? "series number" : k));
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 const list = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
@@ -495,6 +542,26 @@ const commands = {
     const label = ids.length === 1 ? `Looking up ${(await ctx.lib().get(ids[0])).title}` : `Looking up ${ids.length} books`;
     return ctx.queue().enqueue(
       "lookup",
+      label,
+      ids.map((id) => ({ id })),
+    );
+  },
+
+  /**
+   * Fix: everything Magpie can do for these books in one go. Each is brought
+   * up to today's engine (layout, links, contents, cover), looked up on Open
+   * Library (only titles, authors and ISBNs are sent), and every suggestion
+   * sure enough to start ticked is accepted; the rest wait in Needs Review.
+   * Then the books are sorted again, so what Open Library found places them on
+   * shelves. The fix is one undo, the sort after it another.
+   */
+  async "books.fix"(ctx: Context, a: { ids: number[] }) {
+    const books = await Promise.all(a.ids.map((id) => ctx.lib().get(id)));
+    const ids = books.filter((b) => b.state !== "locked" && !b.removedAt).map((b) => b.id);
+    if (!ids.length) throw new UserError(books.length ? "locked-edit" : "no-book");
+    const label = ids.length === 1 ? `Fixing ${books.find((b) => b.id === ids[0])!.title}` : `Fixing ${ids.length} books`;
+    return ctx.queue().enqueue(
+      "fix",
       label,
       ids.map((id) => ({ id })),
     );

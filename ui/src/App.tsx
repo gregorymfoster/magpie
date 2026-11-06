@@ -177,6 +177,11 @@ function Window() {
           case "send":
             // Sending from a reader's own list goes to that reader.
             return setSheet({ type: "send", ids, prefer: kobo ?? (view === "books" || view === "kindle" ? view : undefined) });
+          case "fix": {
+            if (!ids.length || view === "removed") return;
+            const job = await act("books.fix", { ids });
+            return setSheet({ type: "job", id: job.id });
+          }
           case "review":
             return setSheet({ type: "review" });
           case "settings":
@@ -248,7 +253,8 @@ function Window() {
       if (!(e.metaKey || e.ctrlKey)) return;
       const map: Record<string, string> = { k: "find", o: "add", "1": "grid", "2": "list", i: "edit", y: "preview", ",": "settings" };
       if (!typing) Object.assign(map, { a: "selectAll", z: "undo", Backspace: "remove" });
-      const id = e.shiftKey && e.key.toLowerCase() === "s" ? "send" : map[e.key];
+      const shifted: Record<string, string> = { s: "send", f: "fix" };
+      const id = e.shiftKey ? shifted[e.key.toLowerCase()] : map[e.key];
       if (id) {
         e.preventDefault();
         void run(id);

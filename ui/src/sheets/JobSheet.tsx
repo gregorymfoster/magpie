@@ -28,13 +28,16 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
   const [seenAtOpen] = useState(job.results.length);
   const n = (o: JobResult["outcome"]) => job.results.filter((r) => r.outcome === o).length;
   const sending = job.kind === "kobo";
-  const lookup = job.kind === "lookup";
+  const fixing = job.kind === "fix";
+  const lookup = job.kind === "lookup" || fixing;
   const title = done
     ? sending
       ? `Sent ${plural(n("sent"), "book")} to Kobo`
-      : lookup
-        ? `Found details for ${plural(n("found"), "book")}`
-        : `Added ${plural(n("added"), "book")}`
+      : fixing
+        ? `Fixed ${plural(job.results.filter((r) => r.undo).length, "book")}`
+        : lookup
+          ? `Found details for ${plural(n("found"), "book")}`
+          : `Added ${plural(n("added"), "book")}`
     : job.label;
   return (
     <Sheet label={title} onClose={onClose}>
@@ -44,17 +47,21 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
           {title}
         </h2>
         <p>
-          {lookup
+          {fixing
             ? done
-              ? "Details Open Library found are waiting in Needs Review, and nothing is written into a book until you accept them. Ratings are in the Rating column and the inspector."
-              : "Open Library is asked about one book a second, by title, author and ISBN. The books themselves never leave this Mac."
-            : sending
+              ? "Each book was repaired again, and details and covers Open Library was sure of are filled in. Anything less certain waits in Needs Review. ⌘Z takes the whole fix back."
+              : "Each book is repaired with Magpie’s latest fixes, then Open Library is asked about it by title, author and ISBN, one book a second. The books themselves never leave this Mac."
+            : lookup
               ? done
-                ? "Eject the Kobo before unplugging it. The books are in its library now."
-                : "Each book is converted to Kobo’s own format on the way, so page numbers and reading stats work."
-              : done
-                ? "Each file was checked and repaired before it joined your Library. Your originals are kept untouched."
-                : "Magpie copies each file in, repairs what it can, and keeps the original."}
+                ? "Details Open Library found are waiting in Needs Review, and nothing is written into a book until you accept them. Ratings are in the Rating column and the inspector."
+                : "Open Library is asked about one book a second, by title, author and ISBN. The books themselves never leave this Mac."
+              : sending
+                ? done
+                  ? "Eject the Kobo before unplugging it. The books are in its library now."
+                  : "Each book is converted to Kobo’s own format on the way, so page numbers and reading stats work."
+                : done
+                  ? "Each file was checked and repaired before it joined your Library. Your originals are kept untouched."
+                  : "Magpie copies each file in, repairs what it can, and keeps the original."}
         </p>
       </div>
       <div className="sh-b">
@@ -63,15 +70,15 @@ export function JobSheet({ job, onClose, onReview, reviewCount }: { job: Job; on
             <div className="sum">
               <div>
                 <b>{n("found")}</b>
-                <span>with details found</span>
+                <span>{fixing ? "with details filled in" : "with details found"}</span>
               </div>
               <div>
                 <b>{reviewCount}</b>
                 <span>to check</span>
               </div>
               <div>
-                <b>{n("skipped") + n("failed")}</b>
-                <span>nothing found</span>
+                <b>{fixing ? n("checked") + n("skipped") + n("failed") : n("skipped") + n("failed")}</b>
+                <span>{fixing ? "nothing to fill in" : "nothing found"}</span>
               </div>
             </div>
           ) : (

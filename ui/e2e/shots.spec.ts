@@ -11,6 +11,7 @@ const SCREENS: [string, string][] = [
   ["first-launch", "/"],
   ["library", "/?sel=1"],
   ["library-list", "/?layout=list&sel=1"],
+  ["library-many", "/?layout=list&sel=1,2,3"],
   ["review", "/?sheet=review"],
   ["send", "/?sel=1&sheet=send"],
   ["edit", "/?sel=1&sheet=edit"],

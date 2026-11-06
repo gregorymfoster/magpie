@@ -18,6 +18,7 @@ import { ENGINE, fix, newPlan, type CatalogRecord, type FixAssets, type FixPlan,
 import { MIN_RATINGS } from "../identify/catalog.ts";
 import { coverType } from "../images.ts";
 import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
+import { SURE, patchFor } from "../suggestions.ts";
 import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
@@ -143,6 +144,8 @@ export interface LookupPrev {
   id: number;
   found?: Suggestion[];
   catalog?: CatalogRecord;
+  /** What a Fix filled in (details, a cover), each where the book had nothing; undoing takes back only what still holds them. */
+  filled?: InfoPatch;
 }
 
 type Row = Record<string, SqlValue>;
@@ -455,22 +458,41 @@ export class Library {
    * Keep what a catalog lookup found on the book's plan, so it shows on the
    * review sheet. Returns what it replaced; the lookup job turns those into
    * one undo step for the whole run when it ends (recordLookups). Kept small
-   * because a job saves its results after every book.
+   * because a job saves its results after every book. `found` undefined keeps
+   * what the book had found before.
+   *
+   * With `fill` (Fix), every suggestion sure enough to start ticked on the
+   * review sheet is accepted too, as Done would: from a fresh read, so only
+   * fields a person hasn't set, and the cover only when none was put in.
    */
-  async lookedUp(id: number, found: Suggestion[], catalog?: CatalogRecord): Promise<LookupPrev> {
+  async lookedUp(id: number, found: Suggestion[] | undefined, catalog?: CatalogRecord, fill = false): Promise<LookupPrev> {
     return this.exclusive(async () => {
       const { plan: was } = await this.snapshot(id);
+      let plan: FixPlan = { ...was, found: found ?? was.found, catalog: catalog ?? was.catalog };
+      if (plan.found === undefined) delete plan.found;
+      if (plan.catalog === undefined) delete plan.catalog;
+      let filled: InfoPatch | undefined;
+      if (fill) {
+        const first = fix(await this.sourceOf(id), plan, await this.assets(plan));
+        const sure = first.report.suggestions.filter((s) => s.confidence >= SURE);
+        if (sure.length) {
+          filled = patchFor(sure);
+          plan = withPatch(plan, filled);
+        }
+      }
       const c = new Change();
-      await this.render(id, { ...was, found, catalog: catalog ?? was.catalog }, c);
+      await this.render(id, plan, c);
       await this.commit(c);
-      return { id, found: was.found, catalog: was.catalog };
+      return { id, found: was.found, catalog: was.catalog, ...(filled && { filled }) };
     });
   }
 
   /**
    * One undo step for a whole lookup run: each book back to what it had found
    * before. `also` commits with it (the job queue marking the run done), so
-   * a run is never done without its undo step, or recorded twice.
+   * a run is never done without its undo step, or recorded twice. What a Fix
+   * filled in is taken back only where it still holds that value, so a
+   * person's edit made since stays.
    */
   async recordLookups(label: string, prevs: LookupPrev[], also: Statement[] = []) {
     return this.exclusive(async () => {
@@ -481,6 +503,13 @@ export class Library {
         const plan: FixPlan = { ...now.plan, found: p.found, catalog: p.catalog };
         if (p.found === undefined) delete plan.found;
         if (p.catalog === undefined) delete plan.catalog;
+        if (p.filled) {
+          const { cover, ...info } = p.filled;
+          const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+          plan.info = { ...plan.info };
+          for (const [k, v] of Object.entries(info)) if (same(plan.info[k as keyof typeof info], v)) delete plan.info[k as keyof typeof info];
+          if (cover !== undefined && plan.cover?.file === cover && plan.cover.from === "openlibrary") delete plan.cover;
+        }
         steps.push({ id: p.id, before: { ...now, plan }, after: now });
       }
       const c = new Change();

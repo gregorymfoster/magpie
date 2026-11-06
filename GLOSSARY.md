@@ -14,6 +14,8 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Layout.** The fixer that makes a book obey the reader's settings and read like a store book: publisher fonts, sizes, line heights and black-on-white come off body text, spacer paragraphs go, blank-line scene breaks become visible ones, plain chapter titles become headings, typed-in indents become real ones. **Keep the book's own styling** turns it off for a book (`plan.keepStyle`).
 
+**Fix (the command).** What a person asks for when they select books and press Fix (⇧⌘F): the fix brought up to today's engine, Look Up Details, every suggestion sure enough to start ticked (0.8, `SURE`) accepted, and the books sorted onto shelves again with what was found (`books.fix`). Less sure suggestions still wait in Needs Review. One undo for the fix, one for the sort after it.
+
 **Fixer.** One step of a fix (`core/src/fixers/`). Each reports **changes** in plain English.
 
 **FixPlan.** What to do to an original: the engine version, the book's details (`info`), dismissed suggestions and the **stamp** (uuid and modified date). Replaying a plan on the original gives the same bytes every time. Plans are also the undo record.

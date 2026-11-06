@@ -1,6 +1,6 @@
 # Working on Magpie
 
-Magpie is a Mac app that fixes and manages EPUBs. Everything runs locally and no book is ever uploaded; the one exception to "nothing goes out" is Look Up Details, which sends titles, authors and ISBNs to Open Library only when a person presses it (docs/adr/0004). It never touches DRM.
+Magpie is a Mac app that fixes and manages EPUBs. Everything runs locally and no book is ever uploaded; the one exception to "nothing goes out" is Look Up Details (and Fix, which runs it), which sends titles, authors and ISBNs to Open Library only when a person presses it (docs/adr/0004). It never touches DRM.
 
 ## The one rule for checking your work
 

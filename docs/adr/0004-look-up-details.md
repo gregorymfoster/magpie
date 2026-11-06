@@ -20,6 +20,10 @@ Lookups run in their own job lane so a long run never holds up adding books, and
 
 The privacy promise becomes "your books never leave this Mac; titles are sent to Open Library when you press Look Up". Settings › Privacy, the README and the sheets say so. Tests never touch the network: `MAGPIE_WEB` hands the Node host canned answers. Series aren't in Open Library's search, so Look Up doesn't fill them.
 
+## Addendum, 2026-11-06: Fix
+
+Greg asked to select books and "fix" them in one press: missing details, covers, formatting. Fix (`books.fix`) is that press. It brings each book up to today's engine, runs the same Look Up Details on it (the same request, the same strict matching, nothing more sent), and accepts what is sure enough to start ticked on the review sheet (0.8 and up: an ISBN or title-and-author match, and the book's own sure suggestions), as pressing Done would. A title-only match (0.7) still waits in Needs Review. Pressing Fix is the person asking, so there's no sheet before it; the job sheet says that only titles, authors and ISBNs go to Open Library. Only fields the person hasn't set are filled, and undoing a Fix takes back only what still holds the value it filled, so an edit made meanwhile stays. The whole run is one undo; the books are then sorted again (its own undo), so subjects Open Library knows can place them on shelves. Series still aren't filled: Open Library's search doesn't have them.
+
 ## Addendum, 2026-10-28: ratings
 
 Greg asked for Goodreads ratings. Goodreads closed its API in 2020 and forbids scraping, StoryGraph has none, and Hardcover's is a personal token meant for personal use, so none of them fits this rule. Open Library's search already answers with its own readers' ratings (`ratings_average`, `ratings_count`), so Look Up asks for those two fields on the same request. Nothing new leaves the Mac and no new site is asked.

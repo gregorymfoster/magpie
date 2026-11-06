@@ -2,6 +2,9 @@
 
 import type { InfoPatch, Suggestion } from "./info.ts";
 
+/** Suggestions at least this sure start ticked on the review sheet, and Fix accepts them. Below it, a person looks first. */
+export const SURE = 0.8;
+
 /** The details a set of accepted suggestions amounts to. The window and `magpie mcp` both use this. */
 export function patchFor(accepted: Suggestion[]): InfoPatch {
   const out: InfoPatch = {};

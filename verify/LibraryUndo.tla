@@ -7,7 +7,10 @@
 (* A book is its plan (books.plan) and its tags (books.tags). A plan holds *)
 (* only what this question needs: `info`, the details a person set         *)
 (* (Library.edit), `found`, what Look Up Details found (Library.lookedUp), *)
-(* and `engine` (Library.refresh). History rows are the history table.     *)
+(* `filled`, details a Fix filled in where the book had none (lookedUp with *)
+(* fill), and `engine` (Library.refresh). History rows are the history     *)
+(* table. The net lane's run is a Fix: a lookup that also fills; a plain   *)
+(* lookup is the same run without `filled`.                                *)
 (*                                                                         *)
 (* Three actors run side by side, as they do in the app: the person        *)
 (* (core.call from the window), the net lane (lookup jobs) and the local   *)
@@ -35,7 +38,7 @@ N == Len(BookSeq)
 NoRow == [id |-> 0, kind |-> "none", entries |-> <<>>]
 
 VARIABLES
-    plan,        \* books.plan:  [Books -> [info, found, engine]]
+    plan,        \* books.plan:  [Books -> [info, found, filled, engine]]
     tags,        \* books.tags:  [Books -> {"none", "sorted"}]
     hist,        \* history rows, oldest first: [id, kind, entries]
     nextId,      \* next history id
@@ -58,7 +61,7 @@ Append1(row) == /\ hist' = Append(hist, row)
                 /\ nextId' = nextId + 1
 
 Init ==
-    /\ plan = [b \in Books |-> [info |-> 0, found |-> 0, engine |-> 0]]
+    /\ plan = [b \in Books |-> [info |-> 0, found |-> 0, filled |-> 0, engine |-> 0]]
     /\ tags = [b \in Books |-> "none"]
     /\ hist = <<>>
     /\ nextId = 1
@@ -216,8 +219,8 @@ LookupFinds ==
     /\ lPhase = "read" /\ lI <= N
     /\ LET b == BookSeq[lI] IN
        IF Locked
-         THEN /\ plan' = [plan EXCEPT ![b] = [plan[b] EXCEPT !.found = 1]]
-              /\ lPrevs' = Append(lPrevs, [b |-> b, found |-> plan[b].found])
+         THEN /\ plan' = [plan EXCEPT ![b] = [plan[b] EXCEPT !.found = 1, !.filled = 1]]
+              /\ lPrevs' = Append(lPrevs, [b |-> b, found |-> plan[b].found, filled |-> plan[b].filled])
               /\ lI' = lI + 1
               /\ UNCHANGED <<lPhase, lRead>>
          ELSE /\ lRead' = plan[b] /\ lPhase' = "write"
@@ -228,13 +231,16 @@ LookupFinds ==
 LookupResultLands ==
     /\ lPhase = "write"
     /\ LET b == BookSeq[lI] IN
-       /\ plan' = [plan EXCEPT ![b] = [lRead EXCEPT !.found = 1]]
-       /\ lPrevs' = Append(lPrevs, [b |-> b, found |-> lRead.found])
+       /\ plan' = [plan EXCEPT ![b] = [lRead EXCEPT !.found = 1, !.filled = 1]]
+       /\ lPrevs' = Append(lPrevs, [b |-> b, found |-> lRead.found, filled |-> lRead.filled])
     /\ lI' = lI + 1 /\ lPhase' = "read"
     /\ UNCHANGED <<tags, hist, nextId, pc, pB, pRead, edits, undos, uRow, uIdx, lRead, lSteps, rI, rRead,
                    sStep, sPhase, sI, sBefore, sCancel, expect, expectTags>>
 
-LookStep(p) == [b |-> p.b, before |-> [plan |-> [plan[p.b] EXCEPT !.found = p.found], tags |-> tags[p.b]],
+\* recordLookups: what was found goes back; what a Fix filled goes back only where the book still holds it.
+LookStep(p) == [b |-> p.b, before |-> [plan |-> [plan[p.b] EXCEPT !.found = p.found,
+                                                   !.filled = IF plan[p.b].filled = 1 THEN p.filled ELSE @],
+                                       tags |-> tags[p.b]],
                 after |-> Snap(p.b)]
 
 LookupRunEnds ==

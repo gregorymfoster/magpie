@@ -72,6 +72,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&item("edit", "Edit Details…", Some("CmdOrCtrl+I"))?)
         .item(&item("preview", "Preview on a Reader…", Some("CmdOrCtrl+Y"))?)
         .item(&item("send", "Send to Reader…", Some("CmdOrCtrl+Shift+S"))?)
+        .item(&item("fix", "Fix", Some("CmdOrCtrl+Shift+F"))?)
         .separator()
         .item(&item("remove", "Move to Removed", Some("CmdOrCtrl+Backspace"))?)
         .item(&item("restore", "Restore", None)?)

@@ -156,6 +156,18 @@ export function mcpServer(core: Core, version: string) {
   );
 
   server.registerTool(
+    "fix_books",
+    {
+      title: "Fix books",
+      description:
+        "Do everything Magpie can for these books at once: repair them with today's fixers, look them up on Open Library (sends only titles, authors and ISBNs), accept the details and covers it is sure of (an ISBN or title-and-author match, and the book's own sure suggestions), then sort them onto shelves again. Less sure suggestions wait for review_suggestions. Locked books are skipped. Undoable: one step for the fix, one for the sort. Paced at about one request a second, so keep it to a handful of books.",
+      inputSchema: { ids: z.array(z.number().int()).min(1).max(50) },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
+    },
+    async ({ ids }) => text(await finish(await core.call("books.fix", { ids }))),
+  );
+
+  server.registerTool(
     "edit_book",
     {
       title: "Edit details",

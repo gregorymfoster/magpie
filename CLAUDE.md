@@ -18,6 +18,7 @@ Faster loops while you work:
 - `node --test core/test/determinism.test.ts` builds random plans twice at different times and time zones (in `just test`). If you touch a build, a zip or a converter, follow the `verify-determinism` skill.
 - `node --test core/test/fuzz.test.ts` imports damaged books of every kind (fast-check; in `just test`). If you touch importing, a converter, a parser or a fixer, follow the `verify-import-fuzz` skill.
 - `node --test core/test/naming.test.ts` checks file names for any text at all (fast-check; in `just test`). If you touch `naming.ts`, follow the `verify-naming` skill.
+- Every night CI runs `just verify-deep` (the same checks, far deeper, new seeds). A failure opens an issue labelled `nightly`; read it with the matching `verify-*` skill.
 
 ## How the code is shaped
 

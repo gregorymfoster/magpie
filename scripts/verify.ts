@@ -1,4 +1,5 @@
 // `just verify`: model-check verify/LibraryUndo.tla with TLC.
+// `just verify-deep` (the nightly run): today's code at bigger bounds too.
 //
 // Two runs of the same model. Today's code (Locked = TRUE) must keep every
 // rule. The code before the fix (Locked = FALSE) must break each rule, one at a
@@ -57,8 +58,32 @@ function oneRule(rule: string): string {
   return path;
 }
 
+/** Today's config at the nightly bounds: more edits and undos interleaved with the jobs. */
+function deeper(): string {
+  const cfg = readFileSync(join(dir, "LibraryUndo.cfg"), "utf8")
+    .replace(/MaxEdits = \d+/, `MaxEdits = ${DEEP.edits}`)
+    .replace(/MaxUndos = \d+/, `MaxUndos = ${DEEP.undos}`);
+  const path = join(tools, "deep.cfg");
+  writeFileSync(path, cfg);
+  return path;
+}
+
+const DEEP = { edits: 4, undos: 4 };
+
 await fetchTlc();
 let failed = false;
+
+if (process.argv.includes("--deep")) {
+  const out = tlc(deeper());
+  const n = out.match(/(\d[\d,]*) distinct states found/)?.[1];
+  if (/Model checking completed\. No error has been found/.test(out))
+    console.log(`Today's code keeps every rule with ${DEEP.edits} edits and ${DEEP.undos} undos (${n} states checked).`);
+  else {
+    failed = true;
+    console.log(`Today's code breaks a rule with ${DEEP.edits} edits and ${DEEP.undos} undos. TLC's output, with the shortest path to it:\n`);
+    console.log(out);
+  }
+}
 
 const today = tlc("LibraryUndo.cfg");
 const states = today.match(/(\d[\d,]*) distinct states found/)?.[1];

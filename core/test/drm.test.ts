@@ -130,6 +130,13 @@ const ACTIONS: fc.Arbitrary<Action> = fc.oneof(
   fc.record({ do: fc.constantFrom("undo", "sort", "import", "purge", "reopen") }),
 ) as fc.Arbitrary<Action>;
 
+/**
+ * What a locked book says about itself, to compare over a session. The plan's stamp (the date it was added) is left
+ * out: a book emptied from Removed and added again is a new book, added today, and the stamp is never written into it.
+ */
+const details = (d: { title: string; authors: string[]; year?: number; description?: string; plan: object }) =>
+  JSON.stringify([d.title, d.authors, d.year ?? null, d.description ?? null, { ...d.plan, stamp: undefined }]);
+
 async function session(actions: Action[]) {
   const home = mkdtempSync(join(tmpdir(), "magpie-drm-"));
   const downloads = join(home, "Downloads");
@@ -158,7 +165,7 @@ async function session(actions: Action[]) {
   const first = new Map<string, string>();
   for (const b of await core.call("books.list", { state: "locked" })) {
     const d = await core.call("books.get", { id: b.id });
-    first.set(sha(readFileSync(d.original)), JSON.stringify([d.title, d.authors, d.year ?? null, d.description ?? null, d.plan]));
+    first.set(sha(readFileSync(d.original)), details(d));
   }
   assert.equal(first.size, LOCKED.size, "every locked book comes in as locked");
 
@@ -179,8 +186,7 @@ async function session(actions: Action[]) {
       if (sha(readFileSync(d.original)) !== hash) broken.push(`${step}: ${name}'s original changed`);
       if (!existsSync(d.file) || sha(readFileSync(d.file)) !== hash) broken.push(`${step}: ${name}'s book file isn't the store's file byte for byte`);
       if (d.report.changes.length) broken.push(`${step}: ${name} has fixes: ${d.report.changes.map((c) => c.fixer).join(", ")}`);
-      if (JSON.stringify([d.title, d.authors, d.year ?? null, d.description ?? null, d.plan]) !== first.get(hash))
-        broken.push(`${step}: ${name}'s details changed`);
+      if (details(d) !== first.get(hash)) broken.push(`${step}: ${name}'s details changed`);
     }
     // Anything written outside a locked book's own two files must hold none of it.
     const own = new Set<string>();

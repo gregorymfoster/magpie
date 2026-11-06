@@ -80,3 +80,9 @@ release-setup:
 # Model-check how edits, background jobs and Undo interleave (verify/LibraryUndo.tla; needs Java)
 verify:
     node scripts/verify.ts
+
+# The nightly run (.github/workflows/nightly.yml): the Undo model at bigger bounds, and every
+# property test (DRM, determinism, import fuzz, naming) with many more cases and a new seed each night.
+verify-deep:
+    node scripts/verify.ts --deep
+    DRM_RUNS=1000 DETERMINISM_RUNS=500 FUZZ_RUNS=3000 NAMING_RUNS=20000 node --test core/test/drm.test.ts core/test/determinism.test.ts core/test/fuzz.test.ts core/test/naming.test.ts core/test/crash.test.ts

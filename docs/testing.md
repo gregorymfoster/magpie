@@ -14,6 +14,7 @@
 | Determinism | `core/test/determinism.test.ts`, in `just test` | Random plans (fast-check) built twice at different times and time zones: same bytes, same report. Converters and device formats too. |
 | Import fuzz | `core/test/fuzz.test.ts`, in `just test` | Real books of every kind, damaged (fast-check), imported through `core.call`: added as a book that opens with every fixer run, or turned away in a sentence. |
 | Naming | `core/test/naming.test.ts`, in `just test` | Any text at all (fast-check) becomes names with no spaces that APFS and a Kobo's FAT32 card can hold, cut only between whole characters. |
+| Nightly | `.github/workflows/nightly.yml`, runs `just verify-deep` | The Undo model with 4 edits and 4 undos, and every property test above with many more cases and a fresh seed. A failure opens (or comments on) an issue labelled `nightly`. |
 | The bench | `just bench` | Fixer quality across the corpus. Any drop is a regression; it exits non-zero. |
 
 Things that never get tested by mocking: SQLite (use a temp Library), the file system (use a temp dir), the core from the UI (use `magpie serve`).

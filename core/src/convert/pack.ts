@@ -5,6 +5,7 @@
 
 import { zipSync, strToU8, type Zippable } from "fflate";
 import { toXhtml } from "../fixers/xhtml.ts";
+import { zipTime } from "../epub.ts";
 
 export interface Draft {
   title: string;
@@ -107,5 +108,5 @@ export function pack(d: Draft): Uint8Array {
     `<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/">${meta.join("")}</metadata><manifest>${items.join("")}</manifest><spine${d.rtl ? ' page-progression-direction="rtl"' : ""}>${spine.join("")}</spine></package>\n`,
   );
   // Fixed bytes for the same input: no timestamps in the zip.
-  return zipSync(files, { mtime: new Date("2000-01-01T00:00:00Z") });
+  return zipSync(files, { mtime: zipTime() });
 }

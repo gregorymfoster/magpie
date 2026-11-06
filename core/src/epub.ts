@@ -5,6 +5,14 @@
 import { unzipSync, zipSync, strToU8, type Zippable } from "fflate";
 import { DOMParser, XMLSerializer } from "@xmldom/xmldom";
 
+/**
+ * The time stamped on every file in a zip Magpie writes. A zip stores local
+ * time with no zone, so this is midnight on 1 January 2000 wherever the Mac
+ * is: a book built again (after an edit, an undo, a power cut) comes out byte
+ * for byte the same, whatever the clock or time zone says.
+ */
+export const zipTime = () => new Date(2000, 0, 1);
+
 export const OPF_NS = "http://www.idpf.org/2007/opf";
 export const DC_NS = "http://purl.org/dc/elements/1.1/";
 export const CONTAINER_PATH = "META-INF/container.xml";
@@ -81,14 +89,14 @@ export class Book {
     return algorithms.some((a) => !FONT_OBFUSCATION.has(a));
   }
 
-  /** Write a valid OCF zip: mimetype first and stored, everything else deflated. */
+  /** Write a valid OCF zip: mimetype first and stored, everything else deflated. The same book always gives the same bytes. */
   save(): Uint8Array {
     const z: Zippable = { mimetype: [strToU8("application/epub+zip"), { level: 0 }] };
     for (const [name, data] of this.files) {
       if (name === "mimetype") continue;
       z[name] = [data, { level: /\.(jpe?g|png|gif|webp|woff2?)$/i.test(name) ? 0 : 6 }];
     }
-    return zipSync(z);
+    return zipSync(z, { mtime: zipTime() });
   }
 
   has(path: string) {

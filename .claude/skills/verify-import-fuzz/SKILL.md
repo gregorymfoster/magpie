@@ -29,7 +29,7 @@ FUZZ_SEED=<seed> FUZZ_RUNS=<n> node --test core/test/fuzz.test.ts   # replay
 FUZZ_TALLY=/tmp/tally node --test core/test/fuzz.test.ts  # count fixer crashes instead of stopping at the first
 ```
 
-When it was written (at the commit after 6c96f9d) it found five bugs within 1,000 files: a cut-off FB2, a page with no root element, a package with two roots, and a damaged NCX each threw out of the import or crashed a fixer, and a zip of web pages with no package was added as a book no reader opens.
+When it was written (at 72940ed) it found five bugs within 1,000 files: a cut-off FB2, a page with no root element, a package with two roots, and a damaged NCX each threw out of the import or crashed a fixer, and a zip of web pages with no package was added as a book no reader opens.
 
 ## Read a failure
 
@@ -44,4 +44,4 @@ The failure names the file and, for a raw exception, the stack from running `sni
 
 Real-world damage the mutations don't make (the bench corpus covers that: `just bench`). Huge files and zip bombs beyond the limits in `epub.ts`. The quality of what a fixer does with damage, only that it doesn't crash. Calibre and Kobo imports.
 
-Last confirmed true to the code at commit `HEAD` (sync commit).
+Last confirmed true to the code at commit `72940ed` (sync commit).

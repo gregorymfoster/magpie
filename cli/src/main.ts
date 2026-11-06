@@ -5,14 +5,14 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createCore, fix, fixAndAccept, newPlan, Book, COMMANDS, type Core } from "@magpie/core";
+import { createCore, fix, fixAndAccept, newPlan, sniff, toEpub, explain, Book, COMMANDS, type Core } from "@magpie/core";
 import { nodeHost } from "./node-host.ts";
 import { serve } from "./serve.ts";
 import { mcp } from "./mcp.ts";
 
 const USAGE = `magpie: fix and manage ebooks
 
-  magpie fix <book.epub> [out.epub] [--accept]
+  magpie fix <book.epub|.mobi|.azw3|.pdf|...> [out.epub] [--accept]
       Fix one file. Prints what changed and any suggested details;
       --accept also writes the suggestions.
   magpie import <file-or-folder>... [--library <dir>]
@@ -57,10 +57,16 @@ async function main() {
   switch (cmd) {
     case "fix": {
       const accept = has("accept");
-      const [input, output = input?.replace(/\.epub$/i, "") + ".fixed.epub"] = rest;
+      const [input, output = input?.replace(/\.[a-z0-9]+$/i, "") + ".fixed.epub"] = rest;
       if (!input) return usage();
-      const bytes = readFileSync(input);
-      const r = accept ? fixAndAccept(bytes) : fix(bytes, newPlan(new Book().stamp));
+      // MOBI, AZW3, PDF and the rest are turned into an EPUB first, as the Library does.
+      const raw = new Uint8Array(readFileSync(input));
+      const kind = sniff(raw, input);
+      if (!kind) throw new Error(explain("not-a-book"));
+      const bytes = await toEpub(raw, kind, input);
+      if (kind !== "epub") console.log(`- Turned the ${kind.toUpperCase()} file into an EPUB.`);
+      const plan = newPlan(new Book().stamp);
+      const r = accept ? fixAndAccept(bytes) : fix(bytes, plan);
       for (const c of r.report.changes) console.log(`- ${c.message}`);
       for (const s of r.report.suggestions)
         console.log(`? Suggest ${s.field === "authors" ? "author" : s.field} "${s.value}" (from ${s.source}). Use --accept to write it.`);

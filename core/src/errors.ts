@@ -3,8 +3,12 @@
 // reaches the screen.
 
 const SENTENCES: Record<string, string> = {
-  "not-a-zip": "This file isn't an EPUB Magpie can read. It may be a PDF or a document with the wrong ending.",
-  "not-epub": "Magpie only reads EPUB books for now. MOBI, AZW3 and PDF are on the list.",
+  "not-a-zip": "This EPUB is damaged: it isn't a complete file. Download it again from where it came from.",
+  "not-a-book": "This isn't a book Magpie can read. Magpie takes EPUB, MOBI, AZW3, PDF, FB2, plain text and web pages, and zip files of them.",
+  "no-text": "Magpie opened this book but found no text in it to keep.",
+  "pdf-scanned": "This PDF is pictures of pages with no text in it, so it can't become a book that reflows. Keep it as a PDF.",
+  "pdf-password": "This PDF needs a password to open. Open it in Preview, export a copy without the password, and add that.",
+  "rar-archive": "Magpie can't open RAR archives. Open it in Finder (or The Unarchiver) and add the books inside.",
   drm: "Added, but it's locked with DRM by the store that sold it. Magpie lists it as it is and can't fix, edit or send it.",
   "locked-edit": "This book is locked with DRM, so Magpie leaves it exactly as the store made it. Its details can't be changed.",
   "locked-preview": "This book is locked with DRM, so its pages can't be shown here. Read it with the app from the store that sold it.",
@@ -37,7 +41,7 @@ const SENTENCES: Record<string, string> = {
   offline: "Magpie couldn't reach Open Library. Check the internet connection and look up again; books already done are kept.",
   "lookup-nothing": "Not enough to look up: the book has no usable title or ISBN.",
   "lookup-no-match": "Open Library has no clear match. Check the title and author, or fill in the details yourself.",
-  "calibre-no-epub": "Calibre has this book only as MOBI, AZW3 or PDF, which Magpie can't read yet.",
+  "calibre-no-epub": "Calibre has no file for this book that Magpie can read.",
 };
 
 /** A sentence for an error code, or for an unexpected error. */

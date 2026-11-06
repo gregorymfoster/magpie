@@ -26,7 +26,7 @@ export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre
           <p>
             <b>Bring in your Calibre library</b>
             <span>
-              {plural(calibre.epubs, "EPUB book")} in {tilde(calibre.path)}. Your Calibre library itself is never changed.
+              {plural(calibre.epubs, "book")} in {tilde(calibre.path)}. Your Calibre library itself is never changed.
             </span>
           </p>
           <span className="btn">Bring in</span>

@@ -16,6 +16,7 @@ import { readInfo, type InfoPatch, type Suggestion } from "../info.ts";
 import { ORGANIZER, readOpening, readSubjects, type Organizer } from "../organize/organize.ts";
 import { join, type Db, type Host, type SqlValue } from "../host.ts";
 import { bookPath, unique } from "../naming.ts";
+import { CONVERTER, ending, lockedDetails, sniff, toEpub, type Kind } from "../convert/index.ts";
 import { MIGRATIONS } from "./schema.ts";
 import { FORMATS, build, type Format } from "../send/formats.ts";
 import { GENRES, GENRE_NAMES, KINDS, VIBES, VIBE_NAMES } from "../organize/vocabulary.ts";
@@ -93,7 +94,7 @@ export interface BookDetail extends BookSummary {
 export type AddOutcome =
   | { kind: "added"; book: BookSummary; locked?: boolean }
   | { kind: "duplicate"; book: BookSummary }
-  | { kind: "unreadable"; name: string; reason: BookError["code"] | "not-epub" | "missing-file" };
+  | { kind: "unreadable"; name: string; reason: BookError["code"] | "missing-file" | "rar-archive" };
 
 export interface AddSource {
   /** Absolute path of the file to bring in. It is copied, never moved. */
@@ -161,7 +162,7 @@ export class Library {
 
   /** Opens the Library at root, creating it when the folder is new. */
   static async open(host: Host, root: string): Promise<Library> {
-    for (const d of ["books", "originals", "covers", "covers/chosen", "backups", "devices"]) await host.fs.mkdir(join(root, d));
+    for (const d of ["books", "originals", "converted", "covers", "covers/chosen", "backups", "devices"]) await host.fs.mkdir(join(root, d));
     const db = await host.sqlite.open(join(root, "library.db"));
     await db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;");
     const lib = new Library(host, root, db);
@@ -182,9 +183,12 @@ export class Library {
 
   async add(src: AddSource): Promise<AddOutcome> {
     const name = src.name ?? src.path.slice(src.path.lastIndexOf("/") + 1);
-    if (!/\.epub$/i.test(src.path)) return { kind: "unreadable", name, reason: "not-epub" };
     if (!(await this.host.fs.exists(src.path))) return { kind: "unreadable", name, reason: "missing-file" };
     const bytes = await this.host.fs.read(src.path);
+    if (!bytes.length) return { kind: "unreadable", name, reason: "empty" };
+    const kind = sniff(bytes, src.path);
+    if (!kind)
+      return { kind: "unreadable", name, reason: /^(rar|cbr|7z)$/.test(ending(name)) ? "rar-archive" : ending(name) === "epub" ? "not-a-zip" : "not-a-book" };
     const hash = await sha256(bytes);
     const existing = (await this.db.all("SELECT * FROM books WHERE hash = ?", [hash]))[0];
     if (existing) {
@@ -194,11 +198,19 @@ export class Library {
     }
     const now = new Date().toISOString();
     const plan = newPlan({ uuid: uuidFrom(hash), modified: now.replace(/\.\d+Z$/, "Z") }, src.info ?? {});
+    if (kind !== "epub") plan.from = kind;
+    // The original keeps its own ending (a MOBI stays a .mobi); an EPUB is always .epub.
+    const ext = kind === "epub" ? "epub" : /^[a-z0-9]{2,5}$/.test(ending(name)) ? ending(name) : kind;
+    const original = `originals/${hash}.${ext}`;
     let built: ReturnType<typeof fix> & { locked?: boolean };
+    let source: Uint8Array;
     try {
-      built = fix(bytes, plan);
+      const lock = kind === "epub" ? null : lockedDetails(bytes, kind);
+      if (lock) throw new BookError("drm");
+      source = kind === "epub" ? bytes : await this.convert(original, bytes, kind, name);
+      built = fix(source, plan);
     } catch (e) {
-      if (e instanceof BookError && e.code === "drm") built = asLocked(bytes, src.info);
+      if (e instanceof BookError && e.code === "drm") built = asLocked(bytes, kind, src.info);
       else if (e instanceof BookError) return { kind: "unreadable", name, reason: e.code };
       else throw e;
     }
@@ -207,12 +219,13 @@ export class Library {
       const kept = await this.keepCover(await this.host.fs.read(src.cover));
       if (kept) {
         plan.cover = { file: kept.file, from: "calibre" };
-        built = fix(bytes, plan, { cover: kept.image });
+        built = fix(source!, plan, { cover: kept.image });
       }
     }
-    const original = `originals/${hash}.epub`;
     await this.host.fs.write(this.abs(original), bytes);
-    const file = await unique(`books/${bookPath(built.info.authors, built.info.title || stem(name))}`, (p) => this.host.fs.exists(this.abs(p)));
+    const file = await unique(`books/${bookPath(built.info.authors, built.info.title || stem(name), built.locked ? ext : "epub")}`, (p) =>
+      this.host.fs.exists(this.abs(p)),
+    );
     await this.host.fs.write(this.abs(file), built.bytes);
     const r = await this.db.run(
       `INSERT INTO books (hash, title, authors, author_sort, series, series_index, language, publisher, year, isbn, description,
@@ -458,6 +471,7 @@ export class Library {
     const gone = await this.db.all("SELECT * FROM books WHERE removed_at IS NOT NULL AND removed_at <= ?", [cutoff]);
     for (const r of gone) {
       for (const k of ["file", "original", "cover"]) if (r[k]) await this.host.fs.remove(this.abs(r[k] as string));
+      if (!(r.original as string).endsWith(".epub")) await this.host.fs.remove(this.abs(this.convertedPath(r.original as string)));
       await this.dropDeviceCopies(r.id as number);
       await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
     }
@@ -651,7 +665,7 @@ export class Library {
   private async rebuild(id: number, plan: FixPlan) {
     const r = await this.row(id);
     if (r.state === "locked") throw new UserError("locked-edit");
-    const built = fix(await this.host.fs.read(this.abs(r.original as string)), plan, await this.assets(plan));
+    const built = fix(await this.source(r.original as string), plan, await this.assets(plan));
     let file = r.file as string;
     const want = `books/${bookPath(built.info.authors, built.info.title || stem(r.origin_name as string))}`;
     if (!sameBase(file, want)) {
@@ -695,6 +709,38 @@ export class Library {
       await this.host.fs.remove(this.abs(r.cover as string));
       await this.db.run("UPDATE books SET cover = NULL WHERE id = ?", [id]);
     }
+  }
+
+  /**
+   * The EPUB a book's fix runs on: the original itself, or for a book that came
+   * in another format, the EPUB made from it. That's made once and kept in
+   * converted/ (named by the original's hash and the converter's version), and
+   * made again whenever it's missing or the converter has changed.
+   */
+  async source(original: string): Promise<Uint8Array> {
+    const bytes = await this.host.fs.read(this.abs(original));
+    if (original.endsWith(".epub")) return bytes;
+    const kind = sniff(bytes, original);
+    if (!kind) throw new BookError("not-a-book");
+    return this.convert(original, bytes, kind, original);
+  }
+
+  /** The original's EPUB as the window's preview shows it: what Magpie started from, before any fix. */
+  async sourceOf(id: number): Promise<Uint8Array> {
+    return this.source((await this.row(id)).original as string);
+  }
+
+  private convertedPath(original: string) {
+    return `converted/${original.slice(original.lastIndexOf("/") + 1).replace(/\.[^.]+$/, "")}-c${CONVERTER}.epub`;
+  }
+
+  private async convert(original: string, bytes: Uint8Array, kind: Kind, name: string): Promise<Uint8Array> {
+    if (kind === "epub") return bytes;
+    const cached = this.abs(this.convertedPath(original));
+    if (await this.host.fs.exists(cached)) return this.host.fs.read(cached);
+    const epub = await toEpub(bytes, kind, name);
+    await this.host.fs.write(cached, epub);
+    return epub;
   }
 
   /** A cover image copied into covers/chosen/, named by its hash. Null when it isn't a JPEG or PNG. */
@@ -779,11 +825,11 @@ export class Library {
   }
 }
 
-/** A locked book goes in untouched: the original bytes, and only what its package says about itself. */
-function asLocked(bytes: Uint8Array, info: InfoPatch = {}) {
-  const book = Book.load(bytes, { locked: "allow" });
+/** A locked book goes in untouched: the original bytes, and only what its package (or a Kindle file's header) says about itself. */
+function asLocked(bytes: Uint8Array, kind: Kind, info: InfoPatch = {}) {
+  const own = kind === "epub" ? readInfo(Book.load(bytes, { locked: "allow" })) : { language: "", ...lockedDetails(bytes, kind)! };
   const report: FixReport = { changes: [], suggestions: [], errors: [] };
-  return { bytes, info: { ...readInfo(book), ...info }, report, cover: null, locked: true };
+  return { bytes, info: { ...own, ...info }, report, cover: null, locked: true };
 }
 
 /** Trimmed, single-spaced, no blanks or repeats, at most 60 characters each. */

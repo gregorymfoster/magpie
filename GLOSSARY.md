@@ -6,7 +6,9 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Library.** The folder that holds everything: `library.db`, `books/`, `originals/`, `covers/`, `backups/`. Default `~/Books/Magpie`. Every path stored inside it is relative, so the folder can move.
 
-**Original.** The exact bytes someone added, stored once as `originals/<sha256>.epub` and never changed. Two books with the same hash are a duplicate.
+**Original.** The exact bytes someone added, stored once as `originals/<sha256>.<ending>` (`.epub`, or `.mobi`, `.azw3`, `.pdf`… for a book that came in another format) and never changed. Two books with the same hash are a duplicate.
+
+**Convert.** Turning a book that isn't an EPUB (MOBI, AZW3, PDF, FB2, plain text, a web page) into one, once, when it's added (`core/src/convert/`). The EPUB made is kept in `converted/` and is what the fix runs on, so the original stays as it came. A zip of books is opened and each book inside is added. "Turned the PDF into an EPUB" in What Magpie did. People never need the word "format".
 
 **Fix.** Running the fixers over an original to make the book's file. Silent and structural: zip wrapper, XHTML, manifest, cover, layout, metadata gaps, contents page.
 

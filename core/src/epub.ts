@@ -15,7 +15,7 @@ const FONT_OBFUSCATION = new Set(["http://www.idpf.org/2008/embedding", "http://
 export const LIMITS = { entries: 20_000, bytes: 1_500_000_000 };
 
 /** Why a file can't be opened as an EPUB at all. Each code has a sentence in errors.ts. */
-export type BookErrorCode = "not-a-zip" | "too-large" | "too-many-files" | "empty" | "drm";
+export type BookErrorCode = "not-a-zip" | "too-large" | "too-many-files" | "empty" | "drm" | "not-a-book" | "no-text" | "pdf-scanned" | "pdf-password";
 
 export class BookError extends Error {
   code: BookErrorCode;

@@ -10,14 +10,14 @@ export interface CalibreLibrary {
   path: string;
   /** Books in Calibre. */
   total: number;
-  /** Books with an EPUB, which is what comes over. */
+  /** Books with a file Magpie can read, which is what comes over. */
   epubs: number;
 }
 
 /** One book as it comes over: a file plus trusted details. */
 export interface CalibreItem {
   title: string;
-  /** Absolute path of the EPUB inside the Calibre folder, or null when there is none. */
+  /** Absolute path of the best file inside the Calibre folder (EPUB if there is one), or null when there is none Magpie reads. */
   path: string | null;
   formats: string[];
   info: InfoPatch;
@@ -92,7 +92,8 @@ SELECT b.title, b.path, b.series_index, b.pubdate, b.has_cover,
   (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn') AS isbn,
   (SELECT g.lang_code FROM books_languages_link l JOIN languages g ON g.id = l.lang_code WHERE l.book = b.id ORDER BY l.item_order LIMIT 1) AS language,
   (SELECT group_concat(format) FROM data WHERE book = b.id) AS formats,
-  (SELECT name FROM data WHERE book = b.id AND format = 'EPUB') AS epub,
+  (SELECT name || char(31) || lower(format) FROM data WHERE book = b.id AND format IN ('EPUB', 'AZW3', 'MOBI', 'AZW', 'PRC', 'FB2', 'PDF', 'TXT')
+     ORDER BY CASE format WHEN 'EPUB' THEN 0 WHEN 'AZW3' THEN 1 WHEN 'MOBI' THEN 2 WHEN 'AZW' THEN 3 WHEN 'PRC' THEN 4 WHEN 'FB2' THEN 5 WHEN 'PDF' THEN 6 ELSE 7 END LIMIT 1) AS epub,
   (SELECT group_concat(t.name, char(31)) FROM books_tags_link l JOIN tags t ON t.id = l.tag WHERE l.book = b.id) AS tags
 FROM books b ORDER BY b.id`;
 
@@ -117,7 +118,8 @@ function toItem(root: string, r: Row): CalibreItem {
   const dir = join(root, r.path);
   return {
     title: r.title,
-    path: r.epub ? join(dir, `${r.epub}.epub`) : null,
+    // The best file Calibre has for it: EPUB first, then Kindle files, then the rest.
+    path: r.epub ? join(dir, `${r.epub.split("\u001f")[0]}.${r.epub.split("\u001f")[1]}`) : null,
     formats: (r.formats ?? "").split(",").filter(Boolean),
     info,
     cover: r.has_cover ? join(dir, "cover.jpg") : undefined,

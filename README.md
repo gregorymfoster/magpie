@@ -4,7 +4,7 @@
 
 Fix the ebook library you already have.
 
-Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. It's a desktop app that runs on your machine, so your books never leave it. No account, no upload, no subscription. If you press Look Up, Magpie asks Open Library for missing details (year, publisher, description) and how its readers rate the book, by title, author and ISBN, and shows you what it found before anything changes.
+Drop in an EPUB that Kindle rejected, that shows up with a grey cover, or that calls its author "Unknown". Magpie tells you what was wrong in plain English and hands back a fixed copy. MOBI, AZW3, PDF, FB2 and plain-text books come in too, turned into clean EPUBs on the way, and zip files of books are opened for you. Then send them to Apple Books on your iPhone and iPad, to your Kindle, or to a Kobo. It's a desktop app that runs on your machine, so your books never leave it. No account, no upload, no subscription. If you press Look Up, Magpie asks Open Library for missing details (year, publisher, description) and how its readers rate the book, by title, author and ISBN, and shows you what it found before anything changes.
 
 Magpie never touches DRM. A store-locked book can sit in your Library with a lock on it, exactly as it came, but Magpie won't fix, convert or send it. It is for books you own as files: Standard Ebooks, Project Gutenberg, Humble Bundle, BookFunnel, Kobo and Amazon's own DRM-free downloads.
 
@@ -27,8 +27,8 @@ Try it:
 
 ```sh
 npm install
-node cli/src/main.ts fix my-book.epub        # writes my-book.fixed.epub and prints what changed
-node cli/src/main.ts import ~/Downloads      # brings every EPUB into ~/Books/Magpie
+node cli/src/main.ts fix my-book.mobi        # writes my-book.fixed.epub and prints what changed
+node cli/src/main.ts import ~/Downloads      # brings every book into ~/Books/Magpie
 just dev                                     # the window, in a browser, against a real Library
 ```
 

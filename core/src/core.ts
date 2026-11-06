@@ -20,6 +20,7 @@ import { KINDLE_LIMIT } from "./send/kindle.ts";
 import { MIN_RATINGS, coverUrl, descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wantsCover, workUrl, type CatalogDoc } from "./identify/catalog.ts";
 import { coverType, imageSize } from "./images.ts";
 import { MIN_COVER_HEIGHT } from "./checks.ts";
+import { ARCHIVE_ENDINGS, BOOK_ENDINGS, archiveBooks, ending } from "./convert/index.ts";
 
 export type CoreEvent =
   /** Books were added, changed or removed: refetch lists and counts. */
@@ -275,19 +276,38 @@ function checkPatch(p: InfoPatch): InfoPatch {
   return p;
 }
 
-/** Folders become every .epub inside them, at any depth. Hidden files are skipped. */
-async function expand(host: Host, paths: string[]): Promise<{ path: string }[]> {
-  const out: { path: string }[] = [];
+/**
+ * Folders become every book inside them, at any depth; hidden files are skipped.
+ * A zip of books is opened and each book inside comes in on its own (its
+ * files wait in the scratch folder until they're added).
+ */
+async function expand(host: Host, paths: string[]): Promise<{ path: string; name?: string }[]> {
+  const out: { path: string; name?: string }[] = [];
+  const archive = async (path: string) => {
+    const inside = archiveBooks(await host.fs.read(path).catch(() => new Uint8Array()));
+    if (!inside.length) return false;
+    const dir = join(host.env.temp, `Magpie-unzipped-${Date.now()}-${out.length}`);
+    for (const [i, b] of inside.entries()) {
+      const p = join(dir, String(i), b.name);
+      await host.fs.write(p, b.bytes);
+      if (ARCHIVE_ENDINGS.includes(ending(b.name)) && (await archive(p))) continue;
+      out.push({ path: p, name: b.name });
+    }
+    return true;
+  };
   const walk = async (dir: string) => {
     for (const e of (await host.fs.list(dir)).sort((a, b) => a.name.localeCompare(b.name))) {
       if (e.name.startsWith(".")) continue;
-      if (e.dir) await walk(join(dir, e.name));
-      else if (/\.epub$/i.test(e.name)) out.push({ path: join(dir, e.name) });
+      const p = join(dir, e.name);
+      if (e.dir) await walk(p);
+      else if (ARCHIVE_ENDINGS.includes(ending(e.name))) (await archive(p)) || out.push({ path: p });
+      else if (BOOK_ENDINGS.includes(ending(e.name)) && !/^(readme|license|licence)\b/i.test(e.name)) out.push({ path: p });
     }
   };
   for (const p of paths) {
     if ((await host.fs.list(p)).length) await walk(p);
-    // A file dropped on its own goes through even when it isn't an EPUB, so it gets a sentence saying why not.
+    else if (ARCHIVE_ENDINGS.includes(ending(p)) && (await archive(p))) continue;
+    // A file dropped on its own goes through whatever it is, so it gets a sentence saying why not.
     else if (/\.[a-z0-9]+$/i.test(p)) out.push({ path: p });
   }
   return out;
@@ -350,7 +370,8 @@ const commands = {
     const d = await ctx.lib().get(a.id);
     if (d.state === "locked") throw new UserError("locked-preview");
     const path = a.original ? d.original : d.file;
-    if (ctx.previewing?.path !== path) ctx.previewing = { path, book: loadForPreview(await ctx.host.fs.read(path)) };
+    if (ctx.previewing?.path !== path)
+      ctx.previewing = { path, book: loadForPreview(a.original ? await ctx.lib().sourceOf(a.id) : await ctx.host.fs.read(path)) };
     return preview(ctx.previewing.book, a.chapter ?? 0);
   },
 

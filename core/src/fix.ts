@@ -19,6 +19,7 @@ import type { Change, Fixer } from "./fixers/types.ts";
 import { fieldWord, patchFor } from "./suggestions.ts";
 import { checkBook, type Todo } from "./checks.ts";
 import { coverImage, readInfo, suggest, writeInfo, type BookInfo, type InfoPatch, type Suggestion } from "./info.ts";
+import { KIND_NAMES, type Kind } from "./convert/index.ts";
 
 // Layout runs before the contents fixer so chapter titles it turns into headings can be found.
 export const FIXERS: Fixer[] = [container, xhtml, manifest, cover, layout, metadata, toc];
@@ -43,6 +44,8 @@ export interface FixPlan {
   cover?: { file: string; from: CoverFrom };
   /** "Keep the book's own styling": skip the layout fixer and leave the publisher's design as it is. */
   keepStyle?: boolean;
+  /** The format the book came in when it wasn't an EPUB. The fix runs on the EPUB made from it (convert/). */
+  from?: Exclude<Kind, "epub">;
   /** Pinned stand-ins for a fresh uuid and today's date (see Book.stamp). */
   stamp: { uuid: string; modified: string };
 }
@@ -98,6 +101,8 @@ export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {})
   book.stamp = plan.stamp;
   const changes: Change[] = [];
   const errors: FixReport["errors"] = [];
+  if (plan.from)
+    changes.push({ fixer: "convert", message: `Turned the ${KIND_NAMES[plan.from]} into an EPUB, which Apple Books, Kobo and Send to Kindle all read.` });
   for (const f of FIXERS) {
     if (f === layout && plan.keepStyle) continue;
     try {

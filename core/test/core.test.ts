@@ -32,6 +32,8 @@ function setup(web?: Record<string, unknown>) {
   return { home, volumes, opened, core, file };
 }
 
+const book = (name: string) => new Uint8Array(readFileSync(join(import.meta.dirname, "books", name)));
+
 const unknownAuthor = () =>
   epub({ opfMeta: '<dc:identifier id="id">urn:uuid:2</dc:identifier><dc:title>Emma</dc:title><dc:creator>Unknown</dc:creator><dc:language>en</dc:language>' });
 
@@ -76,22 +78,22 @@ test("library.repairs counts every fix Magpie has made to the books still in the
   assert.deepEqual(await core.call("library.repairs"), { repairs: 0 }, "removed books don't count");
 });
 
-test("a folder imports every EPUB inside it; duplicates and non-books get a sentence", async () => {
+test("a folder imports every book inside it; duplicates and non-books get a sentence", async () => {
   const { core, file, home } = setup();
   await core.call("app.state");
   file("a.epub", epub());
   file("copy-of-a.epub", epub());
-  file("notes.pdf", new TextEncoder().encode("%PDF-1.4"));
+  file("notes.docx", new TextEncoder().encode("PK\x03\x04 word/document.xml"));
   mkdirSync(join(home, "Downloads/sub"));
   writeFileSync(join(home, "Downloads/sub/b.epub"), unknownAuthor());
   writeFileSync(join(home, "Downloads/broken.epub"), new TextEncoder().encode("not a zip"));
-  await core.call("books.import", { paths: [join(home, "Downloads"), join(home, "Downloads/notes.pdf")] });
+  await core.call("books.import", { paths: [join(home, "Downloads"), join(home, "Downloads/notes.docx")] });
   await core.idle();
   const [job] = (await core.call("app.state")).jobs;
   const outcomes = job.results.map((r) => r.outcome).sort();
   assert.deepEqual(outcomes, ["added", "added", "duplicate", "unreadable", "unreadable"]);
-  assert.match(job.results.find((r) => r.label === "notes.pdf")!.message!, /only reads EPUB/);
-  assert.match(job.results.find((r) => r.label === "broken.epub")!.message!, /isn't an EPUB/);
+  assert.match(job.results.find((r) => r.label === "notes.docx")!.message!, /isn't a book Magpie can read/);
+  assert.match(job.results.find((r) => r.label === "broken.epub")!.message!, /damaged/);
 });
 
 const encryption = (algorithm: string) =>
@@ -143,6 +145,131 @@ test("a book with DRM comes in untouched with a warning, and can't be fixed, edi
   await core.call("settings.set", { kindleAddress: "me@kindle.com" });
   await assert.rejects(core.call("send.kindle", { ids: [emma.id] }), /DRM/);
   await assert.rejects(core.call("books.preview", { id: emma.id }), /DRM/);
+});
+
+test("Kindle files, FictionBook and plain text come in as clean EPUBs; the file as it came is kept as the original", async () => {
+  const { core, file, home } = setup();
+  await core.call("app.state");
+  const paths = [
+    file("Pride-old.mobi", book("pride.mobi")),
+    file("Pride.azw3", book("pride.azw3")),
+    file("Pride-combo.mobi", book("pride-combo.mobi")),
+    file("Pride.fb2", book("pride.fb2")),
+    file("notes.txt", new TextEncoder().encode("Title: Notes\nAuthor: Ada Lovelace\n\nChapter 1\n\nThe first part.\n\nChapter 2\n\nThe second part.\n")),
+  ];
+  await core.call("books.import", { paths });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  assert.deepEqual(
+    job.results.map((r) => r.outcome),
+    ["added", "added", "added", "added", "added"],
+    JSON.stringify(job.results),
+  );
+  for (const r of job.results) {
+    const d = await core.call("books.get", { id: r.bookId! });
+    assert.match(d.file, /\.epub$/);
+    assert.ok(d.original.endsWith(d.originName.slice(d.originName.lastIndexOf("."))), `${d.original} keeps its ending`);
+    assert.deepEqual(
+      new Uint8Array(readFileSync(d.original)),
+      new Uint8Array(readFileSync(join(home, "Downloads", d.originName))),
+      "the original is untouched",
+    );
+    assert.match(d.report.changes[0].message, /^Turned the .* into an EPUB/);
+    const z = unzipSync(new Uint8Array(readFileSync(d.file)));
+    const text = Object.entries(z)
+      .filter(([n]) => n.endsWith(".xhtml"))
+      .map(([, v]) => strFromU8(v))
+      .join("");
+    if (d.originName.startsWith("Pride")) {
+      assert.equal(d.title, "Pride and Prejudice");
+      assert.deepEqual(d.authors, ["Jane Austen"]);
+      assert.equal(d.year, 1813);
+      assert.equal(d.publisher, "Penguin");
+      assert.equal(d.language, "en");
+      assert.equal(d.state, "clean", `${d.originName}: ${JSON.stringify(d.report.todos)}`);
+      assert.equal(d.plan.cover, undefined, "its own cover went in, not a made one");
+      assert.ok(!d.report.coverMade);
+      assert.match(text, /Paragraph 29 of chapter 3\. It was a truth universally acknowledged/, "all the text came over");
+      assert.match(text, /“quoted” and naïve/);
+      assert.match(text, /<nav[^>]*epub:type="toc"[\s\S]*Chapter Two/, `${d.originName}: the contents came over`);
+      assert.ok(
+        Object.keys(z).some((n) => /\.(png|jpe?g)$/.test(n) && !/cover/i.test(n)),
+        "pictures came over",
+      );
+    } else {
+      assert.equal(d.title, "Notes");
+      assert.deepEqual(d.authors, ["Ada Lovelace"]);
+      assert.match(text, /<h2>Chapter 2<\/h2>/);
+    }
+    // The preview's "original" is the book as Magpie first read it, before any fix.
+    assert.ok((await core.call("books.preview", { id: d.id, original: true })).html.length > 0);
+  }
+  // Removing for good takes the converted copy with it.
+  await core.call("books.remove", { ids: job.results.map((r) => r.bookId!) });
+  await core.call("books.purge");
+  assert.deepEqual(readdirSync(join(home, "Books/Magpie/converted")), []);
+});
+
+test("a PDF with text becomes a book that reflows: paragraphs rejoined, running heads and page numbers gone, chapters at its headings", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  // Made by Chromium: an A5 book with a running head, page numbers and three chapters.
+  await core.call("books.import", { paths: [file("pride.pdf", book("pride.pdf")), file("scan.pdf", book("pride.pdf").slice(0, 400))] });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  const d = await core.call("books.get", { id: job.results.find((r) => r.outcome === "added")!.bookId! });
+  assert.equal(d.title, "Pride and Prejudice");
+  assert.match(d.original, /\.pdf$/);
+  const z = unzipSync(new Uint8Array(readFileSync(d.file)));
+  const text = Object.entries(z)
+    .filter(([n]) => /text\d+\.xhtml$/.test(n))
+    .map(([, v]) => strFromU8(v))
+    .join("");
+  const whole =
+    /<p>Paragraph \d+ of chapter \d\. It was a truth universally acknowledged, that a single man in possession of a good fortune must be in want of a wife; however little known the feelings or views of such a man may be on his first entering a neighbour.hood, this truth is so well fixed in the minds of the surrounding families that he is considered as the rightful property of some one or other of their daughters\.<\/p>/g;
+  assert.equal(text.match(whole)?.length, 36, "every paragraph whole, even across pages");
+  assert.doesNotMatch(text, /<p>\d+<\/p>|<p>Pride and Prejudice<\/p>/, "no page numbers or running heads");
+  assert.match(strFromU8(z[Object.keys(z).find((n) => n.endsWith("nav.xhtml"))!]), /Chapter One[\s\S]*Chapter Two[\s\S]*Chapter Three/);
+  assert.match(job.results.find((r) => r.label === "scan.pdf")!.message!, /isn't a book|pictures of pages/);
+});
+
+test("a Kindle file locked with DRM comes in byte for byte as itself, named from its header, and is never converted or sent", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const locked = book("pride.azw3");
+  // The encryption field of the first record's header.
+  const rec0 = (locked[78] << 24) | (locked[79] << 16) | (locked[80] << 8) | locked[81];
+  locked[rec0 + 13] = 2;
+  await core.call("books.import", { paths: [file("Dark-Age.azw3", locked)] });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  assert.equal(job.results[0].outcome, "added");
+  assert.match(job.results[0].message!, /DRM/);
+  const d = await core.call("books.get", { id: job.results[0].bookId! });
+  assert.equal(d.state, "locked");
+  assert.equal(d.title, "Pride and Prejudice");
+  assert.deepEqual(d.authors, ["Jane Austen"]);
+  assert.match(d.file, /Jane-Austen\/Pride-and-Prejudice\.azw3$/);
+  assert.deepEqual(new Uint8Array(readFileSync(d.file)), locked);
+  await core.call("settings.set", { kindleAddress: "me@kindle.com" });
+  await assert.rejects(core.call("send.kindle", { ids: [d.id] }), /DRM/);
+  await assert.rejects(core.call("books.preview", { id: d.id }), /DRM/);
+});
+
+test("a zip of books brings in each book inside; an EPUB with a .zip ending is still one book; RAR gets a sentence", async () => {
+  const { core, file } = setup();
+  await core.call("app.state");
+  const zip = zipSync({
+    "Books/emma.epub": epub(),
+    "Books/pride.azw3": book("pride.azw3"),
+    "Books/readme.txt": new TextEncoder().encode("hi"),
+    "__MACOSX/._emma.epub": new Uint8Array(4),
+  });
+  await core.call("books.import", { paths: [file("books.zip", zip), file("odd.zip", epub()), file("more.rar", new TextEncoder().encode("Rar!\x1a\x07"))] });
+  await core.idle();
+  const [job] = (await core.call("app.state")).jobs;
+  assert.deepEqual(job.results.map((r) => `${r.outcome}`).sort(), ["added", "added", "duplicate", "unreadable"], JSON.stringify(job.results));
+  assert.match(job.results.find((r) => r.label === "more.rar")!.message!, /RAR/);
 });
 
 test("preview gives one inert, self-contained page per chapter, named from the contents, for the fixed book and its original", async () => {
@@ -524,14 +651,14 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
       tags: ["Romance", "to-read"],
       epub: epub({ opfMeta: "<dc:title>emma_final(2)</dc:title><dc:language>en</dc:language>" }),
     },
-    { title: "Mobi Only", authors: ["Someone"], epub: null },
+    { title: "Mobi Only", authors: ["Someone"], epub: null, mobi: book("pride.mobi") },
+    { title: "Lit Only", authors: ["Someone"], epub: null },
   ]);
   const found = await core.call("calibre.find");
-  assert.deepEqual(found, { path: cal, total: 2, epubs: 1 });
+  assert.deepEqual(found, { path: cal, total: 3, epubs: 2 });
   await core.call("calibre.import", { path: cal });
   await core.idle();
-  const [b] = await core.call("books.list");
-  assert.equal(b.title, "Emma");
+  const b = (await core.call("books.list")).find((x) => x.title === "Emma")!;
   assert.equal(b.series, "Novels");
   assert.equal(b.seriesIndex, 2);
   assert.equal(b.state, "clean", "Calibre's details are trusted, not sent to review");
@@ -544,7 +671,8 @@ test("a Calibre library comes over once, with Calibre's details trusted and its 
   const [job] = (await core.call("app.state")).jobs;
   assert.deepEqual(
     job.results.map((r) => r.outcome),
-    ["added", "skipped"],
+    ["added", "added", "skipped"],
+    "a book Calibre has only as MOBI comes over too",
   );
 });
 
@@ -695,7 +823,10 @@ test("diagnostics leave out titles", async () => {
   assert.doesNotMatch(d, /Emma|Austen|Secret/);
 });
 
-function makeCalibre(dir: string, books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null }[]) {
+function makeCalibre(
+  dir: string,
+  books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null; mobi?: Uint8Array }[],
+) {
   mkdirSync(dir, { recursive: true });
   const db = new DatabaseSync(join(dir, "metadata.db"));
   db.exec(`
@@ -744,8 +875,12 @@ function makeCalibre(dir: string, books: { title: string; authors: string[]; ser
       const name = `${b.title} - ${b.authors[0]}`;
       writeFileSync(join(dir, path, `${name}.epub`), b.epub);
       db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'EPUB', ?)").run(id, name);
+    } else if (b.mobi) {
+      const name = `${b.title} - ${b.authors[0]}`;
+      writeFileSync(join(dir, path, `${name}.mobi`), b.mobi);
+      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'MOBI', ?)").run(id, name);
     } else {
-      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'MOBI', ?)").run(id, b.title);
+      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'LIT', ?)").run(id, b.title);
     }
   });
   db.close();

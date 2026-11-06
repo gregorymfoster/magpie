@@ -6,6 +6,7 @@ export { paced } from "./host.ts";
 export { fix, fixAndAccept, newPlan, accept, FIXERS, ENGINE, type FixPlan, type FixReport, type Fixed, type Change } from "./fix.ts";
 export { readInfo, suggest, patchFor, type BookInfo, type InfoPatch, type Suggestion } from "./info.ts";
 export { Book, BookError } from "./epub.ts";
+export { sniff, toEpub, BOOK_ENDINGS, type Kind } from "./convert/index.ts";
 export type { BookSummary, BookDetail, BookState, AddOutcome, ListQuery, Tag, Groups, Counts } from "./library/library.ts";
 export type { Todo, TodoId } from "./checks.ts";
 export type { Job, JobResult } from "./jobs.ts";

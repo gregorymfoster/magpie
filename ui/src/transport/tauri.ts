@@ -11,6 +11,8 @@ import type { CoreEvent, HostEnv, MailDraft, SqlValue } from "@magpie/core";
 import type { Transport } from "./index.ts";
 import type { WorkerApi } from "./core.worker.ts";
 
+const BOOK_FILES = ["epub", "kepub", "mobi", "azw", "azw3", "kf8", "prc", "pdb", "pdf", "fb2", "txt", "htm", "html", "zip"];
+
 /** Uint8Array can't ride in JSON to Rust, so blobs travel as {$b64}. */
 const pack = (params: SqlValue[] = []) => params.map((p) => (p instanceof Uint8Array ? { $b64: b64(p) } : p));
 const unpack = (rows: Record<string, unknown>[]) => {
@@ -67,7 +69,8 @@ export async function tauriTransport(): Promise<Transport> {
     fileUrl: (path) => convertFileSrc(path),
     stage: async () => [],
     async pickBooks() {
-      const r = await open({ multiple: true, title: "Add Books", filters: [{ name: "EPUB books", extensions: ["epub"] }] });
+      // What core/src/convert/index.ts reads (BOOK_ENDINGS), plus zip files of books.
+      const r = await open({ multiple: true, title: "Add Books", filters: [{ name: "Books", extensions: BOOK_FILES }] });
       return r ? (Array.isArray(r) ? r : [r]) : null;
     },
     async pickImage() {

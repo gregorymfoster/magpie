@@ -35,7 +35,7 @@ export function httpTransport(): Transport {
         const input = document.createElement("input");
         input.type = "file";
         input.multiple = true;
-        input.accept = ".epub,application/epub+zip";
+        input.accept = ".epub,.kepub,.mobi,.azw,.azw3,.kf8,.prc,.pdb,.pdf,.fb2,.txt,.htm,.html,.zip";
         input.onchange = async () => resolve(input.files?.length ? await stage([...input.files]) : null);
         input.click();
       }),

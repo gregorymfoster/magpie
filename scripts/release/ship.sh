@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Builds a Magpie release on Greg's Mac, installs it there and publishes it, so installed copies
-# update themselves. Usage, from the repo root on an up-to-date main: scripts/release/ship.sh 0.2.0
-# (or `just ship 0.2.0`). Flags:
+# update themselves. Usage, from any Magpie checkout: scripts/release/ship.sh 0.2.0 (or `just ship 0.2.0`).
+# It builds origin/main in its own worktree, ~/.magpie-release, which nothing else touches: other
+# sessions pulling, installing or building in Greg's checkout can't mix into a release or make
+# it rebuild cold (0.1.9 took 12 minutes that way), and its Rust build folder stays warm. Flags:
 #   --build-only    build and install on this Mac, publish nothing
 #   --publish-only  publish what --build-only built (main may have moved on since)
 #   --universal     Apple silicon and Intel in one app (about twice the build time)
@@ -36,6 +38,20 @@ step() { echo; echo "== $* (+$(($(date +%s) - START))s)"; }
 echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || die "usage: $0 X.Y.Z"
 [ "$(uname -s)" = Darwin ] || die "builds the Mac app, so run it on the Mac"
 cd "$(git rev-parse --show-toplevel)"
+
+# Move into the release worktree at origin/main and run this script from there.
+WORKTREE="${MAGPIE_RELEASE_WORKTREE:-$HOME/.magpie-release}"
+if [ "$(pwd -P)" != "$(cd "$WORKTREE" 2>/dev/null && pwd -P)" ]; then
+  git fetch -q origin main
+  if [ ! -e "$WORKTREE/.git" ]; then
+    git worktree prune
+    git worktree add -q --detach "$WORKTREE" origin/main
+  elif [ "$MODE" != --publish-only ]; then
+    git -C "$WORKTREE" checkout -q --detach origin/main
+  fi
+  exec "$WORKTREE/scripts/release/ship.sh" "$VERSION" "$@"
+fi
+
 [ -f "$KEY" ] && [ -f "$KEY.password" ] && [ -f "$KEY.pub" ] || die "no signing key in ~/.tauri: run scripts/release/setup.sh once"
 gh auth status >/dev/null 2>&1 || die "run 'gh auth login' first"
 
@@ -46,8 +62,8 @@ if [ "$MODE" = --publish-only ]; then
 else
   step "Checking the source is main as pushed"
   git fetch -q origin main
-  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "uncommitted changes; commit or stash them first"
-  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || die "HEAD isn't origin/main; run 'git checkout main && git pull' first"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "the release worktree $PWD has changes; something else is using it"
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || die "the release worktree isn't at origin/main"
   SHA=$(git rev-parse HEAD)
   ARCH=$([ -n "$UNIVERSAL" ] && echo universal || echo aarch64)
 fi

@@ -62,4 +62,9 @@ export const MIGRATIONS: string[] = [
   `
   UPDATE books SET state = 'work' WHERE state IN ('ready', 'fixed');
   `,
+  // 4: Crash safety. A change commits in the database first and its files follow; these let the next open finish them.
+  `
+  ALTER TABLE books ADD COLUMN unwritten INTEGER NOT NULL DEFAULT 0; -- 1 until the book's file and thumbnail match its row
+  CREATE TABLE cleanup (path TEXT PRIMARY KEY);                      -- files a change stopped using, removed once nothing points to them
+  `,
 ];

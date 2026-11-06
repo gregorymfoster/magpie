@@ -9,6 +9,7 @@
 | Host contract | `core/test/host-contract.ts`, run by `cli/test/node-host.test.ts` | What every host must do (atomic writes, SQLite, listing). The Rust half of the Tauri host has the same checks as `cargo test` in `app/src-tauri/src/host.rs`, run by the `mac` CI job. |
 | The window | `ui/e2e/*.spec.ts` | Flows through the real UI against `magpie serve` on a temp Library. Set up state with `call()` and assert what a person would see. |
 | The model | `verify/LibraryUndo.tla`, run by `just verify` | How a person's edits, background jobs and Undo interleave: every ordering, within small bounds. See `verify/README.md`. |
+| Power cuts | `core/test/crash.test.ts`, in `just test` | A person's session cut short before each of its writes, then reopened: nothing missing, nothing left over, each step done or not (ADR 0008). |
 | The bench | `just bench` | Fixer quality across the corpus. Any drop is a regression; it exits non-zero. |
 
 Things that never get tested by mocking: SQLite (use a temp Library), the file system (use a temp dir), the core from the UI (use `magpie serve`).

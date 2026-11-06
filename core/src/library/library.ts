@@ -6,6 +6,11 @@
 // The model: each book is an untouched original plus a FixPlan. The book in
 // books/ is always rebuilt from those two, so changing a title, accepting a
 // suggestion or undoing either is "change the plan, rebuild".
+//
+// A change commits in one database transaction, and the files follow it (see
+// Change). If the power goes in between, the next open finishes the job from
+// what the database says (repair). core/test/crash.test.ts cuts the power at
+// every write to check that.
 
 import { UserError } from "../errors.ts";
 import { Book, BookError } from "../epub.ts";
@@ -169,6 +174,7 @@ export class Library {
     await db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;");
     const lib = new Library(host, root, db);
     await lib.migrate();
+    await lib.exclusive(() => lib.repair());
     await lib.purgeRemoved();
     return lib;
   }
@@ -206,7 +212,7 @@ export class Library {
     if (!kind)
       return { kind: "unreadable", name, reason: /^(rar|cbr|7z)$/.test(ending(name)) ? "rar-archive" : ending(name) === "epub" ? "not-a-zip" : "not-a-book" };
     const hash = await sha256(bytes);
-    const existing = (await this.db.all("SELECT * FROM books WHERE hash = ?", [hash]))[0];
+    const [existing] = await this.db.all("SELECT * FROM books WHERE hash = ?", [hash]);
     if (existing) {
       // Bringing back a removed book restores it.
       if (existing.removed_at) await this.db.run("UPDATE books SET removed_at = NULL WHERE id = ?", [existing.id]);
@@ -238,15 +244,16 @@ export class Library {
         built = fix(source!, plan, { cover: kept.image });
       }
     }
+    // The original first: it's named by its hash, so one left behind by a power cut is simply used next time.
     await this.host.fs.write(this.abs(original), bytes);
     const file = await unique(`books/${bookPath(built.info.authors, built.info.title || stem(name), built.locked ? ext : "epub")}`, (p) =>
       this.host.fs.exists(this.abs(p)),
     );
-    await this.host.fs.write(this.abs(file), built.bytes);
+    // The row is the commit. Until the book's file is written it stays unwritten, and repair writes it from the plan.
     const r = await this.db.run(
       `INSERT INTO books (hash, title, authors, author_sort, series, series_index, language, publisher, year, isbn, description,
-         file, original, size, state, plan, report, origin, origin_name, added_at, updated_at, tags)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+         file, original, size, state, plan, report, origin, origin_name, added_at, updated_at, tags, unwritten)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`,
       [
         hash,
         built.info.title || stem(name),
@@ -273,8 +280,9 @@ export class Library {
       ],
     );
     const id = r.lastId;
+    await this.host.fs.write(this.abs(file), built.bytes);
     const cover = await this.saveCover(id, built.cover, src.cover);
-    if (cover) await this.db.run("UPDATE books SET cover = ? WHERE id = ?", [cover, id]);
+    await this.db.run("UPDATE books SET cover = ?, unwritten = 0 WHERE id = ?", [cover, id]);
     return { kind: "added", book: await this.summaryById(id), locked: built.locked };
   }
 
@@ -354,7 +362,9 @@ export class Library {
     return this.exclusive(async () => {
       const { plan } = await this.snapshot(id);
       if (plan.engine >= ENGINE) return;
-      await this.rebuild(id, { ...plan, engine: ENGINE });
+      const c = new Change();
+      await this.render(id, { ...plan, engine: ENGINE }, c);
+      await this.commit(c);
     });
   }
 
@@ -371,8 +381,10 @@ export class Library {
     return this.exclusive(async () => {
       const before = await this.snapshot(id);
       const plan = withPatch(before.plan, patch);
-      await this.rebuild(id, plan);
-      await this.record(label, [{ id, before, after: { ...before, plan } }]);
+      const c = new Change();
+      await this.render(id, plan, c);
+      c.record(label, [{ id, before, after: { ...before, plan } }]);
+      await this.commit(c);
       return this.get(id);
     });
   }
@@ -381,15 +393,17 @@ export class Library {
   async keepStyle(ids: number[], keep: boolean): Promise<void> {
     return this.exclusive(async () => {
       const steps = [];
+      const c = new Change();
       for (const id of ids) {
         const before = await this.snapshot(id);
         if (!!before.plan.keepStyle === keep) continue;
         const plan: FixPlan = { ...before.plan, keepStyle: keep || undefined };
         if (!keep) delete plan.keepStyle;
-        await this.rebuild(id, plan);
+        await this.render(id, plan, c);
         steps.push({ id, before, after: { ...before, plan } });
       }
-      if (steps.length) await this.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+      if (steps.length) c.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+      await this.commit(c);
     });
   }
 
@@ -401,8 +415,10 @@ export class Library {
       if (!kept) throw new UserError("not-a-cover");
       const before = await this.snapshot(id);
       const plan: FixPlan = { ...before.plan, cover: { file: kept.file, from: "you" } };
-      await this.rebuild(id, plan);
-      await this.record("Change cover", [{ id, before, after: { ...before, plan } }]);
+      const c = new Change();
+      await this.render(id, plan, c);
+      c.record("Change cover", [{ id, before, after: { ...before, plan } }]);
+      await this.commit(c);
       return this.get(id);
     });
   }
@@ -411,16 +427,18 @@ export class Library {
   async review(decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[], label = "Accept suggested details"): Promise<void> {
     return this.exclusive(async () => {
       const steps = [];
+      const c = new Change();
       for (const d of decisions) {
         const before = await this.snapshot(d.id);
         const plan: FixPlan = {
           ...withPatch(before.plan, d.accept),
           dismissed: [...new Set([...(before.plan.dismissed ?? []), ...d.dismiss])],
         };
-        await this.rebuild(d.id, plan);
+        await this.render(d.id, plan, c);
         steps.push({ id: d.id, before, after: { ...before, plan } });
       }
-      if (steps.length) await this.record(label, steps);
+      if (steps.length) c.record(label, steps);
+      await this.commit(c);
     });
   }
 
@@ -433,13 +451,19 @@ export class Library {
   async lookedUp(id: number, found: Suggestion[], catalog?: CatalogRecord): Promise<LookupPrev> {
     return this.exclusive(async () => {
       const { plan: was } = await this.snapshot(id);
-      await this.rebuild(id, { ...was, found, catalog: catalog ?? was.catalog });
+      const c = new Change();
+      await this.render(id, { ...was, found, catalog: catalog ?? was.catalog }, c);
+      await this.commit(c);
       return { id, found: was.found, catalog: was.catalog };
     });
   }
 
-  /** One undo step for a whole lookup run: each book back to what it had found before. */
-  async recordLookups(label: string, prevs: LookupPrev[]) {
+  /**
+   * One undo step for a whole lookup run: each book back to what it had found
+   * before. `also` commits with it (the job queue marking the run done), so
+   * a run is never done without its undo step, or recorded twice.
+   */
+  async recordLookups(label: string, prevs: LookupPrev[], also: Statement[] = []) {
     return this.exclusive(async () => {
       const steps = [];
       for (const p of prevs) {
@@ -450,7 +474,10 @@ export class Library {
         if (p.catalog === undefined) delete plan.catalog;
         steps.push({ id: p.id, before: { ...now, plan }, after: now });
       }
-      if (steps.length) await this.record(label, steps);
+      const c = new Change();
+      if (steps.length) c.record(label, steps);
+      c.sql.push(...also);
+      await this.commit(c);
     });
   }
 
@@ -459,19 +486,21 @@ export class Library {
     return this.exclusive(async () => {
       const now = new Date().toISOString();
       const steps = [];
+      const c = new Change();
       for (const id of ids) {
         const before = await this.snapshot(id);
         if (before.removed_at) continue;
-        await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [now, id]);
+        c.sql.push({ sql: "UPDATE books SET removed_at = ? WHERE id = ?", params: [now, id] });
         steps.push({ id, before, after: { ...before, removed_at: now } });
       }
-      if (steps.length) await this.record(ids.length > 1 ? `Remove ${ids.length} books` : "Remove book", steps);
+      if (steps.length) c.record(ids.length > 1 ? `Remove ${ids.length} books` : "Remove book", steps);
+      await this.commit(c);
     });
   }
 
   async restore(ids: number[]): Promise<void> {
     return this.exclusive(async () => {
-      for (const id of ids) await this.db.run("UPDATE books SET removed_at = NULL WHERE id = ?", [id]);
+      await this.db.batch(ids.map((id) => ({ sql: "UPDATE books SET removed_at = NULL WHERE id = ?", params: [id] })));
     });
   }
 
@@ -496,9 +525,12 @@ export class Library {
     return this.exclusive(async () => {
       // A sort that was cancelled before its first book leaves an empty step; it isn't a change.
       const empty = await this.db.all<{ id: number }>("SELECT id FROM history WHERE steps = '[]'");
-      for (const e of empty) if (!open.includes(e.id)) await this.db.run("DELETE FROM history WHERE id = ?", [e.id]);
+      const drop = empty.filter((e) => !open.includes(e.id)).map((e) => ({ sql: "DELETE FROM history WHERE id = ?", params: [e.id] }));
+      if (drop.length) await this.db.batch(drop);
       const [h] = await this.db.all<{ id: number; label: string; steps: string }>("SELECT * FROM history ORDER BY id DESC LIMIT 1");
       if (!h || open.includes(h.id)) return null;
+      // The whole step is put back in one commit, so a power cut leaves it either undone or still there to undo.
+      const c = new Change();
       const steps: { id: number; before: Snapshot; after?: Partial<Snapshot> }[] = JSON.parse(h.steps);
       const differ = (a: unknown, b: unknown) => JSON.stringify(a) !== JSON.stringify(b);
       for (const s of steps.reverse()) {
@@ -506,12 +538,14 @@ export class Library {
         if (!now) continue;
         // Every step Magpie has written carries `after`; one without it has everything put back.
         const after = s.after ?? {};
-        if (differ(s.before.plan, after.plan) && differ(now.plan, s.before.plan)) await this.rebuild(s.id, s.before.plan);
-        if (differ(s.before.removed_at, after.removed_at)) await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [s.before.removed_at, s.id]);
+        if (differ(s.before.plan, after.plan) && differ(now.plan, s.before.plan)) await this.render(s.id, s.before.plan, c);
+        if (differ(s.before.removed_at, after.removed_at))
+          c.sql.push({ sql: "UPDATE books SET removed_at = ? WHERE id = ?", params: [s.before.removed_at, s.id] });
         if (s.before.tags !== undefined && (differ(s.before.tags, after.tags) || differ(s.before.tags_off, after.tags_off)))
-          await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
+          c.sql.push({ sql: "UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", params: [s.before.tags, s.before.tags_off ?? "[]", s.id] });
       }
-      await this.db.run("DELETE FROM history WHERE id = ?", [h.id]);
+      c.sql.push({ sql: "DELETE FROM history WHERE id = ?", params: [h.id] });
+      await this.commit(c);
       return h.label;
     });
   }
@@ -526,12 +560,15 @@ export class Library {
     return this.exclusive(async () => {
       const cutoff = all ? "9999-12-31" : new Date(Date.now() - REMOVED_DAYS * 864e5).toISOString();
       const gone = await this.db.all("SELECT * FROM books WHERE removed_at IS NOT NULL AND removed_at <= ?", [cutoff]);
+      // The rows go first, in one commit; their files are then only clutter, cleared now or at the next open.
+      const c = new Change();
       for (const r of gone) {
-        for (const k of ["file", "original", "cover"]) if (r[k]) await this.host.fs.remove(this.abs(r[k] as string));
-        if (!(r.original as string).endsWith(".epub")) await this.host.fs.remove(this.abs(this.convertedPath(r.original as string)));
-        await this.dropDeviceCopies(r.id as number);
-        await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
+        c.sql.push({ sql: "DELETE FROM books WHERE id = ?", params: [r.id] });
+        for (const k of ["file", "original", "cover"]) if (r[k]) c.drop.push(r[k] as string);
+        if (!(r.original as string).endsWith(".epub")) c.drop.push(this.convertedPath(r.original as string));
+        c.drop.push(...(await this.deviceCopies(r.id as number)));
       }
+      await this.commit(c);
       return gone.length;
     });
   }
@@ -559,11 +596,12 @@ export class Library {
     return out;
   }
 
-  private async dropDeviceCopies(id: number) {
+  private async deviceCopies(id: number): Promise<string[]> {
+    const out: string[] = [];
     for (const f of await this.host.fs.list(this.abs("devices")))
       if (f.dir)
-        for (const e of await this.host.fs.list(this.abs(`devices/${f.name}`)))
-          if (e.name.startsWith(`${id}-`)) await this.host.fs.remove(this.abs(`devices/${f.name}/${e.name}`));
+        for (const e of await this.host.fs.list(this.abs(`devices/${f.name}`))) if (e.name.startsWith(`${id}-`)) out.push(`devices/${f.name}/${e.name}`);
+    return out;
   }
 
   // ------------------------------------------------------------ shelves
@@ -612,9 +650,14 @@ export class Library {
         await this.db.run("UPDATE books SET organized = ? WHERE id = ?", [ORGANIZER, id]);
         return null;
       }
-      await this.db.run("UPDATE books SET tags = ?, organized = ? WHERE id = ?", [JSON.stringify(tags), ORGANIZER, id]);
       const change = { id, before, after: { ...before, tags: JSON.stringify(tags) } };
-      if (step !== undefined) await this.appendToStep(step, change);
+      // The shelves and their undo step commit together.
+      await this.db.batch([
+        { sql: "UPDATE books SET tags = ?, organized = ? WHERE id = ?", params: [JSON.stringify(tags), ORGANIZER, id] },
+        ...(step === undefined
+          ? []
+          : [{ sql: "UPDATE history SET steps = json_insert(steps, '$[#]', json(?)) WHERE id = ?", params: [JSON.stringify(change), step] }]),
+      ]);
       return change;
     });
   }
@@ -632,6 +675,7 @@ export class Library {
     return this.exclusive(async () => {
       add = cleanTags(add);
       const steps = [];
+      const c = new Change();
       for (const id of ids) {
         const before = await this.snapshot(id);
         let tags: Tag[] = JSON.parse(before.tags ?? "[]");
@@ -642,11 +686,12 @@ export class Library {
         for (const name of add) if (!tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) tags.push({ name, by: "you" });
         const after = { ...before, tags: JSON.stringify(tags), tags_off: JSON.stringify(off) };
         if (after.tags === before.tags && after.tags_off === before.tags_off) continue;
-        await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [after.tags, after.tags_off, id]);
+        c.sql.push({ sql: "UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", params: [after.tags, after.tags_off, id] });
         steps.push({ id, before, after });
       }
       const label = remove.length && !add.length ? "Remove tag" : "Add tag";
-      if (steps.length) await this.record(label, steps);
+      if (steps.length) c.record(label, steps);
+      await this.commit(c);
     });
   }
 
@@ -686,10 +731,6 @@ export class Library {
       const r = await this.db.run("INSERT INTO history (label, steps, at) VALUES (?, '[]', ?)", [label, new Date().toISOString()]);
       return r.lastId;
     });
-  }
-
-  private async appendToStep(historyId: number, step: unknown): Promise<void> {
-    await this.db.run("UPDATE history SET steps = json_insert(steps, '$[#]', json(?)) WHERE id = ?", [JSON.stringify(step), historyId]);
   }
 
   // ------------------------------------------------------------ settings
@@ -732,22 +773,34 @@ export class Library {
     return this.abs(rel);
   }
 
-  private async rebuild(id: number, plan: FixPlan) {
+  /**
+   * Builds a book from its original and a new plan, and adds the result to a
+   * change: the row's new details, the file and thumbnail to write once it
+   * commits, and the old ones to clear away.
+   */
+  private async render(id: number, plan: FixPlan, c: Change) {
     const r = await this.row(id);
     if (r.state === "locked") throw new UserError("locked-edit");
     const built = fix(await this.source(r.original as string), plan, await this.assets(plan));
-    let file = r.file as string;
+    const was = c.files.get(id);
+    const old = { file: was?.file ?? (r.file as string), cover: was ? (was.cover?.rel ?? null) : ((r.cover as string | null) ?? null) };
+    let file = old.file;
     const want = `books/${bookPath(built.info.authors, built.info.title || stem(r.origin_name as string))}`;
     if (!sameBase(file, want)) {
-      const next = await unique(want, (p) => this.host.fs.exists(this.abs(p)));
-      await this.host.fs.remove(this.abs(file));
-      file = next;
+      const claimed = new Set([...c.files.values()].map((f) => f.file));
+      file = await unique(want, async (p) => claimed.has(p) || (await this.host.fs.exists(this.abs(p))));
+      c.drop.push(old.file);
     }
-    await this.host.fs.write(this.abs(file), built.bytes);
-    await this.db.run(
-      `UPDATE books SET title=?, authors=?, author_sort=?, series=?, series_index=?, language=?, publisher=?, year=?, isbn=?, description=?,
-         file=?, size=?, state=?, plan=?, report=?, updated_at=? WHERE id=?`,
-      [
+    // The thumbnail follows the book's cover. A cover put in and then undone goes; a Calibre stand-in (covers/<id>.jpg) stays.
+    let cover = old.cover;
+    const image = built.cover ? { rel: await coverPath(id, built.cover), bytes: built.cover.bytes } : null;
+    if (image) cover = image.rel;
+    else if (cover && /^covers\/\d+-/.test(cover)) cover = null;
+    if (old.cover && old.cover !== cover) c.drop.push(old.cover);
+    c.sql.push({
+      sql: `UPDATE books SET title=?, authors=?, author_sort=?, series=?, series_index=?, language=?, publisher=?, year=?, isbn=?, description=?,
+         file=?, cover=?, size=?, state=?, plan=?, report=?, updated_at=?, unwritten=1 WHERE id=?`,
+      params: [
         built.info.title || stem(r.origin_name as string),
         JSON.stringify(built.info.authors),
         authorSort(built.info.authors[0] ?? ""),
@@ -759,6 +812,7 @@ export class Library {
         built.info.isbn ?? null,
         built.info.description ?? null,
         file,
+        cover,
         built.bytes.length,
         stateOf(built.report),
         JSON.stringify(plan),
@@ -766,19 +820,62 @@ export class Library {
         new Date().toISOString(),
         id,
       ],
-    );
-    // The thumbnail follows the book's cover. Its name carries the image's hash, so a changed cover is a new URL to the window.
-    if (built.cover) {
-      const rel = await this.saveCover(id, built.cover);
-      if (rel !== r.cover) {
-        if (r.cover) await this.host.fs.remove(this.abs(r.cover as string));
-        await this.db.run("UPDATE books SET cover = ? WHERE id = ?", [rel, id]);
-      }
-    } else if (r.cover && /^covers\/\d+-/.test(r.cover as string)) {
-      // A cover put in and then undone; a Calibre stand-in (covers/<id>.jpg) stays.
-      await this.host.fs.remove(this.abs(r.cover as string));
-      await this.db.run("UPDATE books SET cover = NULL WHERE id = ?", [id]);
+    });
+    c.files.set(id, { file, bytes: built.bytes, cover: image });
+  }
+
+  /** Commits a change in one transaction, then writes its files and clears away the ones it stopped using. */
+  private async commit(c: Change) {
+    if (!c.sql.length) return;
+    await this.db.batch([...c.sql, ...c.drop.map((p) => ({ sql: "INSERT OR IGNORE INTO cleanup (path) VALUES (?)", params: [p] }))]);
+    for (const f of c.files.values()) {
+      await this.host.fs.write(this.abs(f.file), f.bytes);
+      if (f.cover) await this.host.fs.write(this.abs(f.cover.rel), f.cover.bytes);
     }
+    await this.sweep(c.drop, [...c.files.keys()]);
+  }
+
+  /** Removes files nothing points to any more, and marks books whose files are now written. */
+  private async sweep(paths: string[], written: number[]) {
+    for (const p of new Set(paths)) {
+      const [used] = await this.db.all("SELECT 1 FROM books WHERE ? IN (file, original, cover)", [p]);
+      if (!used) await this.host.fs.remove(this.abs(p));
+    }
+    const done = [
+      ...written.map((id) => ({ sql: "UPDATE books SET unwritten = 0 WHERE id = ?", params: [id] as SqlValue[] })),
+      ...[...new Set(paths)].map((p) => ({ sql: "DELETE FROM cleanup WHERE path = ?", params: [p] as SqlValue[] })),
+    ];
+    if (done.length) await this.db.batch(done);
+  }
+
+  /**
+   * Finishes what a power cut interrupted: writes each book the database says
+   * is unwritten, from its original and plan, and clears away files a change
+   * had stopped using.
+   */
+  private async repair() {
+    const rows = await this.db.all("SELECT * FROM books WHERE unwritten = 1");
+    for (const r of rows) {
+      const id = r.id as number;
+      let cover = (r.cover as string | null) ?? null;
+      if (r.state === "locked") await this.host.fs.write(this.abs(r.file as string), await this.host.fs.read(this.abs(r.original as string)));
+      else {
+        const plan: FixPlan = JSON.parse(r.plan as string);
+        const built = fix(await this.source(r.original as string), plan, await this.assets(plan));
+        await this.host.fs.write(this.abs(r.file as string), built.bytes);
+        if (built.cover) {
+          cover = await coverPath(id, built.cover);
+          await this.host.fs.write(this.abs(cover), built.cover.bytes);
+        }
+      }
+      if (cover && !(await this.host.fs.exists(this.abs(cover)))) cover = null;
+      await this.db.run("UPDATE books SET cover = ? WHERE id = ?", [cover, id]);
+    }
+    const left = await this.db.all<{ path: string }>("SELECT path FROM cleanup");
+    await this.sweep(
+      left.map((l) => l.path),
+      rows.map((r) => r.id as number),
+    );
   }
 
   /**
@@ -832,8 +929,7 @@ export class Library {
 
   private async saveCover(id: number, own: { bytes: Uint8Array; mediaType: string } | null, fallback?: string): Promise<string | null> {
     if (own) {
-      const ext = own.mediaType.split("/")[1].replace("jpeg", "jpg").replace("svg+xml", "svg");
-      const rel = `covers/${id}-${(await sha256(own.bytes)).slice(0, 8)}.${ext}`;
+      const rel = await coverPath(id, own);
       await this.host.fs.write(this.abs(rel), own.bytes);
       return rel;
     }
@@ -848,12 +944,6 @@ export class Library {
   private async snapshot(id: number): Promise<Snapshot> {
     const r = await this.row(id);
     return { plan: JSON.parse(r.plan as string), removed_at: (r.removed_at as string) ?? null, tags: r.tags as string, tags_off: r.tags_off as string };
-  }
-
-  private async record(label: string, steps: unknown[]) {
-    await this.db.run("INSERT INTO history (label, steps, at) VALUES (?, ?, ?)", [label, JSON.stringify(steps), new Date().toISOString()]);
-    // Keep undo bounded; nobody presses ⌘Z two hundred times.
-    await this.db.run("DELETE FROM history WHERE id <= (SELECT MAX(id) - 200 FROM history)");
   }
 
   private async row(id: number): Promise<Row> {
@@ -893,6 +983,35 @@ export class Library {
     if (r.removed_at) s.removedAt = r.removed_at as string;
     return s;
   }
+}
+
+type Statement = { sql: string; params?: SqlValue[] };
+
+/**
+ * One change to the Library. Its database statements commit in one
+ * transaction, which is the moment the change happens; the files follow.
+ * Books whose file still has to be written are marked unwritten in that same
+ * transaction, and files no longer used are listed in cleanup, so after a
+ * power cut the next open can finish both from the database alone.
+ */
+class Change {
+  sql: Statement[] = [];
+  /** Book files and thumbnails to write once committed, by book id. */
+  files = new Map<number, { file: string; bytes: Uint8Array; cover: { rel: string; bytes: Uint8Array } | null }>();
+  /** Files the change stops using, removed after it commits. */
+  drop: string[] = [];
+
+  record(label: string, steps: unknown[]) {
+    this.sql.push({ sql: "INSERT INTO history (label, steps, at) VALUES (?, ?, ?)", params: [label, JSON.stringify(steps), new Date().toISOString()] });
+    // Keep undo bounded; nobody presses ⌘Z two hundred times.
+    this.sql.push({ sql: "DELETE FROM history WHERE id <= (SELECT MAX(id) - 200 FROM history)" });
+  }
+}
+
+/** A thumbnail's place: named by the book and the picture's hash, so a changed cover is a new URL to the window. */
+async function coverPath(id: number, image: { bytes: Uint8Array; mediaType: string }) {
+  const ext = image.mediaType.split("/")[1].replace("jpeg", "jpg").replace("svg+xml", "svg");
+  return `covers/${id}-${(await sha256(image.bytes)).slice(0, 8)}.${ext}`;
 }
 
 /** A locked book goes in untouched: the original bytes, and only what its package (or a Kindle file's header) says about itself. */

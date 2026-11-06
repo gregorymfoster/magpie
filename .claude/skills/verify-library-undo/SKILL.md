@@ -59,4 +59,4 @@ Then run `just verify`. If it passes, break the new code in the model the way th
 
 ## What it doesn't cover
 
-Two processes with one Library open (the app and `magpie mcp`; `exclusive` is per process, and `Jobs` in each process drains the same `jobs` table). A crash halfway through a change. The 200-step history cap. Removed, restore and purge. A person's tag edits racing a sort's guesses (the sort re-reads tags under the lock; not modelled). What the fixers write. For changes that skipped this skill, use `/maintain-formal-verification-skill`.
+Two processes with one Library open (the app and `magpie mcp`; `exclusive` is per process, and `Jobs` in each process drains the same `jobs` table). A crash halfway through a change (the `verify-crash-safety` skill). The 200-step history cap. Removed, restore and purge. A person's tag edits racing a sort's guesses (the sort re-reads tags under the lock; not modelled). What the fixers write. For changes that skipped this skill, use `/maintain-formal-verification-skill`.

@@ -117,10 +117,11 @@ class Context {
     this.library = await Library.open(this.host, path);
     this.jobs = new Jobs(this.library.jobsDb, runners(this), (job) => this.emit({ type: "job", job }), {
       // A whole lookup run is one ⌘Z.
-      lookup: async (job) => {
+      lookup: async (job, end) => {
         await this.lib().recordLookups(
           "Look Up Details",
           job.results.flatMap((r) => (r.undo ? [r.undo as LookupPrev] : [])),
+          [end],
         );
         this.changed();
       },

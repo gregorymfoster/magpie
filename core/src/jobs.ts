@@ -7,7 +7,7 @@
 // Two lanes run side by side: lookups wait on the network at a polite pace
 // and can take an hour on a big Library, so they never hold up adding books.
 
-import type { Db } from "./host.ts";
+import type { Db, SqlValue } from "./host.ts";
 import { UserError, explain } from "./errors.ts";
 
 export type JobKind = "import" | "calibre" | "kobo" | "lookup" | "organize" | "refresh";
@@ -37,8 +37,13 @@ export interface Job {
 }
 
 export type Runner = (item: unknown) => Promise<JobResult>;
-/** Runs once when a job of that kind ends, done or cancelled. */
-export type Finisher = (job: Job) => Promise<void>;
+/**
+ * Runs once when a job of that kind ends, done or cancelled. It must commit
+ * `end` (the statement that marks the job ended) in the same transaction as
+ * its own writes, so a power cut leaves the job either finished with them or
+ * still running, to finish again at the next launch.
+ */
+export type Finisher = (job: Job, end: { sql: string; params: SqlValue[] }) => Promise<void>;
 
 const NET: JobKind[] = ["lookup"];
 type Lane = "local" | "net";
@@ -170,10 +175,13 @@ export class Jobs {
       }
     }
     const state = this.cancelled.has(id) ? "cancelled" : "done";
-    await this.db.run("UPDATE jobs SET state = ?, finished_at = ? WHERE id = ?", [state, new Date().toISOString(), id]);
+    const finishedAt = new Date().toISOString();
+    const end = { sql: "UPDATE jobs SET state = ?, finished_at = ? WHERE id = ?", params: [state, finishedAt, id] };
+    const job: Job = { ...(await this.get(id)), state, finishedAt };
+    const finish = this.finishers[job.kind];
+    if (finish) await finish(job, end).catch(() => this.db.run(end.sql, end.params));
+    else await this.db.run(end.sql, end.params);
     this.cancelled.delete(id);
-    const job = await this.get(id);
-    await this.finishers[job.kind]?.(job).catch(() => {});
     this.settle(id);
     this.onProgress(job);
   }

@@ -51,13 +51,15 @@ export function SendSheet({ books, onClose, onJob, prefer }: { books: BookSummar
   const sending = books.filter((b) => b.state !== "locked");
   const needsAddress = target === "kindle" && settings && !settings.kindleAddress;
   const n = plural(sending.length, "book");
+  const { data: inBooks = [] } = useCall("send.booksSent", { ids: sending.map((b) => b.id) });
+  const again = target === "books" && inBooks.length > 0;
   const send = async () => {
     setBusy(true);
     setError("");
     try {
       const ids = sending.map((b) => b.id);
       if (target === "books") {
-        await act("send.books", { ids });
+        await act("send.books", { ids, again });
         toast({ message: `Added ${n} to Apple Books. With iCloud on for Books, ${sending.length === 1 ? "it reaches" : "they reach"} your iPhone and iPad.` });
         onClose();
       } else if (target === "kindle") {
@@ -126,6 +128,12 @@ export function SendSheet({ books, onClose, onJob, prefer }: { books: BookSummar
             iCloud Drive.
           </p>
         )}
+        {again && (
+          <p className="hint" style={{ margin: "10px 4px 12px", fontSize: 12, color: "var(--fg3)" }}>
+            {inBooks.length === 1 && sending.length === 1 ? "This book is" : `${plural(inBooks.length, "book")} ${inBooks.length === 1 ? "is" : "are"}`} already
+            in Apple Books. Books can't replace a book, so adding it again makes a second copy. Delete the old one in Books first if you want just the new one.
+          </p>
+        )}
         {needsAddress && (
           <div className="srow" style={{ borderBottom: 0, paddingTop: 0 }}>
             <div className="lab">
@@ -178,7 +186,7 @@ export function SendSheet({ books, onClose, onJob, prefer }: { books: BookSummar
         </button>
         <button className="btn pri" disabled={busy || !sending.length || (needsAddress && !address.trim())} onClick={send}>
           <Send size={13} />
-          {target === "books" ? `Add ${n} to Apple Books` : target === "kindle" ? "Make Mail draft" : `Send ${n}`}
+          {target === "books" ? `${again ? "Add Again" : `Add ${n}`} to Apple Books` : target === "kindle" ? "Make Mail draft" : `Send ${n}`}
         </button>
       </div>
     </Sheet>

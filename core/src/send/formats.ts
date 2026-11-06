@@ -9,7 +9,7 @@ import { toApple } from "./apple.ts";
 export type Format = "kepub" | "kindle" | "apple";
 
 /** Bump when a transform changes what it writes, so kept copies are built again. */
-export const FORMATS = 1;
+export const FORMATS = 2;
 
 export function build(format: Format, epub: Uint8Array): Uint8Array {
   return format === "kepub" ? toKepub(epub) : format === "apple" ? toApple(epub) : toKindle(epub);

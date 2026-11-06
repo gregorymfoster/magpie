@@ -712,9 +712,13 @@ test("Send to Apple Books hands Books a copy filed by series, author sort and co
   assert.match(opf, new RegExp(`refines="#${id}" property="collection-type">series<`));
   assert.match(opf, new RegExp(`refines="#${id}" property="group-position">6<`));
   assert.match(opf, /property="file-as">Austen, Jane</);
+  assert.match(opf, /<dc:title>Austen Novels 6: Persuasion<\/dc:title>/, "Books ignores series metadata, so the series leads the title");
   assert.match(opf, /<meta name="calibre:series" content="Austen Novels"/, "Kindle and Kobo's series stays");
   const d = await core.call("books.get", { id: b.id });
-  assert.doesNotMatch(strFromU8(unzipSync(readFileSync(d.file))["content.opf"]), /belongs-to-collection/);
+  assert.doesNotMatch(strFromU8(unzipSync(readFileSync(d.file))["content.opf"]), /belongs-to-collection|Austen Novels 6/);
+  assert.deepEqual(await core.call("send.booksSent", { ids: [b.id] }), [b.id]);
+  await assert.rejects(core.call("send.books", { ids: [b.id] }), /Already in Apple Books/, "Books would add a second copy");
+  await core.call("send.books", { ids: [b.id], again: true });
 });
 
 test("authors sort by surname in Apple Books", async () => {
@@ -760,7 +764,7 @@ test("the KEPUB is built once and kept; changing the book builds a fresh one and
   await core.call("send.kobo", { ids: [b.id], device: dev.path });
   await core.idle();
   const [first] = readdirSync(kept);
-  assert.match(first, new RegExp(`^${b.id}-[0-9a-f]{16}-v1\\.epub$`));
+  assert.match(first, new RegExp(`^${b.id}-[0-9a-f]{16}-v\\d+\\.epub$`));
   await core.call("send.kobo", { ids: [b.id], device: dev.path });
   await core.idle();
   assert.deepEqual(readdirSync(kept), [first], "the second send reuses the kept copy");

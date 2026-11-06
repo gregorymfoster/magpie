@@ -532,12 +532,22 @@ const commands = {
 
   /**
    * Puts the books into Apple Books on this Mac, each an Apple Books copy of the
-   * clean book (series, author sort and cover named the way Books reads them).
+   * clean book (series number in the title, so a series sits together in order).
    * With iCloud on in Books, they reach the person's iPhone and iPad from there.
+   * A book sent before is refused with books-already-sent unless `again` is set.
    */
-  async "send.books"(ctx: Context, a: { ids: number[] }) {
+  /** Which of these books Magpie has already put into Apple Books. */
+  async "send.booksSent"(ctx: Context, a: { ids: number[] }) {
+    const sent = await ctx.lib().setting<Record<string, string>>("appleBooksSent", {});
+    return a.ids.filter((id) => sent[id]);
+  },
+
+  async "send.books"(ctx: Context, a: { ids: number[]; again?: boolean }) {
     const books = await Promise.all(a.ids.map((id) => ctx.lib().get(id)));
     if (books.some((b) => b.state === "locked")) throw new UserError("locked-send");
+    // Books can't replace a book: adding it again makes a second copy. So Magpie remembers what it sent and asks first.
+    const sent = await ctx.lib().setting<Record<string, string>>("appleBooksSent", {});
+    if (!a.again && a.ids.some((id) => sent[id])) throw new UserError("books-already-sent");
     // Books copies each file in, so they only wait in a scratch folder until it has.
     const dir = join(ctx.host.env.temp, `Apple-Books-${Date.now()}`);
     const paths: string[] = [];
@@ -550,6 +560,8 @@ const commands = {
     await ctx.host.books(paths).catch(() => {
       throw new UserError("books-failed");
     });
+    const at = new Date().toISOString();
+    await ctx.lib().setSetting("appleBooksSent", { ...sent, ...Object.fromEntries(a.ids.map((id) => [id, at])) });
     return { paths };
   },
 

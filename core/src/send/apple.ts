@@ -1,18 +1,21 @@
 // The copy Apple Books gets. Books on a Mac files a sideloaded EPUB by what its
-// package says, and iCloud carries that to an iPhone or iPad, so this is about
+// package says, and iCloud carries it to an iPhone or iPad, so this is about
 // the package more than the pages (the layout fixer already made the pages obey
-// the reader's settings):
+// the reader's settings). What Books 9 actually reads, tested on a real Library
+// (2026-11): the title and the first author, and nothing else for sorting.
 //
-// - Series as EPUB 3 belongs-to-collection with collection-type "series" and a
-//   group-position. That is what Books reads to put books together under a
-//   series in volume order; calibre:series, which Kindle and Kobo read, means
-//   nothing to it. Both stay.
-// - Each author with a file-as ("Austen, Jane"), so Sort by Author puts Austen
-//   under A rather than J.
-// - The cover named both ways (the cover-image property and the older
+// - A book in a series gets its series and number at the front of its title
+//   ("Red Rising 4: Iron Gold"). Books ignores every kind of series metadata in
+//   books people add themselves, so this is the one way a series sits together,
+//   in order, when Books sorts by title. Only this copy changes; the Library's
+//   book keeps its own title.
+// - The series is still written the standard ways (EPUB 3 belongs-to-collection
+//   and calibre:series) and each author gets a file-as, for any reader that
+//   reads them. Books doesn't, today.
+// - The cover is named both ways (the cover-image property and the older
 //   <meta name="cover">), so the shelf never shows a blank or a first page.
-// - A display options file that lets the book's own fonts through when the book
-//   has some, so Books' "Original" font is the book's, not a fallback.
+// - A display options file lets the book's own fonts through when the book has
+//   some, so Books' "Original" font is the book's, not a fallback.
 
 import { Book, OPF_NS, textOf, type OpfDoc } from "../epub.ts";
 import { readInfo, coverImage } from "../info.ts";
@@ -26,6 +29,14 @@ export function toApple(epub: Uint8Array): Uint8Array {
   const opf = book.opf();
 
   if (info.series) series(opf, info.series, info.seriesIndex);
+  const title = opf.dc("title")[0];
+  if (title) {
+    const t = seriesTitle(textOf(title), info.series, info.seriesIndex);
+    if (t !== textOf(title)) {
+      while (title.firstChild) title.removeChild(title.firstChild);
+      title.appendChild(opf.doc.createTextNode(t));
+    }
+  }
   for (const c of opf.dc("creator")) fileAs(opf, c);
   cover(book, opf);
   opf.save();
@@ -37,6 +48,12 @@ export function toApple(epub: Uint8Array): Uint8Array {
     );
   }
   return book.save();
+}
+
+/** "Iron Gold" in Red Rising, number 4 → "Red Rising 4: Iron Gold". A title that already names its series is left alone. */
+export function seriesTitle(title: string, series?: string, index?: number): string {
+  if (!series || !index || title.toLowerCase().startsWith(series.toLowerCase())) return title;
+  return `${series} ${index}: ${title}`;
 }
 
 function series(opf: OpfDoc, name: string, index?: number) {

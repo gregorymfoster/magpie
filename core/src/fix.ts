@@ -6,7 +6,7 @@
 // Order matters: the wrapper has to be readable before anything else can be
 // found, and pages have to parse before the manifest and metadata fixers read them.
 
-import { Book } from "./epub.ts";
+import { Book, BookError } from "./epub.ts";
 import { container } from "./fixers/container.ts";
 import { xhtml } from "./fixers/xhtml.ts";
 import { manifest } from "./fixers/manifest.ts";
@@ -113,6 +113,8 @@ export function fix(original: Uint8Array, plan: FixPlan, assets: FixAssets = {})
       errors.push({ fixer: f.id, error: e instanceof Error ? e.message : String(e) });
     }
   }
+  // With no package file even after the container fixer looked for one, there's no book to rebuild: refuse it rather than keep a file no reader opens.
+  if (!book.opfPath) throw new BookError("no-package");
   // The book's own pages first; a looked-up value only where it's surer or the pages had nothing.
   const merged = suggest(book);
   for (const f of plan.found ?? []) {

@@ -1017,7 +1017,14 @@ async function coverPath(id: number, image: { bytes: Uint8Array; mediaType: stri
 
 /** A locked book goes in untouched: the original bytes, and only what its package (or a Kindle file's header) says about itself. */
 function asLocked(bytes: Uint8Array, kind: Kind, info: InfoPatch = {}) {
-  const own = kind === "epub" ? readInfo(Book.load(bytes, { locked: "allow" })) : { language: "", ...lockedDetails(bytes, kind)! };
+  let own: { title: string; authors: string[]; language: string };
+  try {
+    own = kind === "epub" ? readInfo(Book.load(bytes, { locked: "allow" })) : { language: "", ...lockedDetails(bytes, kind)! };
+  } catch (e) {
+    // A locked book whose package details won't read is still let in as it is, named from its file.
+    if (!(e instanceof BookError)) throw e;
+    own = { title: "", authors: [], language: "" };
+  }
   const report: FixReport = { changes: [], suggestions: [], errors: [] };
   return { bytes, info: { ...own, ...info }, report, cover: null, locked: true };
 }

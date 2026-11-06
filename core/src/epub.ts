@@ -23,7 +23,7 @@ const FONT_OBFUSCATION = new Set(["http://www.idpf.org/2008/embedding", "http://
 export const LIMITS = { entries: 20_000, bytes: 1_500_000_000 };
 
 /** Why a file can't be opened as an EPUB at all. Each code has a sentence in errors.ts. */
-export type BookErrorCode = "not-a-zip" | "too-large" | "too-many-files" | "empty" | "drm" | "not-a-book" | "no-text" | "pdf-scanned" | "pdf-password";
+export type BookErrorCode = "not-a-zip" | "no-package" | "too-large" | "too-many-files" | "empty" | "drm" | "not-a-book" | "no-text" | "pdf-scanned" | "pdf-password";
 
 export class BookError extends Error {
   code: BookErrorCode;
@@ -145,7 +145,13 @@ export class OpfDoc {
   constructor(book: Book, path: string) {
     this.book = book;
     this.path = path;
-    this.doc = new DOMParser().parseFromString(book.text(path), "application/xml") as unknown as Document;
+    try {
+      this.doc = new DOMParser().parseFromString(book.text(path), "application/xml") as unknown as Document;
+    } catch {
+      // Markup so broken the parser gives up (two roots, a declaration midway): the book's list of pages can't be read.
+      throw new BookError("no-package");
+    }
+    if (!this.doc.documentElement) throw new BookError("no-package");
   }
   get pkg(): Element {
     return this.doc.documentElement;

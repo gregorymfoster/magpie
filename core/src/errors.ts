@@ -4,6 +4,8 @@
 
 const SENTENCES: Record<string, string> = {
   "not-a-zip": "This EPUB is damaged: it isn't a complete file. Download it again from where it came from.",
+  "no-package":
+    "This EPUB is damaged: it has no package file, the part that lists its pages and their order, so there's nothing to rebuild it from. Download it again from where it came from.",
   "not-a-book": "This isn't a book Magpie can read. Magpie takes EPUB, MOBI, AZW3, PDF, FB2, plain text and web pages, and zip files of them.",
   "no-text": "Magpie opened this book but found no text in it to keep.",
   "pdf-scanned": "This PDF is pictures of pages with no text in it, so it can't become a book that reflows. Keep it as a PDF.",

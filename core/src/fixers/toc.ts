@@ -19,8 +19,13 @@ export const toc: Fixer = {
 
     const ncxItem = opf.items().find((i) => i.getAttribute("media-type") === "application/x-dtbncx+xml");
     const ncxPath = ncxItem && opf.itemPath(ncxItem);
-    if (ncxPath && book.has(ncxPath)) {
-      const doc = new DOMParser().parseFromString(decodeUtf8(book.files.get(ncxPath)!), "application/xml") as unknown as Document;
+    const ncx = ncxPath && book.has(ncxPath) ? readNcx(decodeUtf8(book.files.get(ncxPath)!)) : null;
+    if (ncxPath && book.has(ncxPath) && !ncx) {
+      // So damaged it won't parse: made again from the reading order, the way a missing nav document is.
+      book.setText(ncxPath, buildNcx(readingOrder(book, opf), ncxPath, uniqueIdentifier(opf) ?? "", textOf(opf.dc("title")[0])));
+      say("Rebuilt the table of contents (toc.ncx), which was too damaged to read, from the book's chapters.", ncxPath);
+    } else if (ncxPath && ncx) {
+      const doc = ncx;
       let dropped = 0;
       for (const np of byLocal(doc, "navPoint")) {
         const src =
@@ -88,28 +93,57 @@ const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 /** A nav document from the NCX if there is one, otherwise from the reading order. */
 function buildNav(book: Book, opf: OpfDoc, navPath: string, ncxPath?: string): string {
   const entries: { label: string; path: string; frag?: string }[] = [];
-  if (ncxPath && book.has(ncxPath)) {
-    const doc = new DOMParser().parseFromString(book.text(ncxPath), "application/xml") as unknown as Document;
+  const doc = ncxPath && book.has(ncxPath) ? readNcx(book.text(ncxPath)) : null;
+  if (ncxPath && doc) {
     for (const np of byLocal(doc, "navPoint")) {
       const src = byLocal(np, "content")[0]?.getAttribute("src") ?? "";
       const [file, frag] = src.split("#");
       entries.push({ label: textOf(byLocal(np, "text")[0]), path: joinPath(dirname(ncxPath), decodePath(file)), frag });
     }
   }
-  if (!entries.length) {
-    for (const ref of opf.itemrefs()) {
-      const it = opf.itemById(ref.getAttribute("idref") ?? "");
-      if (!it) continue;
-      const path = opf.itemPath(it);
-      if (!book.has(path)) continue;
-      const m = book.text(path).match(/<(h[1-3]|title)[^>]*>([\s\S]*?)<\/\1>/i);
-      entries.push({ label: (m?.[2] ?? path).replace(/<[^>]+>/g, "").trim(), path });
-    }
-  }
+  if (!entries.length) entries.push(...readingOrder(book, opf));
   const lang = textOf(opf.dc("language")[0]) || "en";
   const lis = entries.map((e) => `<li><a href="${esc(relativeHref(navPath, e.path) + (e.frag ? "#" + e.frag : ""))}">${esc(e.label)}</a></li>`).join("\n");
   return (
     `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="${esc(lang)}" lang="${esc(lang)}">\n` +
     `<head><title>Contents</title></head>\n<body>\n<nav epub:type="toc" id="toc"><h1>Contents</h1>\n<ol>\n${lis}\n</ol></nav>\n</body>\n</html>\n`
+  );
+}
+
+/** Each page in reading order, labelled by its first heading, or its title when it has none. */
+function readingOrder(book: Book, opf: OpfDoc): { label: string; path: string }[] {
+  const out: { label: string; path: string }[] = [];
+  for (const ref of opf.itemrefs()) {
+    const it = opf.itemById(ref.getAttribute("idref") ?? "");
+    if (!it) continue;
+    const path = opf.itemPath(it);
+    if (!book.has(path)) continue;
+    const text = book.text(path);
+    const m = text.match(/<(h[1-3])[^>]*>([\s\S]*?)<\/\1>/i) ?? text.match(/<(title)[^>]*>([\s\S]*?)<\/\1>/i);
+    out.push({ label: (m?.[2] ?? path).replace(/<[^>]+>/g, "").trim(), path });
+  }
+  return out;
+}
+
+/** An NCX document, or null when it's too broken to parse or isn't one. */
+function readNcx(text: string): Document | null {
+  try {
+    const doc = new DOMParser({ onError: () => {} }).parseFromString(text, "application/xml") as unknown as Document;
+    return doc.documentElement?.localName === "ncx" ? doc : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildNcx(entries: { label: string; path: string }[], ncxPath: string, uid: string, title: string): string {
+  const points = entries
+    .map(
+      (e, i) =>
+        `<navPoint id="np${i + 1}" playOrder="${i + 1}"><navLabel><text>${esc(e.label)}</text></navLabel><content src="${esc(relativeHref(ncxPath, e.path))}"/></navPoint>`,
+    )
+    .join("\n");
+  return (
+    `<?xml version="1.0" encoding="UTF-8"?>\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n` +
+    `<head><meta name="dtb:uid" content="${esc(uid)}"/></head>\n<docTitle><text>${esc(title)}</text></docTitle>\n<navMap>\n${points}\n</navMap>\n</ncx>\n`
   );
 }

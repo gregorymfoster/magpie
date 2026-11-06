@@ -226,10 +226,15 @@ function parseDocs(book: Book): Doc[] {
   const out: Doc[] = [];
   for (const path of contentDocs(book)) {
     let failed = false;
-    const doc = new DOMParser({ onError: (level) => void (level !== "warning" && (failed = true)) }).parseFromString(
-      decodeUtf8(book.files.get(path)!),
-      "application/xhtml+xml",
-    ) as unknown as Document;
+    let doc: Document;
+    try {
+      doc = new DOMParser({ onError: (level) => void (level !== "warning" && (failed = true)) }).parseFromString(
+        decodeUtf8(book.files.get(path)!),
+        "application/xhtml+xml",
+      ) as unknown as Document;
+    } catch {
+      continue; // A page with no root element at all is fatal to the parser; like any page that won't parse, it's left as it is.
+    }
     if (!failed && byTag(doc, "body")[0]) out.push({ path, doc });
   }
   return out;

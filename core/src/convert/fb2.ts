@@ -28,7 +28,13 @@ export function fb2ToDraft(bytes: Uint8Array, zipped = false): Draft {
   }
   const src = decodeUtf8(bytes);
   // The XML declaration can name an encoding the bytes don't use any more once decoded.
-  const doc = new DOMParser({ onError: () => {} }).parseFromString(src.replace(/^\s*<\?xml[^>]*\?>/, ""), "text/xml") as unknown as Document;
+  let doc: Document;
+  try {
+    doc = new DOMParser({ onError: () => {} }).parseFromString(src.replace(/^\s*<\?xml[^>]*\?>/, ""), "text/xml") as unknown as Document;
+  } catch {
+    // Tags that don't close (a file cut short) are fatal to the parser: there's no book to read.
+    throw new BookError("not-a-book");
+  }
   const root = doc.documentElement;
   if (!root || root.localName !== "FictionBook") throw new BookError("not-a-book");
 

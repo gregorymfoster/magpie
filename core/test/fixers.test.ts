@@ -224,3 +224,28 @@ test("Kindle-safe copy: obfuscated and broken fonts, scripts and window-sized CS
   assert.match(sheet, /margin: 1em/);
   assert.doesNotMatch(read("ch1.xhtml"), /script/);
 });
+
+test("a table of contents too damaged to read is rebuilt from the chapters; a book whose package won't read is refused in a sentence", () => {
+  const book = epub({
+    manifest: '<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
+    extra: { "toc.ncx": '<?xml version="1.0"?><ncx xmlns="http://www.daisy.org/z3986/2005/ncx/"><navMap><navPoint><content src="ch1.xhtml"/></navMap></ncx>' },
+  });
+  const out = fixEpub(book);
+  assert.deepEqual(out.report.errors, []);
+  assert.ok(out.report.changes.some((c) => c.fixer === "toc" && /Rebuilt the table of contents/.test(c.message)));
+  const ncx = new TextDecoder().decode(unzipSync(out.bytes)["toc.ncx"]);
+  assert.match(ncx, /<content src="ch1\.xhtml"\/>/);
+  assert.match(ncx, /<text>Chapter 1<\/text>/);
+
+  const files = unzipSync(epub());
+  files["content.opf"] = new TextEncoder().encode('<?xml version="1.0"?><package/><package/>');
+  assert.throws(
+    () => fixEpub(zipSync(files)),
+    (e: Error & { code?: string }) => e.code === "no-package",
+  );
+  delete files["content.opf"];
+  assert.throws(
+    () => fixEpub(zipSync(files)),
+    (e: Error & { code?: string }) => e.code === "no-package",
+  );
+});

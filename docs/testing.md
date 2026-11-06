@@ -12,6 +12,7 @@
 | Power cuts | `core/test/crash.test.ts`, in `just test` | A person's session cut short before each of its writes, then reopened: nothing missing, nothing left over, each step done or not (ADR 0008). |
 | DRM | `core/test/drm.test.ts`, in `just test` | Random sessions (fast-check) on a Library with every kind of locked book: each stays the store's file byte for byte with its details, and none of it is written anywhere else. |
 | Determinism | `core/test/determinism.test.ts`, in `just test` | Random plans (fast-check) built twice at different times and time zones: same bytes, same report. Converters and device formats too. |
+| Import fuzz | `core/test/fuzz.test.ts`, in `just test` | Real books of every kind, damaged (fast-check), imported through `core.call`: added as a book that opens with every fixer run, or turned away in a sentence. |
 | The bench | `just bench` | Fixer quality across the corpus. Any drop is a regression; it exits non-zero. |
 
 Things that never get tested by mocking: SQLite (use a temp Library), the file system (use a temp dir), the core from the UI (use `magpie serve`).

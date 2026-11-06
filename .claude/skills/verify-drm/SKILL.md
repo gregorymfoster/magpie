@@ -40,4 +40,4 @@ Planted-bug check: with the `locked-send` guard taken out of both `send.kindle` 
 
 Lock formats Magpie doesn't detect. What the store's apps do. The Tauri host's writes (same core, other adapter). The UI.
 
-Last confirmed true to the code at commit `HEAD` (sync commit).
+Last confirmed true to the code at commit `ac71b60` (sync commit).

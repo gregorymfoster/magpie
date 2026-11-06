@@ -114,6 +114,8 @@ test("video", async ({ browser }) => {
   await page.keyboard.press("Meta+Shift+s");
   await pause(1400);
   const sheet = page.getByRole("dialog");
+  await sheet.getByRole("button", { name: /^Kindle/ }).click();
+  await pause(700);
   await sheet.getByLabel("Send to Kindle address").fill("greg_1@kindle.com");
   await pause(900);
   await page.keyboard.press("Escape");

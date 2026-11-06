@@ -90,6 +90,7 @@ test("Send to Kindle asks for the address once, then opens a Mail message with t
   await page.locator(".tile", { hasText: "Emma" }).click();
   await page.getByRole("button", { name: "Send", exact: true }).first().click();
   const sheet = page.getByRole("dialog");
+  await sheet.getByRole("button", { name: /^Kindle/ }).click();
   await sheet.getByLabel("Send to Kindle address").fill("me@gmail.com");
   await sheet.getByRole("button", { name: "Make Mail draft" }).click();
   await expect(sheet.getByRole("alert")).toContainText("@kindle.com");
@@ -98,6 +99,22 @@ test("Send to Kindle asks for the address once, then opens a Mail message with t
   await expect(page.locator(".toast")).toContainText("Mail draft is ready");
   const opened = readFileSync(`${test.info().config.metadata.home}/opened.txt`, "utf8").trim().split("\n").pop()!;
   expect(opened).toMatch(/^mail .*"to":"greg_1@kindle\.com".*Jane-Austen-Emma\.epub/);
+});
+
+test("Send goes to iPhone & iPad first: the book is added to Apple Books, and the choice is remembered", async ({ page }) => {
+  await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
+  await page.reload();
+  await page.locator(".tile", { hasText: "Emma" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).first().click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByRole("button", { name: /^iPhone & iPad/ })).toHaveAttribute("aria-pressed", "true");
+  await sheet.getByRole("button", { name: "Add 1 book to Apple Books" }).click();
+  await expect(page.locator(".toast")).toContainText("Added 1 book to Apple Books");
+  const opened = readFileSync(`${test.info().config.metadata.home}/opened.txt`, "utf8").trim().split("\n").pop()!;
+  expect(opened).toMatch(/^books .*\.epub/);
+  // The sidebar has the same place to send from.
+  await page.getByRole("button", { name: "iPhone & iPad", exact: true }).click();
+  await expect(page.locator(".tb h1")).toHaveText("iPhone & iPad");
 });
 
 test("remove moves a book to Removed; ⌘Z brings it back", async ({ page }) => {
@@ -225,28 +242,18 @@ test("Look Up asks first, says what is sent, what Open Library finds waits for r
   await expect(page.getByRole("complementary", { name: "Inspector" })).toContainText("4.0 from 312 readers");
 });
 
-test("books land on shelves; the sidebar filters by shelf, author and series; tags go on and come off", async ({ page }) => {
+test("the sidebar is the loop: books, what needs work, authors and series, and where to send; no shelves, vibes or tags", async ({ page }) => {
   await call(page, "books.import", { paths: classicFiles() });
   await expect.poll(async () => (await call(page, "books.list")).length).toBe(15);
   await page.reload();
   const side = page.getByRole("navigation", { name: "Library" });
-  await side.getByRole("button", { name: /^Fiction \d+$/ }).click();
-  await expect(page.locator(".ttl h1")).toHaveText("Fiction");
-  await side.getByRole("button", { name: /^Science Fiction 1$/ }).click();
-  await expect(page.locator(".tile .t")).toHaveText(["Frankenstein"]);
   await side.getByRole("button", { name: /^Jane Austen 2$/ }).click();
   await expect(page.locator(".tile")).toHaveCount(2);
-
+  for (const gone of [/^Fiction \d+$/, /^Recently Added$/]) await expect(side.getByRole("button", { name: gone })).toHaveCount(0);
+  for (const gone of ["Shelves", "Vibes", "Tags"]) await expect(side.getByRole("button", { name: gone, exact: true })).toHaveCount(0);
+  await expect(side.getByText("Send to")).toBeVisible();
   await page.locator(".tile", { hasText: "Persuasion" }).click();
-  const insp = page.getByRole("complementary", { name: "Inspector" });
-  await expect(insp.locator(".chip.ai", { hasText: "Romance" })).toBeVisible();
-  await insp.getByLabel("Add a tag").fill("Book club");
-  await insp.getByLabel("Add a tag").press("Enter");
-  await expect(side.getByRole("button", { name: /^Book club 1$/ })).toBeVisible();
-  await insp.getByRole("button", { name: "Take off Romance" }).click();
-  await expect(insp.locator(".chip", { hasText: "Romance" })).toHaveCount(0);
-  await page.keyboard.press("ControlOrMeta+z");
-  await expect(insp.locator(".chip.ai", { hasText: "Romance" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Inspector" }).getByLabel("Add a tag")).toHaveCount(0);
 });
 
 test("the list's columns can be chosen, and the choice is remembered", async ({ page }) => {

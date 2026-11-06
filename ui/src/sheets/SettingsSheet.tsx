@@ -166,7 +166,10 @@ function LibraryPage({ onClose }: { onClose: () => void }) {
           Sort All Again
         </button>
       </Row>
-      <Row title="Originals" sub="Every book keeps the file it arrived as, untouched, inside the Library’s originals folder. Undo rebuilds from it." />
+      <Row
+        title="Originals"
+        sub="Every book keeps the file it arrived as (EPUB, MOBI, PDF or whatever it was), untouched, inside the Library’s originals folder. Undo rebuilds from it."
+      />
     </>
   );
 }

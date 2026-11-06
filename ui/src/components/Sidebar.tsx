@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Library, AlertCircle, Clock, Trash2, Mail, Usb, Folder, Feather, Lightbulb, Sparkles, Layers, User, Tag, ChevronRight, Wand2 } from "lucide-react";
+import { Library, AlertCircle, Trash2, Mail, Usb, Folder, Layers, User, ChevronRight, Smartphone } from "lucide-react";
 import type { AppState, Device, Groups, Job } from "@magpie/core";
 import { DoneCheck, jobProgress } from "./Progress.tsx";
-import { Count, useLinger } from "./Motion.tsx";
+import { Count } from "./Motion.tsx";
 import { plural, tilde } from "../format.ts";
 
-export type View = "all" | "work" | "recent" | "removed" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
+export type View = "all" | "work" | "removed" | "books" | "kindle" | `kobo:${string}` | `tag:${string}` | `author:${string}` | `series:${string}`;
 
-type Section = "shelves" | "vibes" | "series" | "authors" | "tags";
+type Section = "series" | "authors";
 const FEW_AUTHORS = 8;
 
 const stored = (): Record<string, boolean> => {
@@ -24,7 +24,6 @@ export function Sidebar({
   groups,
   view,
   setView,
-  onSort,
   onJob,
 }: {
   state: AppState;
@@ -32,7 +31,6 @@ export function Sidebar({
   groups?: Groups;
   view: View;
   setView: (v: View) => void;
-  onSort: () => void;
   /** Reopens a job's sheet, from the footer's "Added 24 books". */
   onJob?: (id: number) => void;
 }) {
@@ -68,9 +66,6 @@ export function Sidebar({
   );
   const running = state.jobs.find((j) => j.state === "running" || j.state === "queued");
   const finished = useFinished(running, state.jobs);
-  const sorting = state.jobs.some((j) => j.kind === "organize" && (j.state === "running" || j.state === "queued"));
-  // While books are being sorted, and for a moment after, shelves open into the sidebar as they're found.
-  const [filling] = useLinger(sorting, 3000);
   const authors = groups ? [...groups.authors].sort((a, b) => b.count - a.count || 0) : [];
   const shownAuthors = allAuthors
     ? (groups?.authors ?? [])
@@ -89,36 +84,7 @@ export function Sidebar({
         <div className="sec">Library</div>
         <Row id="all" icon={<Library {...i} />} label="All Books" count={state.counts.all} />
         <Row id="work" icon={<AlertCircle {...i} />} label="Needs Work" count={state.counts.work} hot />
-        <Row id="recent" icon={<Clock {...i} />} label="Recently Added" />
         {state.counts.removed > 0 && <Row id="removed" icon={<Trash2 {...i} />} label="Removed" count={state.counts.removed} />}
-        {groups && (groups.shelves.length > 0 || groups.unsorted > 0 || sorting) && (
-          <Sec id="shelves" label="Shelves">
-            {groups.shelves.map((s, n) => (
-              <div key={s.name} className={filling ? "filling" : undefined} style={filling ? { animationDelay: `${n * 80}ms` } : undefined}>
-                <Row id={`tag:${s.name}`} icon={s.name === "Fiction" ? <Feather {...i} /> : <Lightbulb {...i} />} label={s.name} count={s.count} />
-                {s.genres.map((g) => (
-                  <Row key={g.name} id={`tag:${g.name}`} label={g.name} count={g.count} sub />
-                ))}
-              </div>
-            ))}
-            {!groups.shelves.length &&
-              (sorting ? (
-                <div className="row hint">Sorting your books…</div>
-              ) : (
-                <button className="row" onClick={onSort}>
-                  <Wand2 {...i} />
-                  <span className="lbl">Sort onto shelves</span>
-                </button>
-              ))}
-          </Sec>
-        )}
-        {groups && groups.vibes.length > 0 && (
-          <Sec id="vibes" label="Vibes">
-            {groups.vibes.map((v) => (
-              <Row key={v.name} id={`tag:${v.name}`} icon={<Sparkles {...i} />} label={v.name} count={v.count} />
-            ))}
-          </Sec>
-        )}
         {groups && groups.series.length > 0 && (
           <Sec id="series" label="Series">
             {groups.series.map((s) => (
@@ -138,14 +104,8 @@ export function Sidebar({
             )}
           </Sec>
         )}
-        {groups && groups.tags.length > 0 && (
-          <Sec id="tags" label="Tags">
-            {groups.tags.map((t) => (
-              <Row key={t.name} id={`tag:${t.name}`} icon={<Tag {...i} />} label={t.name} count={t.count} />
-            ))}
-          </Sec>
-        )}
-        <div className="sec">Devices</div>
+        <div className="sec">Send to</div>
+        <Row id="books" icon={<Smartphone {...i} />} label="iPhone & iPad" />
         <Row id="kindle" icon={<Mail {...i} />} label="Kindle" />
         {devices.map((d) => (
           <Row key={d.id} id={`kobo:${d.path}`} icon={<Usb {...i} />} label={d.name} />

@@ -141,7 +141,6 @@ function Window() {
   const kobo = view.startsWith("kobo:") ? view.slice(5) : null;
   const { data: onKobo } = useCall("devices.books", { device: kobo ?? "" }, { enabled: open && !!kobo, every: 3000 });
   const items = useMemo(() => {
-    if (view === "recent") return books.filter((b) => Date.now() - Date.parse(b.addedAt) < 14 * 864e5);
     if (kobo) return books.filter((b) => onKobo?.ids.includes(b.id));
     return books;
   }, [books, view, kobo, onKobo]);
@@ -173,7 +172,8 @@ function Window() {
           case "list":
             return setLayout(a);
           case "send":
-            return setSheet({ type: "send", ids, prefer: kobo ?? undefined });
+            // Sending from a reader's own list goes to that reader.
+            return setSheet({ type: "send", ids, prefer: kobo ?? (view === "books" || view === "kindle" ? view : undefined) });
           case "review":
             return setSheet({ type: "review" });
           case "settings":
@@ -327,7 +327,7 @@ function Window() {
 
   const job = sheet?.type === "job" ? state.jobs.find((j) => j.id === sheet.id) : undefined;
   const title =
-    { all: "All Books", work: "Needs Work", recent: "Recently Added", removed: "Removed", kindle: "Kindle" }[view as string] ??
+    { all: "All Books", work: "Needs Work", removed: "Removed", books: "iPhone & iPad", kindle: "Kindle" }[view as string] ??
     devices.find((d) => `kobo:${d.path}` === view)?.name ??
     (/^(tag|author|series):/.test(view) ? view.slice(view.indexOf(":") + 1) : undefined) ??
     "Kobo";
@@ -385,6 +385,7 @@ function Window() {
           </div>
         )}
         {view === "kindle" && <KindleCard onSend={() => void run("send")} />}
+        {view === "books" && <BooksCard onSend={() => void run("send")} />}
         {layout === "list" ? (
           <List items={items} sel={sel} back={back} onSel={onSel} onOpen={(id) => setSheet({ type: "edit", id })} />
         ) : (
@@ -402,7 +403,6 @@ function Window() {
           view={view}
           groups={groups}
           onJob={(id) => setSheet({ type: "job", id })}
-          onSort={() => void act("library.organize").catch((e) => toast({ message: e instanceof Error ? e.message : String(e), error: true }))}
           setView={(v) => {
             setView(v);
             setSel([]);
@@ -471,15 +471,7 @@ function Window() {
             >
               {body}
             </div>
-            {showInsp && !empty && (
-              <Inspector
-                chosen={chosen}
-                act={inspect}
-                onTag={(name) => {
-                  setView(`tag:${name}`);
-                }}
-              />
-            )}
+            {showInsp && !empty && <Inspector chosen={chosen} act={inspect} />}
           </div>
         </div>
         {showDrop && (
@@ -529,6 +521,24 @@ function initialSheet(sel: number[]): SheetState {
   if (s === "edit" && sel.length) return { type: "edit", id: sel[0] };
   if (s === "preview" && sel.length) return { type: "preview", id: sel[0] };
   return null;
+}
+
+function BooksCard({ onSend }: { onSend: () => void }) {
+  return (
+    <div className="dev">
+      <span className="ico">
+        <i />
+      </span>
+      <div className="bd">
+        <b>iPhone & iPad</b>
+        <span>Magpie adds books to Apple Books on this Mac. With iCloud on for Books, they appear on your iPhone and iPad, covers and series included.</span>
+      </div>
+      <button className="btn" onClick={onSend}>
+        <Send size={13} />
+        Send books…
+      </button>
+    </div>
+  );
 }
 
 function KindleCard({ onSend }: { onSend: () => void }) {

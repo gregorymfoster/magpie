@@ -14,7 +14,7 @@ export function FirstLaunch({ onAdd, onCalibre }: { onAdd: () => void; onCalibre
       <img className="art" src={art} width={300} height={200} alt="" />
       <div className="drop-target">
         <b>Drop your books here</b>
-        <span>EPUB files or whole folders. Magpie copies each one in, fixes what’s broken, and keeps the original.</span>
+        <span>EPUB, MOBI, AZW3, PDF, zip files or whole folders. Magpie copies each one in, makes it a clean EPUB, and keeps the original.</span>
         <button className="btn pri" style={{ marginTop: 10 }} onClick={onAdd}>
           <Plus size={13} />
           Add Books…

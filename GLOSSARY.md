@@ -38,7 +38,7 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Look Up Details.** Asking Open Library for what a book is missing (year, publisher, language, description, an unreadable author), by title, author and ISBN only. What comes back is a suggestion like any other, marked as from Open Library. It also brings back the book's **Rating**: the average of Open Library readers' ratings out of 5, shown once at least five people have rated it, never a Goodreads number. Not "hydrate", "enrich" or "fetch metadata".
 
-**Send.** Getting a book onto a reader. Kindle: a new Mail message to the Send to Kindle address, with the books attached, that the person sends. Kobo: a KEPUB copied to the mounted reader.
+**Send.** Getting a book onto a reader. iPhone & iPad (the first choice): the book is added to Apple Books on the Mac, which iCloud carries to the iPhone and iPad. Kindle: a new Mail message to the Send to Kindle address, with the books attached, that the person sends. Kobo: a KEPUB copied to the mounted reader.
 
 **Device copy.** The file a reader gets, built from the clean book the first time it's sent and kept in `devices/<format>/` (KEPUB for a Kobo, a Kindle-safe EPUB for Send to Kindle). Named by the clean file's hash, so a changed book gets a fresh copy. People never see the word "format".
 
@@ -58,7 +58,7 @@ The words Magpie uses, in code and in the window. Use these and only these.
 
 **Tag.** A word a book is filed under, kept in the Library and never written into the book. Each says who put it there: you, Calibre, or Magpie.
 
-**Shelf.** Fiction or Nonfiction, with the genres under it. "Shelves" in the sidebar.
+**Shelf.** Fiction or Nonfiction, with the genres under it. Kept in the Library, but no longer shown in the window: since the window went down to add, clean, send (2026-11-06), the sidebar has only All Books, Needs Work, Authors, Series and Send to. Tags and vibes are hidden the same way.
 
 **Vibe.** How a book feels to read (Cozy, Dark, Fast-paced…), from a fixed list.
 

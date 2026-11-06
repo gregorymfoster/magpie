@@ -45,4 +45,4 @@ Each line names the cut ("power cut before write 48 of 91, during \"edit\"") and
 
 A write torn halfway: it trusts the host that each file write renames a whole temp file and each batch is one transaction (`core/test/host-contract.ts`). Data the disk loses after saying it was written. Two processes with one Library open. Settings, device sends, Calibre and Kobo imports, keep styling, tags, restore: same `commit`, but not in the session. Interleavings of a person and background jobs: the `verify-library-undo` skill.
 
-Last confirmed true to the code at commit `HEAD` (sync commit).
+Last confirmed true to the code at commit `59d1f71` (sync commit).

@@ -21,7 +21,7 @@ It does if it changes any of these, or adds code that writes the same things (`b
 
 A new command that writes a book or history must go through `Library.exclusive` and record history; if it adds a new kind of write (a new column, a new job that rebuilds books), the model needs a new action.
 
-Last confirmed true to the code at commit `009e3c1` (sync commit).
+Last confirmed true to the code at commit `59d1f71` (sync commit).
 
 ## Run it
 

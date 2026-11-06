@@ -14,6 +14,7 @@ Faster loops while you work:
 - `just bench` scores the fixers against the damaged-twin corpus. A drop in any number is a regression.
 - `just verify` model-checks how edits, background jobs and Undo interleave (`verify/`, needs Java). If you touch `Library` writes, `jobs.ts` or `history.undo`, follow the `verify-library-undo` skill.
 - `node --test core/test/crash.test.ts` cuts the power before every write of a session and checks the Library after a restart (in `just test`). If you add or move a write to the disk or database, follow the `verify-crash-safety` skill.
+- `node --test core/test/drm.test.ts` runs random sessions on locked books (fast-check; in `just test`). If you touch anything a locked book can reach, follow the `verify-drm` skill.
 
 ## How the code is shaped
 

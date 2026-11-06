@@ -246,14 +246,22 @@ export class Library {
     }
     // The original first: it's named by its hash, so one left behind by a power cut is simply used next time.
     await this.host.fs.write(this.abs(original), bytes);
+    // Calibre's cover stands in for a book with none of its own (a locked one keeps its own untouched). It's named by
+    // its hash and written before the row too, so the row can name it and a repair keeps it.
+    let standIn: string | null = null;
+    if (!built.cover && src.cover && (await this.host.fs.exists(src.cover))) {
+      const picture = await this.host.fs.read(src.cover);
+      standIn = `covers/calibre-${(await sha256(picture)).slice(0, 16)}.${ending(src.cover)}`;
+      await this.host.fs.write(this.abs(standIn), picture);
+    }
     const file = await unique(`books/${bookPath(built.info.authors, built.info.title || stem(name), built.locked ? ext : "epub")}`, (p) =>
       this.host.fs.exists(this.abs(p)),
     );
     // The row is the commit. Until the book's file is written it stays unwritten, and repair writes it from the plan.
     const r = await this.db.run(
       `INSERT INTO books (hash, title, authors, author_sort, series, series_index, language, publisher, year, isbn, description,
-         file, original, size, state, plan, report, origin, origin_name, added_at, updated_at, tags, unwritten)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`,
+         file, original, cover, size, state, plan, report, origin, origin_name, added_at, updated_at, tags, unwritten)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1)`,
       [
         hash,
         built.info.title || stem(name),
@@ -268,6 +276,7 @@ export class Library {
         built.info.description ?? null,
         file,
         original,
+        standIn,
         built.bytes.length,
         built.locked ? "locked" : stateOf(built.report),
         JSON.stringify(plan),
@@ -281,7 +290,7 @@ export class Library {
     );
     const id = r.lastId;
     await this.host.fs.write(this.abs(file), built.bytes);
-    const cover = await this.saveCover(id, built.cover, src.cover);
+    const cover = built.cover ? await this.saveCover(id, built.cover) : standIn;
     await this.db.run("UPDATE books SET cover = ?, unwritten = 0 WHERE id = ?", [cover, id]);
     return { kind: "added", book: await this.summaryById(id), locked: built.locked };
   }
@@ -791,7 +800,7 @@ export class Library {
       file = await unique(want, async (p) => claimed.has(p) || (await this.host.fs.exists(this.abs(p))));
       c.drop.push(old.file);
     }
-    // The thumbnail follows the book's cover. A cover put in and then undone goes; a Calibre stand-in (covers/<id>.jpg) stays.
+    // The thumbnail follows the book's cover. A cover put in and then undone goes; a Calibre stand-in (covers/calibre-<hash>.jpg, or covers/<id>.jpg before schema 4) stays.
     let cover = old.cover;
     const image = built.cover ? { rel: await coverPath(id, built.cover), bytes: built.cover.bytes } : null;
     if (image) cover = image.rel;
@@ -927,18 +936,10 @@ export class Library {
     return mediaType ? { cover: { bytes, mediaType } } : {};
   }
 
-  private async saveCover(id: number, own: { bytes: Uint8Array; mediaType: string } | null, fallback?: string): Promise<string | null> {
-    if (own) {
-      const rel = await coverPath(id, own);
-      await this.host.fs.write(this.abs(rel), own.bytes);
-      return rel;
-    }
-    if (fallback && (await this.host.fs.exists(fallback))) {
-      const rel = `covers/${id}.${fallback.split(".").pop()!.toLowerCase()}`;
-      await this.host.fs.copy(fallback, this.abs(rel));
-      return rel;
-    }
-    return null;
+  private async saveCover(id: number, own: { bytes: Uint8Array; mediaType: string }): Promise<string> {
+    const rel = await coverPath(id, own);
+    await this.host.fs.write(this.abs(rel), own.bytes);
+    return rel;
   }
 
   private async snapshot(id: number): Promise<Snapshot> {

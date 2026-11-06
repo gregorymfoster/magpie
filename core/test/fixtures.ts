@@ -1,6 +1,9 @@
 // Tiny EPUBs built in memory, so a test states exactly what's in its book.
 
 import { zipSync, strToU8 } from "fflate";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import type { Host } from "../src/index.ts";
 
 export const page = (body: string) =>
@@ -62,3 +65,67 @@ export function pause(host: Host, match: string) {
 
 /** Lets everything that isn't waiting on a file or a lock run. */
 export const settle = () => new Promise((r) => setTimeout(r, 30));
+
+/** A Calibre library at dir with these books, each with a cover.jpg, the way Calibre lays one out. */
+export function makeCalibre(
+  dir: string,
+  books: { title: string; authors: string[]; series?: string; index?: number; tags?: string[]; epub: Uint8Array | null; mobi?: Uint8Array }[],
+) {
+  mkdirSync(dir, { recursive: true });
+  const db = new DatabaseSync(join(dir, "metadata.db"));
+  db.exec(`
+    CREATE TABLE books (id INTEGER PRIMARY KEY, title TEXT, path TEXT, series_index REAL DEFAULT 1, pubdate TEXT, has_cover INTEGER DEFAULT 0);
+    CREATE TABLE authors (id INTEGER PRIMARY KEY, name TEXT);
+    CREATE TABLE books_authors_link (id INTEGER PRIMARY KEY, book INTEGER, author INTEGER);
+    CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT);
+    CREATE TABLE books_series_link (id INTEGER PRIMARY KEY, book INTEGER, series INTEGER);
+    CREATE TABLE publishers (id INTEGER PRIMARY KEY, name TEXT);
+    CREATE TABLE books_publishers_link (id INTEGER PRIMARY KEY, book INTEGER, publisher INTEGER);
+    CREATE TABLE comments (id INTEGER PRIMARY KEY, book INTEGER, text TEXT);
+    CREATE TABLE identifiers (id INTEGER PRIMARY KEY, book INTEGER, type TEXT, val TEXT);
+    CREATE TABLE languages (id INTEGER PRIMARY KEY, lang_code TEXT);
+    CREATE TABLE books_languages_link (id INTEGER PRIMARY KEY, book INTEGER, lang_code INTEGER, item_order INTEGER DEFAULT 0);
+    CREATE TABLE data (id INTEGER PRIMARY KEY, book INTEGER, format TEXT, name TEXT);
+    CREATE TABLE tags (id INTEGER PRIMARY KEY, name TEXT UNIQUE);
+    CREATE TABLE books_tags_link (id INTEGER PRIMARY KEY, book INTEGER, tag INTEGER);
+    INSERT INTO languages (id, lang_code) VALUES (1, 'eng');
+  `);
+  books.forEach((b, i) => {
+    const id = i + 1;
+    const path = `${b.authors[0]}/${b.title} (${id})`;
+    mkdirSync(join(dir, path), { recursive: true });
+    db.prepare("INSERT INTO books (id, title, path, series_index, pubdate, has_cover) VALUES (?, ?, ?, ?, '1815-12-23', 1)").run(
+      id,
+      b.title,
+      path,
+      b.index ?? 1,
+    );
+    writeFileSync(join(dir, path, "cover.jpg"), jpeg(1200, 1800));
+    for (const a of b.authors) {
+      const aid = Number(db.prepare("INSERT INTO authors (name) VALUES (?)").run(a).lastInsertRowid);
+      db.prepare("INSERT INTO books_authors_link (book, author) VALUES (?, ?)").run(id, aid);
+    }
+    if (b.series) {
+      const sid = Number(db.prepare("INSERT INTO series (name) VALUES (?)").run(b.series).lastInsertRowid);
+      db.prepare("INSERT INTO books_series_link (book, series) VALUES (?, ?)").run(id, sid);
+    }
+    db.prepare("INSERT INTO books_languages_link (book, lang_code) VALUES (?, 1)").run(id);
+    for (const t of b.tags ?? []) {
+      db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(t);
+      const tid = (db.prepare("SELECT id FROM tags WHERE name = ?").get(t) as { id: number }).id;
+      db.prepare("INSERT INTO books_tags_link (book, tag) VALUES (?, ?)").run(id, tid);
+    }
+    if (b.epub) {
+      const name = `${b.title} - ${b.authors[0]}`;
+      writeFileSync(join(dir, path, `${name}.epub`), b.epub);
+      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'EPUB', ?)").run(id, name);
+    } else if (b.mobi) {
+      const name = `${b.title} - ${b.authors[0]}`;
+      writeFileSync(join(dir, path, `${name}.mobi`), b.mobi);
+      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'MOBI', ?)").run(id, name);
+    } else {
+      db.prepare("INSERT INTO data (book, format, name) VALUES (?, 'LIT', ?)").run(id, b.title);
+    }
+  });
+  db.close();
+}

@@ -17,4 +17,4 @@ A Mac can lose power, crash or be force-quit at any moment. Before this, a chang
 
 ## Consequences
 
-A crash can leave a book's file a version behind its row for as long as the Mac is off; the next launch puts it right before anything else runs. A Calibre stand-in cover (`covers/<id>.jpg`) on a book cut mid-import is lost, because repair can only rebuild what the plan says. The guarantee rests on the host's promise that each file write and each SQL batch is all or nothing.
+A crash can leave a book's file a version behind its row for as long as the Mac is off; the next launch puts it right before anything else runs. A Calibre stand-in cover (for a locked book, which keeps its own file untouched) is named by its hash, `covers/calibre-<hash>.jpg`, and written before the row like the original, so the row names it from the start and repair keeps it. The guarantee rests on the host's promise that each file write and each SQL batch is all or nothing.

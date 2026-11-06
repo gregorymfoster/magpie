@@ -18,7 +18,7 @@ import { createCore, type Core, type Db, type Host } from "../src/index.ts";
 import { Book } from "../src/epub.ts";
 import { readInfo } from "../src/info.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
-import { epub, jpeg } from "./fixtures.ts";
+import { epub, jpeg, makeCalibre } from "./fixtures.ts";
 
 /** Thrown by every host call once the power is gone. */
 class PowerCut extends Error {}
@@ -95,6 +95,12 @@ function home() {
     }),
   );
   writeFileSync(join(dir, "Downloads/cover.jpg"), jpeg(1400, 2100));
+  // A locked book from Calibre: it keeps its own file untouched, so Calibre's cover stands in for its picture.
+  const locked = epub({
+    opfMeta: '<dc:identifier id="id">urn:uuid:locked</dc:identifier><dc:title>Persuasion</dc:title><dc:creator>Jane Austen</dc:creator>',
+    extra: { "META-INF/rights.xml": "<rights/>" },
+  });
+  makeCalibre(join(dir, "Calibre"), [{ title: "Persuasion", authors: ["Jane Austen"], epub: locked }]);
   return dir;
 }
 
@@ -106,6 +112,7 @@ const id = async (core: Core, title: string) => (await core.call("books.list")).
 const SESSION: [string, (core: Core, dir: string) => Promise<unknown>][] = [
   ["settings", (c) => c.call("settings.set", { organize: false })],
   ["import", async (c, d) => (await c.call("books.import", { paths: [join(d, "Downloads/emma.epub"), join(d, "Downloads/dune.epub")] }), c.idle())],
+  ["calibre", async (c, d) => (await c.call("calibre.import", { path: join(d, "Calibre") }), c.idle())],
   ["lookup", async (c) => (await c.call("books.lookup", { ids: [await id(c, "Emma")] }), c.idle())],
   [
     "review",
@@ -160,6 +167,7 @@ function checkFiles(dir: string): string[] {
           broken.push(`${name}: its book ${r.file} won't open`);
         }
       if (r.cover && !existsSync(join(root, r.cover as string))) broken.push(`${name}: its cover ${r.cover} is missing`);
+      if (r.origin === "calibre" && !r.cover) broken.push(`${name}: Calibre's cover is gone`);
     }
   } finally {
     db.close();

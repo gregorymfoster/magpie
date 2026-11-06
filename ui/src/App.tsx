@@ -353,6 +353,13 @@ function Window() {
             : kobo
               ? "Select books in All Books and press Send. They arrive in Kobo’s own format."
               : "Drop ebook files anywhere on this window to add them."}
+        {q && (
+          <div>
+            <button className="btn" onClick={() => setQ("")}>
+              Clear search
+            </button>
+          </div>
+        )}
       </div>
     );
   else
@@ -420,13 +427,13 @@ function Window() {
               <input ref={searchRef} placeholder="Search books" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
               <kbd>⌘K</kbd>
             </label>
-            <button className="btn hide-sm" onClick={() => void run("add")} title="Add books (⌘O)">
+            <button className="btn hide-sm" onClick={() => void run("add")} title="Add books (⌘O)" aria-label="Add">
               <Plus size={13} />
-              Add
+              <span className="lbl-md">Add</span>
             </button>
-            <button className="btn" onClick={() => setSheet({ type: "lookup" })} title="Look up missing details on Open Library">
+            <button className="btn" onClick={() => setSheet({ type: "lookup" })} title="Look up missing details on Open Library" aria-label="Look Up">
               <Globe size={13} />
-              <span className="hide-sm">Look Up</span>
+              <span className="lbl-md">Look Up</span>
             </button>
             {showReview && (
               <button
@@ -440,9 +447,15 @@ function Window() {
                 Review <Count n={shownReview.current} />
               </button>
             )}
-            <button className="btn" onClick={() => void run("send")} title="Send to a device (⇧⌘S)">
+            <button
+              className="btn"
+              onClick={() => void run("send")}
+              disabled={!sel.length}
+              title={sel.length ? "Send to a device (⇧⌘S)" : "Select books to send"}
+              aria-label="Send"
+            >
               <Send size={13} />
-              <span className="hide-sm">Send</span>
+              <span className="lbl-md">Send</span>
             </button>
             <button className={"ib" + (showInsp ? " on" : "")} title="Inspector" aria-label="Toggle inspector" onClick={() => setShowInsp((s) => !s)}>
               <PanelRight size={15} />

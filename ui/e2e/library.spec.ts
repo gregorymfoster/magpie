@@ -111,13 +111,26 @@ test("remove moves a book to Removed; ⌘Z brings it back", async ({ page }) => 
   await expect(page.locator(".tile", { hasText: "Emma" })).toBeVisible();
 });
 
-test("search narrows the grid", async ({ page }) => {
+test("search narrows the grid, and a search with no matches can be cleared", async ({ page }) => {
   await call(page, "books.import", { paths: books({ "emma.epub": emma() }) });
   await page.reload();
   await page.getByLabel("Search").fill("dickens");
   await expect(page.getByText("No matches")).toBeVisible();
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(page.getByLabel("Search")).toHaveValue("");
+  await expect(page.locator(".tile")).toHaveCount(1);
   await page.getByLabel("Search").fill("austen");
   await expect(page.locator(".tile")).toHaveCount(1);
+});
+
+test("Send waits for a selection, and a drawn cover never prints Unknown", async ({ page }) => {
+  await call(page, "books.import", { paths: books({ "u.epub": unknownAuthor() }) });
+  await page.reload();
+  const send = page.locator(".tb").getByRole("button", { name: "Send" });
+  await expect(send).toBeDisabled();
+  await page.locator(".tile").click();
+  await expect(send).toBeEnabled();
+  await expect(page.locator(".tile .cv")).not.toContainText(/unknown/i);
 });
 
 test("settings: an invalid Kindle address gets a sentence, a valid one sticks", async ({ page }) => {

@@ -187,9 +187,12 @@ function One({ b, act, onTag }: { b: BookSummary; act: Act; onTag: (name: string
         <div>
           <div className="h">Details</div>
           <dl className="kv">
-            {rows.map(([k, v]) => (
-              <Pair key={k} k={k} v={v} />
-            ))}
+            {/* Only what the book says. Empty rows were a column of "Not set"; Edit is where a missing detail gets filled in. */}
+            {rows
+              .filter(([, v]) => v)
+              .map(([k, v]) => (
+                <Pair key={k} k={k} v={v} />
+              ))}
           </dl>
         </div>
       </div>

@@ -55,7 +55,9 @@ export function Cover({ b, className = "" }: { b: Pick<BookSummary, "title" | "a
   const bg = TONES[h % TONES.length];
   const style = h % 3;
   const name = b.title.length > 60 ? b.title.split(/[;:]/)[0] : b.title;
-  const by = authors(b.authors);
+  // A drawn cover never prints "Unknown": a blank where the author goes reads as a cover, the word reads as an error.
+  const known = b.authors.filter((a) => !/^(unknown|anonymous)( author)?$/i.test(a.trim()));
+  const by = known.length ? authors(known) : "";
   return (
     <div className={`cv s${style} ${className}`} style={{ background: bg, color: LIGHT.has(bg) ? "#2B2622" : "#F1EADF" }}>
       {style === 1 ? (

@@ -13,7 +13,7 @@
   --sunk: #eee9e2;
   --fg: #2b2622;
   --fg2: #6c635b;
-  --fg3: #9c938a;
+  --fg3: #7a7067;
   --line: rgba(43, 38, 34, 0.1);
   --line2: rgba(43, 38, 34, 0.18);
   --sel: #e3dcd2;
@@ -65,7 +65,7 @@
     --sunk: #191715;
     --fg: #ece6de;
     --fg2: #a9a096;
-    --fg3: #776f66;
+    --fg3: #91887e;
     --line: rgba(236, 230, 222, 0.08);
     --line2: rgba(236, 230, 222, 0.15);
     --sel: #38322d;
@@ -100,7 +100,7 @@
   --sunk: #191715;
   --fg: #ece6de;
   --fg2: #a9a096;
-  --fg3: #776f66;
+  --fg3: #91887e;
   --line: rgba(236, 230, 222, 0.08);
   --line2: rgba(236, 230, 222, 0.15);
   --sel: #38322d;
@@ -136,7 +136,7 @@
   --sunk: #e2e1df;
   --fg: #26262a;
   --fg2: #62626a;
-  --fg3: #94949a;
+  --fg3: #717177;
   --line: rgba(38, 38, 42, 0.1);
   --line2: rgba(38, 38, 42, 0.18);
   --sel: #cfcecb;
@@ -161,7 +161,7 @@
   --sunk: #18191a;
   --fg: #e8e8ea;
   --fg2: #a2a2a8;
-  --fg3: #707076;
+  --fg3: #8c8c92;
   --line: rgba(232, 232, 234, 0.08);
   --line2: rgba(232, 232, 234, 0.15);
   --sel: #34353a;
@@ -212,7 +212,9 @@ button {
 }
 /* Reduce Motion: nothing moves. A toast's time line still runs, because it is a timer and it is what dismisses the toast. */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.life) {
+  *:not(.life),
+  *::before,
+  *::after {
     animation: none !important;
     transition: none !important;
   }
@@ -458,6 +460,7 @@ button {
 }
 .seg {
   display: flex;
+  flex: none;
   border: 1px solid var(--btn-border);
   border-radius: 6px;
   overflow: hidden;
@@ -547,6 +550,18 @@ button {
 }
 .btn svg {
   flex: none;
+}
+/* At the smallest window the buttons drop their words (their icons and tooltips stay) so the title keeps its room. */
+@media (max-width: 1100px) {
+  .tb .lbl-md {
+    display: none;
+  }
+  .tb .ttl {
+    min-width: 90px;
+  }
+  .tb .ttl span {
+    display: none;
+  }
 }
 @media (max-width: 860px) {
   .search {
@@ -1155,6 +1170,9 @@ button {
   font: 500 22px var(--serif);
   color: var(--fg);
   margin-bottom: 4px;
+}
+.empty .btn {
+  margin-top: 14px;
 }
 
 /* duplicates */

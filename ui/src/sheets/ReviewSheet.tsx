@@ -108,9 +108,10 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
               <Cover b={d} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--fg2)", overflowWrap: "anywhere" }}>{d.originName}</div>
-              <div style={{ fontSize: 12, color: "var(--fg3)" }}>
-                Book {ids.indexOf(d.id) + 1} of {ids.length}
+              <div style={{ font: "500 16px/1.2 var(--serif)" }}>{d.title}</div>
+              <div style={{ fontSize: 12, color: "var(--fg3)", overflowWrap: "anywhere" }}>
+                {ids.length > 1 && `Book ${ids.indexOf(d.id) + 1} of ${ids.length} · `}
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11 }}>{d.originName}</span>
               </div>
             </div>
           </div>
@@ -184,12 +185,16 @@ export function ReviewSheet({ onClose }: { onClose: () => void }) {
           <Lock size={12} />
           Nothing is sent anywhere.
         </span>
-        <button className="btn ghost" onClick={acceptAll}>
-          Accept all books
-        </button>
-        <button className="btn" onClick={() => setCur((cur + 1) % ids.length)}>
-          Skip
-        </button>
+        {ids.length > 1 && (
+          <button className="btn ghost" onClick={() => setCur((cur + 1) % ids.length)}>
+            Skip
+          </button>
+        )}
+        {ids.length > 1 && (
+          <button className="btn" onClick={acceptAll}>
+            Accept all {ids.length} books
+          </button>
+        )}
         <button className="btn pri" onClick={acceptOne}>
           {n ? `Accept ${plural(n, "change")}` : "Keep as is"}
         </button>

@@ -159,7 +159,7 @@ if [ "$MODE" != --publish-only ]; then
   fi
 
   step "Waiting for the Rust tests"
-  wait "$cargo_test" || { tail -n 40 "$OUT/cargo-test.log"; die "cargo test failed (the build is installed here, nothing was published)"; }
+  wait "$cargo_test" || { tail -n 40 "$OUT/cargo-test.log"; die "cargo test failed (nothing was published)"; }
   echo "Rust tests passed"
 
   if [ -n "$WAIT" ]; then
@@ -168,7 +168,7 @@ if [ "$MODE" != --publish-only ]; then
       s=$(ci_state)
       case "$s" in
         green) echo "CI is green"; break ;;
-        red) die "CI failed on ${SHA:0:7}: https://github.com/$REPO/commit/$SHA/checks (the build is installed here, nothing was published)" ;;
+        red) die "CI failed on ${SHA:0:7}: https://github.com/$REPO/commit/$SHA/checks (nothing was published)" ;;
         *) sleep 10 ;;
       esac
     done

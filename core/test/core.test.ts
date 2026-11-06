@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { unzipSync, zipSync, strFromU8 } from "fflate";
 import { createCore, patchFor, type CoreEvent } from "../src/index.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
-import { epub, jpeg, page } from "./fixtures.ts";
+import { epub, jpeg, page, pause, settle } from "./fixtures.ts";
 
 /** Sorting by rules alone, so these tests don't depend on the model being downloaded. organize.test.ts covers the model. */
 const NO_MODEL = "/no-model";
@@ -1007,6 +1007,38 @@ test("Look Up Details fills what books are missing from Open Library, waits for 
   assert.equal(accepted.year, 1815);
   assert.equal(accepted.state, "clean");
   assert.match(strFromU8(unzipSync(readFileSync(accepted.file))["content.opf"]), /<dc:date>1815<\/dc:date>/);
+});
+
+test("a details edit made while Look Up Details is working on the same book stays, and each undoes on its own", async () => {
+  const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
+  const MAGPIE_WEB = join(home, "web.json");
+  writeFileSync(MAGPIE_WEB, JSON.stringify(OPEN_LIBRARY));
+  const gate = pause(nodeHost({ MAGPIE_HOME: home, MAGPIE_WEB, MAGPIE_MODEL: NO_MODEL }), "/originals/");
+  const core = createCore(gate.host);
+  await core.call("app.state");
+  mkdirSync(join(home, "Downloads"));
+  writeFileSync(join(home, "Downloads/emma.epub"), epub());
+  await core.call("books.import", { paths: [join(home, "Downloads/emma.epub")] });
+  await core.idle();
+  const [emma] = await core.call("books.list");
+
+  // The lookup has read the book and is rebuilding it with what it found when the person edits the title.
+  gate.arm();
+  await core.call("books.lookup", { ids: [emma.id] });
+  await gate.reached;
+  const edit = core.call("books.edit", { id: emma.id, patch: { title: "Emma: A Novel" } });
+  await settle();
+  gate.open();
+  await edit;
+  await core.idle();
+
+  const after = await core.call("books.get", { id: emma.id });
+  assert.equal(after.title, "Emma: A Novel", "the lookup's rebuild didn't put the old title back");
+  assert.equal(after.report.suggestions.find((s) => s.field === "year")?.value, "1815", "and what it found is still there");
+  assert.equal((await core.call("history.undo")).undone, "Look Up Details");
+  assert.equal((await core.call("books.get", { id: emma.id })).title, "Emma: A Novel");
+  assert.equal((await core.call("history.undo")).undone, "Edit details");
+  assert.equal((await core.call("books.get", { id: emma.id })).title, "Emma");
 });
 
 test("Look Up Details finds the real cover for a book whose cover Magpie drew, as a suggestion that undoes", async () => {

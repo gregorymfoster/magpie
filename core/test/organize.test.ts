@@ -11,7 +11,7 @@ import { createCore, type Host } from "../src/index.ts";
 import { byRules, Organizer } from "../src/organize/organize.ts";
 import { GENRES, VIBES } from "../src/organize/vocabulary.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
-import { epub } from "./fixtures.ts";
+import { epub, pause, settle } from "./fixtures.ts";
 
 function setup(change: (h: Host) => Host = (h) => h) {
   const home = mkdtempSync(join(tmpdir(), "magpie-test-"));
@@ -107,6 +107,52 @@ test("a Library from before shelves is sorted once in the background, as one und
   await again.call("history.undo");
   assert.deepEqual((await again.call("books.list", { tag: "Fiction" })).length, 0);
   assert.equal((await again.call("library.groups")).unsorted, 0, "undo puts the tags back, but doesn't ask to sort again");
+});
+
+test("Undo while a sort is still going stops it and takes back the whole sort, not the change before it", async () => {
+  let g!: ReturnType<typeof pause>;
+  const { core, add } = setup((h) => (g = pause(h, "/books/")).host);
+  await core.call("settings.set", { organize: false });
+  const dune = await add("<dc:title>Dune</dc:title><dc:subject>Science fiction</dc:subject>");
+  const emma = await add("<dc:title>Emma</dc:title><dc:subject>Love stories</dc:subject>");
+  await core.call("books.tag", { ids: [dune.id], add: ["Book club"], remove: [] });
+
+  // The sort is reading Dune when the person presses Undo.
+  g.arm();
+  await core.call("library.organize", { again: true });
+  await g.reached;
+  const undo = core.call("history.undo");
+  await settle();
+  g.open();
+  assert.deepEqual(await undo, { undone: "Sort Library" });
+  await core.idle();
+
+  assert.deepEqual(names(await core.call("books.get", { id: dune.id })), ["Book club"], "Dune's shelves are taken back, its own tag stays");
+  assert.deepEqual(names(await core.call("books.get", { id: emma.id })), [], "the sort stopped before Emma");
+  assert.equal((await core.call("app.state")).undo, "Add tag", "the change before the sort is still there to undo");
+});
+
+test("undoing a details edit leaves the shelves a sort put on meanwhile, and every shelf it put on undoes", async () => {
+  let g!: ReturnType<typeof pause>;
+  const { core, add } = setup((h) => (g = pause(h, "/books/")).host);
+  await core.call("settings.set", { organize: false });
+  const dune = await add("<dc:title>Dune</dc:title><dc:subject>Science fiction</dc:subject>");
+
+  // The sort is queued and reading Dune when the person sets its year.
+  g.arm();
+  await core.call("library.organize", { again: true });
+  await g.reached;
+  await core.call("books.edit", { id: dune.id, patch: { year: 1965 } });
+  g.open();
+  await core.idle();
+  assert.deepEqual(names(await core.call("books.get", { id: dune.id })), ["Fiction", "Science Fiction"]);
+
+  assert.deepEqual(await core.call("history.undo"), { undone: "Edit details" });
+  const b = await core.call("books.get", { id: dune.id });
+  assert.equal(b.year, undefined);
+  assert.deepEqual(names(b), ["Fiction", "Science Fiction"], "undoing the edit doesn't take the shelves off");
+  assert.deepEqual(await core.call("history.undo"), { undone: "Sort book" });
+  assert.deepEqual(names(await core.call("books.get", { id: dune.id })), []);
 });
 
 test("turning sorting off leaves new books unsorted", async () => {

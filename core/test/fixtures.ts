@@ -1,6 +1,7 @@
 // Tiny EPUBs built in memory, so a test states exactly what's in its book.
 
 import { zipSync, strToU8 } from "fflate";
+import type { Host } from "../src/index.ts";
 
 export const page = (body: string) =>
   `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head><body>${body}</body></html>`;
@@ -35,3 +36,29 @@ export function epub(
 export function jpeg(w: number, h: number) {
   return new Uint8Array([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x03, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1, 0xff, 0xd9]);
 }
+
+/**
+ * Holds the first file read whose path contains `match`, once `arm()` is called, until `open()`.
+ * Lets a test stop a job halfway through a book and do something else meanwhile, the way a
+ * person can while a slow disk or a big book keeps the job busy. `reached` resolves when it holds.
+ */
+export function pause(host: Host, match: string) {
+  let armed = false;
+  let release = () => {};
+  let hit = () => {};
+  const held = new Promise<void>((r) => (release = r));
+  const reached = new Promise<void>((r) => (hit = r));
+  const read = host.fs.read.bind(host.fs);
+  host.fs.read = async (path) => {
+    if (armed && path.includes(match)) {
+      armed = false;
+      hit();
+      await held;
+    }
+    return read(path);
+  };
+  return { host, reached, arm: () => (armed = true), open: () => release() };
+}
+
+/** Lets everything that isn't waiting on a file or a lock run. */
+export const settle = () => new Promise((r) => setTimeout(r, 30));

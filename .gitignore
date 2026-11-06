@@ -10,3 +10,4 @@ ui/dist/
 test-results/
 models/
 out/
+verify/.tla/

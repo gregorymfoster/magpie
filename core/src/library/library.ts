@@ -153,6 +153,8 @@ export class Library {
   readonly root: string;
   private db: Db;
   private host: Host;
+  /** The end of the queue of changes waiting to run (see exclusive). */
+  private tail: Promise<unknown> = Promise.resolve();
 
   private constructor(host: Host, root: string, db: Db) {
     this.host = host;
@@ -177,6 +179,20 @@ export class Library {
 
   abs(rel: string) {
     return join(this.root, rel);
+  }
+
+  /**
+   * Runs one change to books or history after the ones already waiting. A
+   * change reads a book, waits on files, then writes the whole plan back, so
+   * two at once (a person's edit and a lookup landing on the same book) would
+   * keep only the last. Every method that writes a plan, tags or history goes
+   * through here, and none calls another that does. verify/LibraryUndo.tla
+   * checks the rules this keeps.
+   */
+  private exclusive<T>(change: () => Promise<T>): Promise<T> {
+    const run = this.tail.then(change, change);
+    this.tail = run.catch(() => {});
+    return run;
   }
 
   // ------------------------------------------------------------ books in
@@ -335,9 +351,11 @@ export class Library {
    * it isn't an undo step; undoing an older edit rebuilds with today's engine too.
    */
   async refresh(id: number): Promise<void> {
-    const { plan } = await this.snapshot(id);
-    if (plan.engine >= ENGINE) return;
-    await this.rebuild(id, { ...plan, engine: ENGINE });
+    return this.exclusive(async () => {
+      const { plan } = await this.snapshot(id);
+      if (plan.engine >= ENGINE) return;
+      await this.rebuild(id, { ...plan, engine: ENGINE });
+    });
   }
 
   /** How many fixes Magpie has made across the books still in the Library. */
@@ -350,52 +368,60 @@ export class Library {
 
   /** Set details (accepted suggestions or a person's edits) and rebuild. One undo step. */
   async edit(id: number, patch: InfoPatch, label = "Edit details"): Promise<BookDetail> {
-    const before = await this.snapshot(id);
-    const plan = withPatch(before.plan, patch);
-    await this.rebuild(id, plan);
-    await this.record(label, [{ id, before, after: { ...before, plan } }]);
-    return this.get(id);
+    return this.exclusive(async () => {
+      const before = await this.snapshot(id);
+      const plan = withPatch(before.plan, patch);
+      await this.rebuild(id, plan);
+      await this.record(label, [{ id, before, after: { ...before, plan } }]);
+      return this.get(id);
+    });
   }
 
   /** "Keep the book's own styling" on or off, for one book or many. One undo step. */
   async keepStyle(ids: number[], keep: boolean): Promise<void> {
-    const steps = [];
-    for (const id of ids) {
-      const before = await this.snapshot(id);
-      if (!!before.plan.keepStyle === keep) continue;
-      const plan: FixPlan = { ...before.plan, keepStyle: keep || undefined };
-      if (!keep) delete plan.keepStyle;
-      await this.rebuild(id, plan);
-      steps.push({ id, before, after: { ...before, plan } });
-    }
-    if (steps.length) await this.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+    return this.exclusive(async () => {
+      const steps = [];
+      for (const id of ids) {
+        const before = await this.snapshot(id);
+        if (!!before.plan.keepStyle === keep) continue;
+        const plan: FixPlan = { ...before.plan, keepStyle: keep || undefined };
+        if (!keep) delete plan.keepStyle;
+        await this.rebuild(id, plan);
+        steps.push({ id, before, after: { ...before, plan } });
+      }
+      if (steps.length) await this.record(keep ? "Keep the book's styling" : "Clean up the styling", steps);
+    });
   }
 
   /** Put a picture into the book as its cover. One undo step. */
   async setCover(id: number, bytes: Uint8Array): Promise<BookDetail> {
-    if ((await this.row(id)).state === "locked") throw new UserError("locked-edit");
-    const kept = await this.keepCover(bytes);
-    if (!kept) throw new UserError("not-a-cover");
-    const before = await this.snapshot(id);
-    const plan: FixPlan = { ...before.plan, cover: { file: kept.file, from: "you" } };
-    await this.rebuild(id, plan);
-    await this.record("Change cover", [{ id, before, after: { ...before, plan } }]);
-    return this.get(id);
+    return this.exclusive(async () => {
+      if ((await this.row(id)).state === "locked") throw new UserError("locked-edit");
+      const kept = await this.keepCover(bytes);
+      if (!kept) throw new UserError("not-a-cover");
+      const before = await this.snapshot(id);
+      const plan: FixPlan = { ...before.plan, cover: { file: kept.file, from: "you" } };
+      await this.rebuild(id, plan);
+      await this.record("Change cover", [{ id, before, after: { ...before, plan } }]);
+      return this.get(id);
+    });
   }
 
   /** Accept some suggestions and turn the rest down, for many books at once. One undo step. */
   async review(decisions: { id: number; accept: InfoPatch; dismiss: Suggestion["field"][] }[], label = "Accept suggested details"): Promise<void> {
-    const steps = [];
-    for (const d of decisions) {
-      const before = await this.snapshot(d.id);
-      const plan: FixPlan = {
-        ...withPatch(before.plan, d.accept),
-        dismissed: [...new Set([...(before.plan.dismissed ?? []), ...d.dismiss])],
-      };
-      await this.rebuild(d.id, plan);
-      steps.push({ id: d.id, before, after: { ...before, plan } });
-    }
-    if (steps.length) await this.record(label, steps);
+    return this.exclusive(async () => {
+      const steps = [];
+      for (const d of decisions) {
+        const before = await this.snapshot(d.id);
+        const plan: FixPlan = {
+          ...withPatch(before.plan, d.accept),
+          dismissed: [...new Set([...(before.plan.dismissed ?? []), ...d.dismiss])],
+        };
+        await this.rebuild(d.id, plan);
+        steps.push({ id: d.id, before, after: { ...before, plan } });
+      }
+      if (steps.length) await this.record(label, steps);
+    });
   }
 
   /**
@@ -405,59 +431,89 @@ export class Library {
    * because a job saves its results after every book.
    */
   async lookedUp(id: number, found: Suggestion[], catalog?: CatalogRecord): Promise<LookupPrev> {
-    const { plan: was } = await this.snapshot(id);
-    await this.rebuild(id, { ...was, found, catalog: catalog ?? was.catalog });
-    return { id, found: was.found, catalog: was.catalog };
+    return this.exclusive(async () => {
+      const { plan: was } = await this.snapshot(id);
+      await this.rebuild(id, { ...was, found, catalog: catalog ?? was.catalog });
+      return { id, found: was.found, catalog: was.catalog };
+    });
   }
 
   /** One undo step for a whole lookup run: each book back to what it had found before. */
   async recordLookups(label: string, prevs: LookupPrev[]) {
-    const steps = [];
-    for (const p of prevs) {
-      const now = await this.snapshot(p.id).catch(() => null);
-      if (!now) continue;
-      const plan: FixPlan = { ...now.plan, found: p.found, catalog: p.catalog };
-      if (p.found === undefined) delete plan.found;
-      if (p.catalog === undefined) delete plan.catalog;
-      steps.push({ id: p.id, before: { ...now, plan }, after: now });
-    }
-    if (steps.length) await this.record(label, steps);
+    return this.exclusive(async () => {
+      const steps = [];
+      for (const p of prevs) {
+        const now = await this.snapshot(p.id).catch(() => null);
+        if (!now) continue;
+        const plan: FixPlan = { ...now.plan, found: p.found, catalog: p.catalog };
+        if (p.found === undefined) delete plan.found;
+        if (p.catalog === undefined) delete plan.catalog;
+        steps.push({ id: p.id, before: { ...now, plan }, after: now });
+      }
+      if (steps.length) await this.record(label, steps);
+    });
   }
 
   /** Move books to Removed. They are deleted for good after 30 days. One undo step. */
   async remove(ids: number[]): Promise<void> {
-    const now = new Date().toISOString();
-    const steps = [];
-    for (const id of ids) {
-      const before = await this.snapshot(id);
-      if (before.removed_at) continue;
-      await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [now, id]);
-      steps.push({ id, before, after: { ...before, removed_at: now } });
-    }
-    if (steps.length) await this.record(ids.length > 1 ? `Remove ${ids.length} books` : "Remove book", steps);
+    return this.exclusive(async () => {
+      const now = new Date().toISOString();
+      const steps = [];
+      for (const id of ids) {
+        const before = await this.snapshot(id);
+        if (before.removed_at) continue;
+        await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [now, id]);
+        steps.push({ id, before, after: { ...before, removed_at: now } });
+      }
+      if (steps.length) await this.record(ids.length > 1 ? `Remove ${ids.length} books` : "Remove book", steps);
+    });
   }
 
   async restore(ids: number[]): Promise<void> {
-    for (const id of ids) await this.db.run("UPDATE books SET removed_at = NULL WHERE id = ?", [id]);
+    return this.exclusive(async () => {
+      for (const id of ids) await this.db.run("UPDATE books SET removed_at = NULL WHERE id = ?", [id]);
+    });
   }
 
-  /** Undo the last change. Returns its label, or null when there's nothing to undo. */
-  async undo(): Promise<string | null> {
-    // A sort that was cancelled before its first book leaves an empty step; it isn't a change.
-    await this.db.run("DELETE FROM history WHERE steps = '[]'");
-    const [h] = await this.db.all<{ id: number; label: string; steps: string }>("SELECT * FROM history ORDER BY id DESC LIMIT 1");
-    if (!h) return null;
-    const steps: { id: number; before: Snapshot; after: Snapshot }[] = JSON.parse(h.steps);
-    for (const s of steps.reverse()) {
-      const now = await this.snapshot(s.id).catch(() => null);
-      if (!now) continue;
-      if (JSON.stringify(now.plan) !== JSON.stringify(s.before.plan)) await this.rebuild(s.id, s.before.plan);
-      await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [s.before.removed_at, s.id]);
-      if (s.before.tags !== undefined)
-        await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
-    }
-    await this.db.run("DELETE FROM history WHERE id = ?", [h.id]);
-    return h.label;
+  /**
+   * The history step Undo would take back next: the newest that holds a
+   * change, or that `open` names (the steps of sorts still going, which fill
+   * as they run). Null when there's nothing to undo.
+   */
+  async nextUndo(open: number[] = []): Promise<number | null> {
+    const rows = await this.db.all<{ id: number; empty: number }>("SELECT id, steps = '[]' AS empty FROM history ORDER BY id DESC");
+    return rows.find((h) => !h.empty || open.includes(h.id))?.id ?? null;
+  }
+
+  /**
+   * Undo the last change: put back what each of its steps changed, and nothing
+   * else, so shelves a sort put on after an edit stay when the edit is undone.
+   * `open` are the steps of sorts still going; core stops a sort before it
+   * undoes one (history.undo), so here they are only kept, never taken back.
+   * Returns the label, or null when there's nothing to undo.
+   */
+  async undo(open: number[] = []): Promise<string | null> {
+    return this.exclusive(async () => {
+      // A sort that was cancelled before its first book leaves an empty step; it isn't a change.
+      const empty = await this.db.all<{ id: number }>("SELECT id FROM history WHERE steps = '[]'");
+      for (const e of empty) if (!open.includes(e.id)) await this.db.run("DELETE FROM history WHERE id = ?", [e.id]);
+      const [h] = await this.db.all<{ id: number; label: string; steps: string }>("SELECT * FROM history ORDER BY id DESC LIMIT 1");
+      if (!h || open.includes(h.id)) return null;
+      const steps: { id: number; before: Snapshot; after?: Partial<Snapshot> }[] = JSON.parse(h.steps);
+      const differ = (a: unknown, b: unknown) => JSON.stringify(a) !== JSON.stringify(b);
+      for (const s of steps.reverse()) {
+        const now = await this.snapshot(s.id).catch(() => null);
+        if (!now) continue;
+        // Every step Magpie has written carries `after`; one without it has everything put back.
+        const after = s.after ?? {};
+        if (differ(s.before.plan, after.plan) && differ(now.plan, s.before.plan)) await this.rebuild(s.id, s.before.plan);
+        if (differ(s.before.removed_at, after.removed_at)) await this.db.run("UPDATE books SET removed_at = ? WHERE id = ?", [s.before.removed_at, s.id]);
+        if (s.before.tags !== undefined && (differ(s.before.tags, after.tags) || differ(s.before.tags_off, after.tags_off)))
+          await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [s.before.tags, s.before.tags_off ?? "[]", s.id]);
+      }
+      await this.db.run("DELETE FROM history WHERE id = ?", [h.id]);
+      return h.label;
+    });
   }
 
   async lastChange(): Promise<string | null> {
@@ -467,15 +523,17 @@ export class Library {
 
   /** Delete books that have sat in Removed for 30 days, or all of Removed when `all`. */
   async purgeRemoved(all = false): Promise<number> {
-    const cutoff = all ? "9999-12-31" : new Date(Date.now() - REMOVED_DAYS * 864e5).toISOString();
-    const gone = await this.db.all("SELECT * FROM books WHERE removed_at IS NOT NULL AND removed_at <= ?", [cutoff]);
-    for (const r of gone) {
-      for (const k of ["file", "original", "cover"]) if (r[k]) await this.host.fs.remove(this.abs(r[k] as string));
-      if (!(r.original as string).endsWith(".epub")) await this.host.fs.remove(this.abs(this.convertedPath(r.original as string)));
-      await this.dropDeviceCopies(r.id as number);
-      await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
-    }
-    return gone.length;
+    return this.exclusive(async () => {
+      const cutoff = all ? "9999-12-31" : new Date(Date.now() - REMOVED_DAYS * 864e5).toISOString();
+      const gone = await this.db.all("SELECT * FROM books WHERE removed_at IS NOT NULL AND removed_at <= ?", [cutoff]);
+      for (const r of gone) {
+        for (const k of ["file", "original", "cover"]) if (r[k]) await this.host.fs.remove(this.abs(r[k] as string));
+        if (!(r.original as string).endsWith(".epub")) await this.host.fs.remove(this.abs(this.convertedPath(r.original as string)));
+        await this.dropDeviceCopies(r.id as number);
+        await this.db.run("DELETE FROM books WHERE id = ?", [r.id]);
+      }
+      return gone.length;
+    });
   }
 
   // ------------------------------------------------------------ device copies
@@ -512,14 +570,14 @@ export class Library {
 
   /**
    * Sort one book: Magpie's tags are replaced with fresh guesses; a person's and
-   * Calibre's stay, and so does anything a person took off. Returns the history
-   * step when something changed, for the caller to record.
+   * Calibre's stay, and so does anything a person took off. When something
+   * changed, it goes into the history step `step` (a sort's one undo) in the
+   * same change as the tags, and is returned.
    */
-  async organize(id: number, organizer: Organizer): Promise<{ id: number; before: Snapshot; after: Snapshot } | null> {
+  async organize(id: number, organizer: Organizer, step?: number): Promise<{ id: number; before: Snapshot; after: Snapshot } | null> {
+    // Guessing can take a while with the model, so it runs outside the lock, on what the book says now.
     const r = await this.row(id);
-    const before = await this.snapshot(id);
-    const kept: Tag[] = (JSON.parse(before.tags ?? "[]") as Tag[]).filter((t) => t.by !== "magpie");
-    const off = new Set<string>(JSON.parse(before.tags_off ?? "[]"));
+    const theirs: Tag[] = (JSON.parse((r.tags as string) ?? "[]") as Tag[]).filter((t) => t.by !== "magpie");
     // What Look Up Details found in Open Library counts as subjects too.
     let subjects: string[] = (JSON.parse(r.plan as string) as FixPlan).catalog?.subjects ?? [];
     let opening = "";
@@ -534,23 +592,31 @@ export class Library {
     const guesses = await organizer.guess({
       title: r.title as string,
       description: (r.description as string) ?? undefined,
-      subjects: [...subjects, ...kept.map((t) => t.name)],
+      subjects: [...subjects, ...theirs.map((t) => t.name)],
       opening,
     });
-    const have = new Set(kept.map((t) => t.name.toLowerCase()));
-    const tags = [
-      ...kept,
-      ...guesses
-        .filter((g) => !off.has(g.name) && !have.has(g.name.toLowerCase()))
-        .map((g): Tag => ({ name: g.name, by: "magpie", confidence: round(g.confidence), source: g.source })),
-    ];
-    const key = (ts: Tag[]) => JSON.stringify(ts.map((t) => [t.name, t.by, t.confidence]).sort());
-    if (key(tags) === key(JSON.parse(before.tags ?? "[]"))) {
-      await this.db.run("UPDATE books SET organized = ? WHERE id = ?", [ORGANIZER, id]);
-      return null;
-    }
-    await this.db.run("UPDATE books SET tags = ?, organized = ? WHERE id = ?", [JSON.stringify(tags), ORGANIZER, id]);
-    return { id, before, after: { ...before, tags: JSON.stringify(tags) } };
+    // The tags are worked out again from a fresh read, so a tag a person changed meanwhile stays.
+    return this.exclusive(async () => {
+      const before = await this.snapshot(id);
+      const kept: Tag[] = (JSON.parse(before.tags ?? "[]") as Tag[]).filter((t) => t.by !== "magpie");
+      const off = new Set<string>(JSON.parse(before.tags_off ?? "[]"));
+      const have = new Set(kept.map((t) => t.name.toLowerCase()));
+      const tags = [
+        ...kept,
+        ...guesses
+          .filter((g) => !off.has(g.name) && !have.has(g.name.toLowerCase()))
+          .map((g): Tag => ({ name: g.name, by: "magpie", confidence: round(g.confidence), source: g.source })),
+      ];
+      const key = (ts: Tag[]) => JSON.stringify(ts.map((t) => [t.name, t.by, t.confidence]).sort());
+      if (key(tags) === key(JSON.parse(before.tags ?? "[]"))) {
+        await this.db.run("UPDATE books SET organized = ? WHERE id = ?", [ORGANIZER, id]);
+        return null;
+      }
+      await this.db.run("UPDATE books SET tags = ?, organized = ? WHERE id = ?", [JSON.stringify(tags), ORGANIZER, id]);
+      const change = { id, before, after: { ...before, tags: JSON.stringify(tags) } };
+      if (step !== undefined) await this.appendToStep(step, change);
+      return change;
+    });
   }
 
   /** Live books Magpie hasn't sorted with the current rules. */
@@ -563,23 +629,25 @@ export class Library {
 
   /** Put tags on and take tags off, for many books at once. One undo step. */
   async tag(ids: number[], add: string[], remove: string[]): Promise<void> {
-    add = cleanTags(add);
-    const steps = [];
-    for (const id of ids) {
-      const before = await this.snapshot(id);
-      let tags: Tag[] = JSON.parse(before.tags ?? "[]");
-      let off: string[] = JSON.parse(before.tags_off ?? "[]");
-      const gone = new Set(remove.map((n) => n.toLowerCase()));
-      tags = tags.filter((t) => !gone.has(t.name.toLowerCase()));
-      off = [...new Set([...off.filter((n) => !add.some((a) => a.toLowerCase() === n.toLowerCase())), ...remove])];
-      for (const name of add) if (!tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) tags.push({ name, by: "you" });
-      const after = { ...before, tags: JSON.stringify(tags), tags_off: JSON.stringify(off) };
-      if (after.tags === before.tags && after.tags_off === before.tags_off) continue;
-      await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [after.tags, after.tags_off, id]);
-      steps.push({ id, before, after });
-    }
-    const label = remove.length && !add.length ? "Remove tag" : "Add tag";
-    if (steps.length) await this.record(label, steps);
+    return this.exclusive(async () => {
+      add = cleanTags(add);
+      const steps = [];
+      for (const id of ids) {
+        const before = await this.snapshot(id);
+        let tags: Tag[] = JSON.parse(before.tags ?? "[]");
+        let off: string[] = JSON.parse(before.tags_off ?? "[]");
+        const gone = new Set(remove.map((n) => n.toLowerCase()));
+        tags = tags.filter((t) => !gone.has(t.name.toLowerCase()));
+        off = [...new Set([...off.filter((n) => !add.some((a) => a.toLowerCase() === n.toLowerCase())), ...remove])];
+        for (const name of add) if (!tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) tags.push({ name, by: "you" });
+        const after = { ...before, tags: JSON.stringify(tags), tags_off: JSON.stringify(off) };
+        if (after.tags === before.tags && after.tags_off === before.tags_off) continue;
+        await this.db.run("UPDATE books SET tags = ?, tags_off = ? WHERE id = ?", [after.tags, after.tags_off, id]);
+        steps.push({ id, before, after });
+      }
+      const label = remove.length && !add.length ? "Remove tag" : "Add tag";
+      if (steps.length) await this.record(label, steps);
+    });
   }
 
   /** The sidebar: shelves with their genres, vibes, other tags, and authors and series with two or more books. */
@@ -614,11 +682,13 @@ export class Library {
 
   /** A history step that grows as a long job goes, so the whole job undoes at once. */
   async openStep(label: string): Promise<number> {
-    const r = await this.db.run("INSERT INTO history (label, steps, at) VALUES (?, '[]', ?)", [label, new Date().toISOString()]);
-    return r.lastId;
+    return this.exclusive(async () => {
+      const r = await this.db.run("INSERT INTO history (label, steps, at) VALUES (?, '[]', ?)", [label, new Date().toISOString()]);
+      return r.lastId;
+    });
   }
 
-  async addToStep(historyId: number, step: unknown): Promise<void> {
+  private async appendToStep(historyId: number, step: unknown): Promise<void> {
     await this.db.run("UPDATE history SET steps = json_insert(steps, '$[#]', json(?)) WHERE id = ?", [JSON.stringify(step), historyId]);
   }
 

@@ -7,7 +7,7 @@ default:
     @just --list
 
 # Everything a change must pass: types, format, unit + contract tests, UI build, headless UI tests
-check: types lint test ui-build e2e
+check: types lint test verify ui-build e2e
 
 # Type-check every package
 types:
@@ -76,3 +76,7 @@ ship version *flags:
 # Once per Mac: the update-signing key in ~/.tauri, and the same key as Actions secrets
 release-setup:
     scripts/release/setup.sh
+
+# Model-check how edits, background jobs and Undo interleave (verify/LibraryUndo.tla; needs Java)
+verify:
+    node scripts/verify.ts

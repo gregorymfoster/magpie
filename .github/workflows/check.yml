@@ -27,6 +27,15 @@ jobs:
           path: models
           key: model-${{ hashFiles('core/src/organize/bert.ts') }}
       - run: node scripts/fetch-model.ts
+      # TLC for `just verify` (verify/README.md); the Playwright image has no Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/cache@v4
+        with:
+          path: verify/.tla
+          key: tla-${{ hashFiles('scripts/verify.ts') }}
       - run: just check
       - uses: actions/upload-artifact@v4
         if: failure()

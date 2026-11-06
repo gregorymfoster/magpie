@@ -4,7 +4,7 @@ Magpie is a Mac app that fixes and manages EPUBs. Everything runs locally and no
 
 ## The one rule for checking your work
 
-`just check` is the only gate. CI runs exactly it. Run it before every push. It type-checks, checks formatting and the design ratchet, runs the core and host tests, builds the UI and drives it headlessly with Playwright. If it's green, push to `main` (no PRs while nobody depends on this).
+`just check` is the only gate. CI runs exactly it. Run it before every push. It type-checks, checks formatting and the design ratchet, runs the core and host tests, model-checks Undo, builds the UI and drives it headlessly with Playwright. If it's green, push to `main` (no PRs while nobody depends on this).
 
 Faster loops while you work:
 
@@ -12,6 +12,7 @@ Faster loops while you work:
 - `just call books.list '{"state":"review"}'` runs any core command against `~/Books/Magpie` (or `--library <dir>`). `node cli/src/main.ts commands` lists them.
 - `just shots` writes screenshots of every screen, light and dark, to `ui/shots/`. Look at them after any UI change.
 - `just bench` scores the fixers against the damaged-twin corpus. A drop in any number is a regression.
+- `just verify` model-checks how edits, background jobs and Undo interleave (`verify/`, needs Java). If you touch `Library` writes, `jobs.ts` or `history.undo`, follow the `verify-library-undo` skill.
 
 ## How the code is shaped
 
@@ -33,7 +34,7 @@ Read `GLOSSARY.md` before naming things. Decisions and why are in `docs/adr/`. W
 
 - Never decrypt, strip or work around DRM. A locked book (`Book.isLocked`) is let into the Library byte for byte with state `locked` and a warning, and is never fixed, edited, converted or sent (`locked-edit`, `locked-send` in errors.ts). Only its unencrypted package details are read.
 - The original file is never modified. `originals/<sha256>.epub` is kept and every fix is a `FixPlan` replayed on it, which is also how undo works.
-- Every write a user can make is undoable (`history.undo`). New write commands must record history.
+- Every write a user can make is undoable (`history.undo`). New write commands must record history, and run inside `Library.exclusive` (docs/adr/0007).
 - Errors shown to people are sentences from `core/src/errors.ts`, never raw exceptions.
 - File names Magpie writes have no spaces: `Jane-Austen/Emma.epub` (`core/src/naming.ts`).
 - UI: colours come from CSS variables in `ui/src/styles.css`, no spinners (progress says what it's doing), no em-dashes in UI copy. Motion only explains a change, uses `--ease`, and does nothing under Reduce Motion (`ui/src/motion.ts` for waits in code). `scripts/ratchet.ts` enforces this; `// ratchet-ok` opts a line out when you mean it.

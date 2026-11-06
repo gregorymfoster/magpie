@@ -186,8 +186,7 @@ function runners(ctx: Context) {
       const { id, step } = item as { id: number; step: number };
       const lib = ctx.lib();
       const book = await lib.get(id);
-      const change = await lib.organize(id, ctx.organizer);
-      if (change) await lib.addToStep(step, change);
+      await lib.organize(id, ctx.organizer, step);
       ctx.changed();
       return { label: book.title, outcome: "sorted", bookId: id } satisfies JobResult;
     },
@@ -449,10 +448,25 @@ const commands = {
     return { deleted: n };
   },
 
+  /**
+   * Undo the last change. When that's a sort still going, it's stopped first
+   * (after the book it's on) and then taken back whole: a sort's step fills
+   * as it runs, so undoing it halfway would leave the rest with no undo.
+   */
   async "history.undo"(ctx: Context) {
-    const label = await ctx.lib().undo();
-    ctx.changed();
-    return { undone: label };
+    for (;;) {
+      const sorts = new Map<number, number>();
+      for (const job of await ctx.queue().pending("organize")) for (const item of job.items as { step: number }[]) sorts.set(item.step, job.id);
+      const next = await ctx.lib().nextUndo([...sorts.keys()]);
+      const sort = next === null ? undefined : sorts.get(next);
+      if (sort === undefined) {
+        const label = await ctx.lib().undo([...sorts.keys()]);
+        ctx.changed();
+        return { undone: label };
+      }
+      await ctx.queue().cancel(sort);
+      await ctx.queue().settled(sort);
+    }
   },
 
   /** The Calibre library on this Mac, if there is one, with how many books would come over. */

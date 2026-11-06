@@ -51,6 +51,8 @@ export class Jobs {
   private finishers: Partial<Record<JobKind, Finisher>>;
   private running: Record<Lane, Promise<void> | null> = { local: null, net: null };
   private cancelled = new Set<number>();
+  /** Callers of settled(), by job id. */
+  private waiting = new Map<number, (() => void)[]>();
   private lastEmit = 0;
 
   constructor(db: Db, runners: Record<JobKind, Runner>, onProgress: (job: Job) => void, finishers: Partial<Record<JobKind, Finisher>> = {}) {
@@ -82,7 +84,33 @@ export class Jobs {
   async cancel(id: number) {
     this.cancelled.add(id);
     await this.db.run("UPDATE jobs SET state = 'cancelled', finished_at = ? WHERE id = ? AND state = 'queued'", [new Date().toISOString(), id]);
-    this.onProgress(await this.get(id));
+    const job = await this.get(id);
+    if (job.state === "cancelled") this.settle(id);
+    this.onProgress(job);
+  }
+
+  /**
+   * Resolves once the job is done or cancelled. A job run by another process
+   * with this Library open (`magpie mcp`) is seen when it ends there too.
+   */
+  async settled(id: number): Promise<void> {
+    for (;;) {
+      const woken = new Promise<void>((r) => this.waiting.set(id, [...(this.waiting.get(id) ?? []), r]));
+      const { state } = await this.get(id);
+      if (state === "done" || state === "cancelled") return this.settle(id);
+      await Promise.race([woken, new Promise((r) => setTimeout(r, 500))]);
+    }
+  }
+
+  /** Jobs of a kind that haven't finished, with their items. */
+  async pending(kind: JobKind): Promise<{ id: number; items: unknown[] }[]> {
+    const rows = await this.db.all("SELECT id, items FROM jobs WHERE kind = ? AND state IN ('queued','running') ORDER BY id", [kind]);
+    return rows.map((r) => ({ id: r.id as number, items: JSON.parse(r.items as string) }));
+  }
+
+  private settle(id: number) {
+    for (const wake of this.waiting.get(id) ?? []) wake();
+    this.waiting.delete(id);
   }
 
   /** Unfinished jobs, plus those finished in the last minute so the UI can show the summary. */
@@ -146,6 +174,7 @@ export class Jobs {
     this.cancelled.delete(id);
     const job = await this.get(id);
     await this.finishers[job.kind]?.(job).catch(() => {});
+    this.settle(id);
     this.onProgress(job);
   }
 }

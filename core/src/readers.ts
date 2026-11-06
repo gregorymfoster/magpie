@@ -11,16 +11,7 @@
 // look, not the reader's own typesetter: Kindle and Kobo have their own engines.
 
 export type ReaderId =
-  | "kindle-paperwhite"
-  | "kindle"
-  | "kindle-scribe"
-  | "kobo-clara"
-  | "kobo-libra"
-  | "kobo-sage"
-  | "iphone"
-  | "iphone-duo"
-  | "iphone-duo-open"
-  | "ipad";
+  "kindle-paperwhite" | "kindle" | "kindle-scribe" | "kobo-clara" | "kobo-libra" | "kobo-sage" | "iphone" | "iphone-duo" | "iphone-duo-open" | "ipad";
 
 export interface Reader {
   id: ReaderId;

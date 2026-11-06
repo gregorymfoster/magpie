@@ -201,7 +201,7 @@ export function palmdoc(src: Uint8Array): Uint8Array {
     }
     buf[o++] = b;
   };
-  for (let i = 0; i < src.length; ) {
+  for (let i = 0; i < src.length;) {
     const c = src[i++];
     if (c >= 1 && c <= 8) for (let k = 0; k < c && i < src.length; k++) put(src[i++]);
     else if (c < 0x80) put(c);
@@ -447,7 +447,7 @@ function readIndex(pdb: Pdb, at: number): { entries: IndexEntry[]; cncx: Map<num
   const cncx = new Map<number, string>();
   for (let i = 0; i < cncxCount; i++) {
     const c = pdb.record(at + records + i + 1);
-    for (let p = 0; p < c.length; ) {
+    for (let p = 0; p < c.length;) {
       const start = p;
       const { value, length } = varlen(c, p);
       p += length;
@@ -494,7 +494,7 @@ function readIndex(pdb: Pdb, at: number): { entries: IndexEntry[]; cncx: Map<num
             p += length;
           }
         } else {
-          for (let used = 0; used < size!; ) {
+          for (let used = 0; used < size!;) {
             const { value, length } = varlen(rec, p);
             values.push(value);
             p += length;

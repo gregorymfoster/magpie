@@ -5,13 +5,19 @@
   "license": "MIT",
   "type": "module",
   "private": true,
-  "workspaces": ["core", "cli", "ui", "app"],
+  "workspaces": [
+    "core",
+    "cli",
+    "ui",
+    "app"
+  ],
   "engines": {
     "node": ">=22.18"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",
     "@types/node": "^26.6.5",
+    "prettier": "3.9.10",
     "typescript": "^7.0.2"
   }
 }

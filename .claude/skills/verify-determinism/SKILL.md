@@ -30,4 +30,4 @@ fast-check prints the smallest plan it found. Build it twice in a scratch script
 
 Two different machines or Node versions (deflate output can differ between zlib builds; fflate is pure JS, so today it doesn't). The local model's sort guesses, which aren't part of a build.
 
-Last confirmed true to the code at commit `HEAD` (sync commit).
+Last confirmed true to the code at commit `be68bec` (sync commit).

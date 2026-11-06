@@ -80,9 +80,12 @@ function Window() {
     setTimeout(() => setBack([]), 1500);
   }, []);
   // Settling the last book in Needs Work lets the magpie on its stack of books rise in, once.
-  const reviewCount = state?.counts.work;
-  const lastReview = useRef(reviewCount);
+  const workCount = state?.counts.work;
+  const lastWork = useRef(workCount);
   const [cleared, setCleared] = useState(false);
+  // The toolbar's Review button opens the suggested details, so it counts only books that have some.
+  // Other to-dos live in Needs Work, with their own buttons.
+  const reviewCount = state?.counts.review;
   // Passing 100, 500, 1,000, 5,000 or 10,000 books gets one quiet toast, once ever per milestone.
   const all = state?.counts.all;
   const lastAll = useRef(all);
@@ -105,10 +108,10 @@ function Window() {
   const shownReview = useRef(reviewCount || 1);
   if (reviewCount) shownReview.current = reviewCount;
   useEffect(() => {
-    if (reviewCount === 0 && (lastReview.current ?? 0) > 0) setCleared(true);
-    if (reviewCount) setCleared(false);
-    lastReview.current = reviewCount;
-  }, [reviewCount]);
+    if (workCount === 0 && (lastWork.current ?? 0) > 0) setCleared(true);
+    if (workCount) setCleared(false);
+    lastWork.current = workCount;
+  }, [workCount]);
   const [drag, setDrag] = useState(false);
   // The drop target eases away after a drop instead of blinking off.
   const [showDrop, dropLeaving] = useLinger(drag, 220);

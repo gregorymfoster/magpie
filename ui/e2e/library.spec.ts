@@ -64,6 +64,8 @@ test("a small cover is a to-do, and Choose a Cover puts a better one in", async 
   await page.reload();
   await page.locator(".tile", { hasText: "Emma" }).click();
   await expect(page.locator(".todos")).toContainText("The cover is small");
+  // A to-do isn't a suggested detail, so the toolbar's Review button (which only checks details) stays away.
+  await expect(page.getByRole("button", { name: /^Review/ })).toHaveCount(0);
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Choose a Cover…" }).click();
   await (await chooser).setFiles({ name: "cover.jpg", mimeType: "image/jpeg", buffer: Buffer.from(jpeg(1400, 2100)) });

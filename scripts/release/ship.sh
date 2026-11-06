@@ -6,6 +6,7 @@
 #   --publish-only  publish what --build-only built (main may have moved on since)
 #   --universal     Apple silicon and Intel in one app (about twice the build time)
 #   --no-wait       don't wait for CI's check on this commit
+#   --no-install    leave /Applications alone, so the installed copy can update itself (tests the updater)
 # MAGPIE_BUILD_PRIORITY: gentle (default: performance cores, yields to Greg's apps) or full.
 # Needs the update-signing key from scripts/release/setup.sh and a logged-in gh. See docs/release.md.
 # Written for macOS's own bash 3.2.
@@ -13,13 +14,14 @@ set -euo pipefail
 
 VERSION="${1:-}"
 shift || true
-MODE=all UNIVERSAL= WAIT=1
+MODE=all UNIVERSAL= WAIT=1 INSTALL=1
 for a in "$@"; do
   case "$a" in
     --build-only | --publish-only) MODE="$a" ;;
     --universal) UNIVERSAL=1 ;;
     --no-wait) WAIT= ;;
-    *) echo "usage: $0 X.Y.Z [--build-only|--publish-only] [--universal] [--no-wait]" >&2; exit 1 ;;
+    --no-install) INSTALL= ;;
+    *) echo "usage: $0 X.Y.Z [--build-only|--publish-only] [--universal] [--no-wait] [--no-install]" >&2; exit 1 ;;
   esac
 done
 VERSION="${VERSION#v}"
@@ -138,6 +140,7 @@ if [ "$MODE" != --publish-only ]; then
     --bundle "$name.app.tar.gz" --sig "$tarball.sig" "${platforms[@]}" --notes "Magpie $VERSION" > "$OUT/latest.json"
   echo "$SHA" > "$OUT/built-from"
 
+  if [ -n "$INSTALL" ]; then
   step "Installing on this Mac"
   is_running() { [ "$(osascript -e 'application "Magpie" is running' 2>/dev/null)" = true ]; }
   running=
@@ -153,6 +156,7 @@ if [ "$MODE" != --publish-only ]; then
   ditto "$bundle/macos/Magpie.app" "$dest"
   echo "Installed $dest"
   if [ -n "$running" ]; then open "$dest"; fi
+  fi
 
   step "Waiting for the Rust tests"
   wait "$cargo_test" || { tail -n 40 "$OUT/cargo-test.log"; die "cargo test failed (the build is installed here, nothing was published)"; }

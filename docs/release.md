@@ -11,7 +11,7 @@ Releases are built on Greg's Mac, the way Argus does it. A warm build there take
 
 The version comes from the argument and is merged over `app/src-tauri/tauri.conf.json` at build time, along with the updater's public key, so nobody bumps the file and dev builds never update themselves. Build files land in `out/release/vX.Y.Z/`.
 
-Other modes: `--build-only` builds and installs on the Mac without publishing, and `--publish-only` later publishes that exact build. `--universal` adds Intel (about twice the build time). `--no-wait` skips the CI wait. Release notes come from `docs/release-notes/X.Y.Z.md` when it exists, otherwise from the commit subjects since the last release.
+Other modes: `--build-only` builds and installs on the Mac without publishing, and `--publish-only` later publishes that exact build. `--universal` adds Intel (about twice the build time). `--no-wait` skips the CI wait, and `--no-install` leaves the installed copy alone so it can update itself. Release notes come from `docs/release-notes/X.Y.Z.md` when it exists, otherwise from the commit subjects since the last release.
 
 Measured on Greg's M4 Max (2026-10-27): a cold app build with the `.dmg` takes 132 s, a warm one after a Rust edit 36 s (15 s of it without the `.dmg`). `just check` is 18 s locally. On CI the check job takes about 77 s, so a warm ship is set by that wait.
 

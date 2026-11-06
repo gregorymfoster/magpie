@@ -16,6 +16,7 @@ const SENTENCES: Record<string, string> = {
   "no-library": "Your Library can't be found. If it's on an external disk, plug it in and try again.",
   "mail-failed":
     "Magpie couldn't open a message in Mail. If macOS asked whether Magpie may control Mail, allow it in System Settings › Privacy & Security › Automation, then try again.",
+  "books-failed": "Magpie couldn't hand the books to Apple Books. Check that Books is on this Mac, then try again.",
   "not-kindle-address": "That doesn't look like a Send to Kindle address. It ends in @kindle.com.",
   "empty-title": "A book needs a title.",
   "empty-author": "An author's name can't be blank. Leave the field empty for no author.",

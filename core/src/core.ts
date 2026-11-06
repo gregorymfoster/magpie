@@ -509,6 +509,29 @@ const commands = {
     return { to, attachments };
   },
 
+  /**
+   * Puts the books into Apple Books on this Mac, each an Apple Books copy of the
+   * clean book (series, author sort and cover named the way Books reads them).
+   * With iCloud on in Books, they reach the person's iPhone and iPad from there.
+   */
+  async "send.books"(ctx: Context, a: { ids: number[] }) {
+    const books = await Promise.all(a.ids.map((id) => ctx.lib().get(id)));
+    if (books.some((b) => b.state === "locked")) throw new UserError("locked-send");
+    // Books copies each file in, so they only wait in a scratch folder until it has.
+    const dir = join(ctx.host.env.temp, `Apple-Books-${Date.now()}`);
+    const paths: string[] = [];
+    for (const [i, b] of books.entries()) {
+      const name = deviceName(b.authors, b.title, "epub");
+      const path = join(dir, paths.some((p) => p.endsWith(`/${name}`)) ? name.replace(/\.epub$/, `-${i + 1}.epub`) : name);
+      await ctx.host.fs.write(path, await ctx.lib().deviceCopy(b.id, "apple"));
+      paths.push(path);
+    }
+    await ctx.host.books(paths).catch(() => {
+      throw new UserError("books-failed");
+    });
+    return { paths };
+  },
+
   /** Copies the books to the Kobo as KEPUB (built once and kept), as a job. */
   async "send.kobo"(ctx: Context, a: { ids: number[]; device: string }) {
     if (!(await listDevices(ctx.host)).some((d) => d.path === a.device)) throw new UserError("no-device");

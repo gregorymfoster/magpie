@@ -4,7 +4,7 @@
 // Test switches, all optional:
 //   MAGPIE_HOME      stands in for ~ (config, ~/Books/Magpie, ~/Calibre Library)
 //   MAGPIE_VOLUMES   stands in for /Volumes, so a test can plug in a fake Kobo
-//   MAGPIE_OPENED    a file that `open` and `mail` append to instead of launching apps
+//   MAGPIE_OPENED    a file that `open`, `mail` and `books` append to instead of launching apps
 //   MAGPIE_WEB       a JSON file of { "url fragment": answer } standing in for the internet;
 //                    an answer of null is "offline", and an unlisted URL fails too
 //   MAGPIE_MODEL     the folder holding the sorting model; defaults to models/ in the repo
@@ -87,6 +87,15 @@ export function nodeHost(env: NodeJS.ProcessEnv = process.env): Host {
       if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, path + "\n");
       const cmd = process.platform === "darwin" ? "open" : "xdg-open";
       spawn(cmd, [path], { detached: true, stdio: "ignore" }).unref();
+    },
+    async books(paths) {
+      if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, `books ${JSON.stringify(paths)}\n`);
+      if (process.platform !== "darwin") throw new Error("Apple Books is only on a Mac");
+      await new Promise<void>((resolve, reject) =>
+        spawn("open", ["-a", "Books", ...paths], { stdio: "ignore" })
+          .on("error", reject)
+          .on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`open exited with ${code}`)))),
+      );
     },
     async mail(draft) {
       if (env.MAGPIE_OPENED) return appendFile(env.MAGPIE_OPENED, `mail ${JSON.stringify(draft)}\n`);

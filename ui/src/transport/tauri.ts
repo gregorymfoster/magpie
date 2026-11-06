@@ -44,6 +44,7 @@ export const tauriHost = {
   dbClose: (db: number) => invoke<void>("db_close", { db }),
   open: (path: string) => invoke<void>("open_path", { path }),
   mail: (draft: MailDraft) => invoke<void>("compose_mail", { ...draft }),
+  books: (paths: string[]) => invoke<void>("add_to_books", { paths }),
 };
 export type TauriHost = typeof tauriHost;
 

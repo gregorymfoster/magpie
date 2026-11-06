@@ -4,10 +4,23 @@
 // preview and a headless layout check share one definition.
 //
 // Screens are in CSS px at 96 to the inch, from each reader's real size, so a
-// line holds about as many words as it does in the hand. It's a close look,
-// not the reader's own typesetter: Kindle and Kobo have their own engines.
+// line holds about as many words as it does in the hand. Apple's screens are
+// in points instead, because Apple Books sets its text sizes in points: the
+// iPhone Duo's from Apple's pixel counts at 3 pixels a point (Apple hasn't
+// published its points, so those two are close, not exact). It's a close
+// look, not the reader's own typesetter: Kindle and Kobo have their own engines.
 
-export type ReaderId = "kindle-paperwhite" | "kindle" | "kindle-scribe" | "kobo-clara" | "kobo-libra" | "kobo-sage" | "iphone";
+export type ReaderId =
+  | "kindle-paperwhite"
+  | "kindle"
+  | "kindle-scribe"
+  | "kobo-clara"
+  | "kobo-libra"
+  | "kobo-sage"
+  | "iphone"
+  | "iphone-duo"
+  | "iphone-duo-open"
+  | "ipad";
 
 export interface Reader {
   id: ReaderId;
@@ -21,6 +34,8 @@ export interface Reader {
   face: string;
   /** Reader default: justified text with hyphenation. */
   justify: boolean;
+  /** Two pages side by side on one screen, as Apple Books does on a wide screen (an unfolded iPhone Duo). */
+  spread?: boolean;
   /** Frame around the screen, for drawing the device: px on each side and corner radius. */
   bezel: { top: number; right: number; bottom: number; left: number; radius: number };
 }
@@ -96,6 +111,40 @@ export const READERS: Reader[] = [
     justify: false,
     bezel: { top: 14, right: 14, bottom: 14, left: 14, radius: 58 },
   },
+  {
+    // Outer screen: 1398 × 2034 pixels.
+    id: "iphone-duo",
+    name: "iPhone Duo, folded",
+    family: "apple",
+    screen: { w: 466, h: 678 },
+    eink: false,
+    face: '"Iowan Old Style", Palatino, Georgia, serif',
+    justify: false,
+    bezel: { top: 13, right: 13, bottom: 13, left: 13, radius: 48 },
+  },
+  {
+    // Inner screen held open, wider than tall: 2670 × 1878 pixels. Books shows two pages.
+    id: "iphone-duo-open",
+    name: "iPhone Duo, open",
+    family: "apple",
+    screen: { w: 890, h: 626 },
+    eink: false,
+    face: '"Iowan Old Style", Palatino, Georgia, serif',
+    justify: false,
+    spread: true,
+    bezel: { top: 13, right: 13, bottom: 13, left: 13, radius: 40 },
+  },
+  {
+    // An 11-inch iPad held upright.
+    id: "ipad",
+    name: "iPad",
+    family: "apple",
+    screen: { w: 820, h: 1180 },
+    eink: false,
+    face: '"Iowan Old Style", Palatino, Georgia, serif',
+    justify: false,
+    bezel: { top: 22, right: 22, bottom: 22, left: 22, radius: 40 },
+  },
 ];
 
 export const reader = (id: string): Reader => READERS.find((r) => r.id === id) ?? READERS[0];
@@ -115,15 +164,21 @@ export const FONT_PX = [13, 14.5, 16, 18, 20, 23, 26];
 const MARGIN_PX = { narrow: 12, normal: 24, wide: 40 };
 const LINE = { tight: 1.25, normal: 1.45, loose: 1.7 };
 
-/** Page margins in px: [top and bottom, left and right]. A phone keeps room for its status bar and home bar. */
+/** Page margins in px: [top and bottom, left and right]. Apple Books keeps room for its title line and page number. */
 export function pageMargins(r: Reader, s: ReaderSettings): [number, number] {
-  const side = MARGIN_PX[s.margins];
-  return [r.family === "apple" ? 64 : Math.max(18, side * 0.9), side];
+  const side = MARGIN_PX[s.margins] * (r.id === "ipad" || r.spread ? 2 : 1);
+  return [r.family === "apple" ? (r.id === "iphone" ? 64 : 52) : Math.max(18, side * 0.9), side];
+}
+
+/** How wide one page's text is: the screen less its margins, or half of it for a two-page spread. */
+export function columnWidth(r: Reader, s: ReaderSettings): number {
+  const [, mh] = pageMargins(r, s);
+  return r.spread ? (r.screen.w - 4 * mh) / 2 : r.screen.w - 2 * mh;
 }
 
 /**
  * CSS that turns a chapter into pages the size of this reader's screen: one
- * column per screen, laid side by side. Page n is at scrollLeft n × screen
+ * column per screen (two for a spread), laid side by side. Page n is at scrollLeft n × screen
  * width, and the page count is scrollWidth / screen width. Goes last in the
  * document so it wins where a reader overrides the book.
  */
@@ -135,7 +190,7 @@ export function readerCss(r: Reader, s: ReaderSettings, colours: { paper: string
 html { width: ${w}px; height: ${h}px; margin: 0; padding: 0; overflow: hidden; background: ${colours.paper} !important; ${r.eink ? "filter: grayscale(1);" : ""} }
 body {
   box-sizing: border-box; width: ${w}px; height: ${h}px; margin: 0 !important; padding: ${mv}px ${mh}px !important;
-  column-width: ${w - 2 * mh}px; column-gap: ${2 * mh}px; column-fill: auto;
+  column-width: ${columnWidth(r, s)}px; column-gap: ${2 * mh}px; column-fill: auto;
   max-width: none !important; background: transparent !important; color: ${colours.ink};
   font-family: ${r.face}; font-size: ${FONT_PX[Math.max(1, Math.min(7, s.size)) - 1]}px !important; line-height: ${LINE[s.spacing]};
   overflow-wrap: break-word; -webkit-text-size-adjust: none;

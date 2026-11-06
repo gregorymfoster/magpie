@@ -38,6 +38,12 @@ export interface Host {
    */
   mail(draft: MailDraft): Promise<void>;
   /**
+   * Hand EPUBs to Apple Books, which copies each into its own library (and,
+   * with iCloud on, to the person's iPhone and iPad). The files can go once
+   * this returns. Magpie never touches Books' own database.
+   */
+  books(paths: string[]): Promise<void>;
+  /**
    * The one way out to the internet: a GET that returns parsed JSON, used only
    * by Look Up Details (Open Library), and only when a person asks. Hosts pace
    * these to about one a second so a big Library is a polite neighbour.

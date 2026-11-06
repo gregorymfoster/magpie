@@ -31,6 +31,7 @@ function workerHost(r: Comlink.Remote<TauriHost>, env: HostEnv): Host {
     sqlite: { open: async (p, o) => db(await r.dbOpen(p, !!o?.readonly)) },
     open: (p) => r.open(p),
     mail: (d) => r.mail(d),
+    books: (p) => r.books(p),
     // Straight from the worker: only Open Library is allowed out (connect-src in tauri.conf.json;
     // covers.openlibrary.org hands pictures over from archive.org).
     web: (() => {

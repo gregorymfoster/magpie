@@ -20,6 +20,9 @@ const SCREENS: [string, string][] = [
   ["preview-kindle", "/?sel=3&sheet=preview"],
   ["preview-kobo-libra", "/?sel=3&sheet=preview&reader=kobo-libra"],
   ["preview-iphone", "/?sel=3&sheet=preview&reader=iphone"],
+  ["preview-iphone-duo", "/?sel=3&sheet=preview&reader=iphone-duo"],
+  ["preview-iphone-duo-open", "/?sel=3&sheet=preview&reader=iphone-duo-open"],
+  ["preview-ipad", "/?sel=3&sheet=preview&reader=ipad"],
 ];
 
 test("screens", async ({ page }) => {

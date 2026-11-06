@@ -2282,6 +2282,18 @@ textarea::placeholder {
   border-radius: 46px;
   background: var(--dev-lcd-paper);
 }
+/* An open iPhone Duo folds down the middle, between its two pages. */
+.pv-dev[data-spread] .pv-screen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--dev-phone-edge);
+  opacity: 0.25;
+  pointer-events: none;
+}
 .pv-screen iframe {
   display: block;
   border: 0;

@@ -566,6 +566,38 @@ test("Send to Kindle opens a new Mail message addressed to Kindle with the book 
   assert.ok(unzipSync(readFileSync(attachments[0]))["mimetype"]);
 });
 
+test("Send to Apple Books hands Books a copy filed by series, author sort and cover, and leaves the Library's EPUB alone", async () => {
+  const { core, file, opened } = setup();
+  await core.call("app.state");
+  const meta =
+    '<dc:identifier id="id">urn:uuid:7</dc:identifier><dc:title>Persuasion</dc:title><dc:creator>Jane Austen</dc:creator><dc:language>en</dc:language>' +
+    '<meta name="calibre:series" content="Austen Novels"/><meta name="calibre:series_index" content="6"/>';
+  await core.call("books.import", { paths: [file("p.epub", epub({ opfMeta: meta, manifest: "" }))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  const { paths } = await core.call("send.books", { ids: [b.id] });
+  assert.equal(readFileSync(opened, "utf8"), `books ${JSON.stringify(paths)}\n`);
+  assert.match(paths[0], /\/Jane-Austen-Persuasion\.epub$/);
+  const opf = strFromU8(unzipSync(readFileSync(paths[0]))["content.opf"]);
+  const id = opf.match(/property="belongs-to-collection" id="([^"]+)">Austen Novels</)?.[1];
+  assert.ok(id, "series as belongs-to-collection");
+  assert.match(opf, new RegExp(`refines="#${id}" property="collection-type">series<`));
+  assert.match(opf, new RegExp(`refines="#${id}" property="group-position">6<`));
+  assert.match(opf, /property="file-as">Austen, Jane</);
+  assert.match(opf, /<meta name="calibre:series" content="Austen Novels"/, "Kindle and Kobo's series stays");
+  const d = await core.call("books.get", { id: b.id });
+  assert.doesNotMatch(strFromU8(unzipSync(readFileSync(d.file))["content.opf"]), /belongs-to-collection/);
+});
+
+test("authors sort by surname in Apple Books", async () => {
+  const { sortName } = await import("../src/send/apple.ts");
+  assert.equal(sortName("Jane Austen"), "Austen, Jane");
+  assert.equal(sortName("Ursula K. Le Guin"), "Le Guin, Ursula K.");
+  assert.equal(sortName("Martin Luther King Jr."), "King, Martin Luther, Jr.");
+  assert.equal(sortName("Austen, Jane"), "Austen, Jane");
+  assert.equal(sortName("Homer"), "Homer");
+});
+
 test("Send to Kobo converts to KEPUB on the reader and leaves the Library's EPUB alone", async () => {
   const { core, file, volumes } = setup();
   await core.call("app.state");

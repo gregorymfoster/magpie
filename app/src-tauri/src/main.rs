@@ -133,6 +133,18 @@ async fn compose_mail(to: String, subject: String, body: String, attachments: Ve
     }
 }
 
+/// Hands EPUBs to Apple Books (`open -a Books`), which copies them into its
+/// library and, with iCloud on, to the person's iPhone and iPad.
+#[tauri::command]
+async fn add_to_books(paths: Vec<String>) -> Result<()> {
+    let ok = Command::new("/usr/bin/open").arg("-a").arg("Books").args(&paths).status().map_err(|e| e.to_string())?.success();
+    if ok {
+        Ok(())
+    } else {
+        Err("Couldn't open Apple Books".to_string())
+    }
+}
+
 #[tauri::command]
 async fn copy_text(text: String) -> Result<()> {
     let mut child = Command::new("/usr/bin/pbcopy").stdin(std::process::Stdio::piped()).spawn().map_err(|e| e.to_string())?;
@@ -178,7 +190,7 @@ fn main() {
         .on_menu_event(menu::handle)
         .invoke_handler(tauri::generate_handler![
             fs_read, fs_write, fs_copy, fs_exists, fs_list, fs_mkdir, fs_remove, fs_move, fs_free, db_open, db_all, db_run, db_batch, db_exec, db_close,
-            open_path, compose_mail, copy_text, host_env
+            open_path, compose_mail, add_to_books, copy_text, host_env
         ])
         .run(tauri::generate_context!())
         .expect("Magpie failed to start");

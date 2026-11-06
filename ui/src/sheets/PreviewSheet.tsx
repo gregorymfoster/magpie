@@ -190,6 +190,7 @@ export function PreviewSheet({ id, onClose }: { id: number; onClose: () => void 
               <div
                 className={`pv-dev ${r.family}`}
                 data-reader={r.id}
+                data-spread={r.spread || undefined}
                 style={{
                   width: fw,
                   height: fh,
@@ -198,7 +199,10 @@ export function PreviewSheet({ id, onClose }: { id: number; onClose: () => void 
                   transform: `scale(${scale})`,
                 }}
               >
-                <div className="pv-screen" style={{ width: r.screen.w, height: r.screen.h }}>
+                <div
+                  className="pv-screen"
+                  style={{ width: r.screen.w, height: r.screen.h, ...(r.family === "apple" ? { borderRadius: b.radius - b.top } : {}) }}
+                >
                   {doc && (
                     <iframe
                       ref={frame}

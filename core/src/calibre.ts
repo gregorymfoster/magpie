@@ -97,9 +97,32 @@ SELECT b.title, b.path, b.series_index, b.pubdate, b.has_cover,
   (SELECT group_concat(t.name, char(31)) FROM books_tags_link l JOIN tags t ON t.id = l.tag WHERE l.book = b.id) AS tags
 FROM books b ORDER BY b.id`;
 
+const DEGREE = /^(ph\.?\s?d\.?|m\.?\s?d\.?|psy\.?\s?d\.?|ed\.?\s?d\.?|lmft|lcsw|mba|esq\.?)$/i;
+
+/**
+ * Calibre keeps a comma inside an author's name as "|" ("Brown| Bren",
+ * "Marshall Rosenberg| Ph.d."). Put the comma back and make it a name people
+ * read: "Last, First" turns round, a degree after the name goes, and two full
+ * names joined by a comma are two authors.
+ */
+export function calibreAuthor(name: string): string[] {
+  const parts = name
+    .replace(/\|/g, ",")
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .filter((p, i) => i === 0 || !DEGREE.test(p.replace(/\s+/g, "")));
+  if (parts.length === 2) {
+    const [a, b] = parts;
+    if (a.includes(" ") && b.includes(" ")) return [a, b];
+    if (!/^(jr\.?|sr\.?|ii|iii|iv)$/i.test(b)) return [`${b} ${a}`];
+  }
+  return [parts.join(", ")];
+}
+
 function toItem(root: string, r: Row): CalibreItem {
   const info: InfoPatch = { title: r.title };
-  const authors = (r.authors ?? "").split("\u001f").filter(Boolean);
+  const authors = (r.authors ?? "").split("\u001f").filter(Boolean).flatMap(calibreAuthor);
   if (authors.length && !(authors.length === 1 && authors[0] === "Unknown")) info.authors = authors;
   if (r.series) {
     info.series = r.series;

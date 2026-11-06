@@ -721,6 +721,17 @@ test("Send to Apple Books hands Books a copy filed by series, author sort and co
   await core.call("send.books", { ids: [b.id], again: true });
 });
 
+test("Calibre's | in an author's name becomes a name people read", async () => {
+  const { calibreAuthor } = await import("../src/calibre.ts");
+  assert.deepEqual(calibreAuthor("Brown| Bren"), ["Bren Brown"]);
+  assert.deepEqual(calibreAuthor("Hardy| Janet W."), ["Janet W. Hardy"]);
+  assert.deepEqual(calibreAuthor("Marshall Rosenberg| Ph.d."), ["Marshall Rosenberg"]);
+  assert.deepEqual(calibreAuthor("Amir Levine| M. D."), ["Amir Levine"]);
+  assert.deepEqual(calibreAuthor("Dwarkesh Patel| Gavin Leech"), ["Dwarkesh Patel", "Gavin Leech"]);
+  assert.deepEqual(calibreAuthor("Martin Luther King| Jr."), ["Martin Luther King, Jr."]);
+  assert.deepEqual(calibreAuthor("Jane Austen"), ["Jane Austen"]);
+});
+
 test("authors sort by surname in Apple Books", async () => {
   const { sortName } = await import("../src/send/apple.ts");
   assert.equal(sortName("Jane Austen"), "Austen, Jane");

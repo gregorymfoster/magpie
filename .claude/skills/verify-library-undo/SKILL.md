@@ -17,11 +17,11 @@ It does if it changes any of these, or adds code that writes the same things (`b
 | --- | --- |
 | `core/src/library/library.ts`: `exclusive`, `edit`, `review`, `keepStyle`, `setCover`, `tag`, `remove`, `restore`, `refresh`, `lookedUp`, `recordLookups`, `organize`, `openStep`, `appendToStep`, `nextUndo`, `undo`, `rebuild`, `snapshot`, `record` | all |
 | `core/src/jobs.ts`: lanes, `runJob` (the cancel check before each item), `cancel`, `settled`, `pending` | `Sort*`, `Lookup*`, `RefreshOne`, `UndoAfterSortStops` |
-| `core/src/core.ts`: `Context.sort`, the `lookup`, `refresh` and `organize` runners, the lookup finisher in `openLibrary`, `"history.undo"` | `SortIsQueued`, `Lookup*`, `RefreshOne`, `Sort*`, `YouPressUndo` |
+| `core/src/core.ts`: `Context.sort`, the `lookup`, `fix`, `refresh` and `organize` runners (`lookUp`), the lookup and fix finishers in `openLibrary`, `"history.undo"` | `SortIsQueued`, `Lookup*`, `RefreshOne`, `Sort*`, `YouPressUndo` |
 
 A new command that writes a book or history must go through `Library.exclusive` and record history; if it adds a new kind of write (a new column, a new job that rebuilds books), the model needs a new action.
 
-Last confirmed true to the code at commit `59d1f71` (sync commit).
+Last confirmed true to the code at commit `784ae6d` (sync commit).
 
 ## Run it
 

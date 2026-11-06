@@ -1,5 +1,4 @@
-// How /statechart words the model for a person: one region each for you, Look Up Details and the background lane.
-// `node .claude/skills/statechart/scripts/statechart.ts verify/LibraryUndo.tla --config verify/LibraryUndo.cfg --view verify/LibraryUndo.view.ts`
+// How the /statechart skill words the model for a person: one region each for you, Look Up Details and the background lane.
 
 type V = Record<string, unknown>;
 

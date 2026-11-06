@@ -37,4 +37,4 @@ fast-check prints the shortest text it found. Call `slug`, `bookPath` or `device
 
 Windows reserved names (CON, NUL: Magpie is Mac only, and Kobo cards take them). Two different titles mapping to one slug (that's `unique`'s job, checked against the disk at write time).
 
-Last confirmed true to the code at commit `HEAD` (sync commit).
+Last confirmed true to the code at commit `eecc8f3` (sync commit).

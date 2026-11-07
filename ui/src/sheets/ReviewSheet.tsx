@@ -20,6 +20,7 @@ const FIELD: Record<Suggestion["field"], string> = {
   language: "Language",
   description: "Description",
   cover: "Cover",
+  series: "Series",
 };
 
 export function ReviewSheet({ onClose }: { onClose: () => void }) {

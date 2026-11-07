@@ -9,7 +9,7 @@ import { UserError, explain } from "./errors.ts";
 import { join, type Host } from "./host.ts";
 import type { InfoPatch, Suggestion } from "./info.ts";
 import { Jobs, type Job, type JobResult } from "./jobs.ts";
-import { Library, type Counts, type ListQuery, type LookupPrev } from "./library/library.ts";
+import { Library, type BookDetail, type Counts, type ListQuery, type LookupPrev } from "./library/library.ts";
 import { Organizer } from "./organize/organize.ts";
 import { deviceName } from "./naming.ts";
 import { loadForPreview, preview } from "./preview.ts";
@@ -17,7 +17,21 @@ import type { Book } from "./epub.ts";
 import { DEFAULTS, validate, type Settings } from "./settings.ts";
 import { listDevices } from "./send/devices.ts";
 import { KINDLE_LIMIT } from "./send/kindle.ts";
-import { MIN_RATINGS, coverUrl, descriptionOf, match, recordOf, searchUrl, suggestionsFrom, wantsCover, workUrl, type CatalogDoc } from "./identify/catalog.ts";
+import {
+  MIN_RATINGS,
+  coverUrl,
+  descriptionOf,
+  editionsUrl,
+  match,
+  recordOf,
+  searchUrl,
+  seriesOf,
+  suggestionsFrom,
+  wantsCover,
+  workUrl,
+  type CatalogDoc,
+  type Match,
+} from "./identify/catalog.ts";
 import { coverType, imageSize } from "./images.ts";
 import { MIN_COVER_HEIGHT } from "./checks.ts";
 import { ARCHIVE_ENDINGS, BOOK_ENDINGS, archiveBooks, ending } from "./convert/index.ts";
@@ -257,7 +271,8 @@ async function lookUp(ctx: Context, id: number, fix: boolean): Promise<JobResult
   if (!m && !searchUrl({ ...info, isbn: undefined })) return unmatched("skipped", explain("lookup-nothing"));
   if (!m) return unmatched("skipped", explain("lookup-no-match"), []);
   const description = info.description ? undefined : descriptionOf(await ctx.host.web.getJson(workUrl(m.doc.key)).catch(() => null));
-  const found = suggestionsFrom(info, m, description);
+  const series = info.series ? null : await findSeries(ctx, info, m);
+  const found = suggestionsFrom(info, m, description, series);
   if (coverWanted && m.doc.cover_i) {
     // A cover that won't download, isn't a picture or is too small to be better is simply not suggested.
     const bytes = await ctx.host.web.getBytes(coverUrl(m.doc.cover_i)).catch(() => null);
@@ -290,9 +305,25 @@ async function lookUp(ctx: Context, id: number, fix: boolean): Promise<JobResult
   };
 }
 
+/**
+ * The book's series, when it has none: Open Library's series record, else its
+ * English editions' catalogue lines (one more request, only then). Series this
+ * author's other books in the Library are in keep their spelling.
+ */
+async function findSeries(ctx: Context, info: BookDetail, m: Match) {
+  const surnames = new Set(info.authors.map((a) => a.toLowerCase()));
+  const known = (await ctx.lib().list({}))
+    .filter((b) => b.id !== info.id && b.series && b.authors.some((a) => surnames.has(a.toLowerCase())))
+    .map((b) => b.series!);
+  const editions = m.doc.series_name?.length ? null : await ctx.host.web.getJson(editionsUrl(m.doc.key)).catch(() => null);
+  return seriesOf(m, editions, known);
+}
+
 /** What a Fix filled in, for a sentence: "year", "description" and "cover". */
 function filledWords(p: InfoPatch | undefined): string[] {
-  return Object.keys(p ?? {}).map((k) => (k === "authors" ? "author" : k === "seriesIndex" ? "series number" : k));
+  return Object.keys(p ?? {})
+    .filter((k) => k !== "seriesIndex")
+    .map((k) => (k === "authors" ? "author" : k));
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

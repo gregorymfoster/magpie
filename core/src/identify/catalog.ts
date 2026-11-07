@@ -12,7 +12,8 @@ import type { BookInfo, Suggestion } from "../info.ts";
 import { JUNK_AUTHOR, isJunkTitle } from "./rules.ts";
 
 const BASE = "https://openlibrary.org";
-const FIELDS = "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn,cover_i,ratings_average,ratings_count";
+const FIELDS =
+  "key,title,subtitle,author_name,first_publish_year,publisher,language,subject,isbn,cover_i,ratings_average,ratings_count,series_name,series_position";
 
 export interface CatalogDoc {
   key: string;
@@ -28,6 +29,17 @@ export interface CatalogDoc {
   cover_i?: number;
   ratings_average?: number;
   ratings_count?: number;
+  /** The work's series, from Open Library's series records. Only returned when asked for in `fields`. */
+  series_name?: string[];
+  series_position?: string[];
+}
+
+/** A series found for a book, and how sure Magpie is of it. */
+export interface SeriesFound {
+  name: string;
+  index?: number;
+  confidence: number;
+  source: string;
 }
 
 export interface Match {
@@ -80,7 +92,7 @@ export function match(info: BookInfo, docs: CatalogDoc[]): Match | null {
 }
 
 /** What the match adds to the book: only fields it lacks. */
-export function suggestionsFrom(info: BookInfo, m: Match, description?: string): Suggestion[] {
+export function suggestionsFrom(info: BookInfo, m: Match, description?: string, series?: SeriesFound | null): Suggestion[] {
   const out: Suggestion[] = [];
   const source = `Open Library, matched by ${m.by}`;
   const add = (field: Suggestion["field"], current: string, value: string | undefined, confidence = m.confidence) => {
@@ -93,7 +105,91 @@ export function suggestionsFrom(info: BookInfo, m: Match, description?: string):
   if (!info.publisher && m.by === "isbn") add("publisher", "", d.publisher?.[0]);
   if (!info.language && d.language?.length === 1) add("language", "", LANG[d.language[0]]);
   if (!info.description) add("description", "", description);
+  if (!info.series && series)
+    out.push({
+      field: "series",
+      current: "",
+      value: seriesValue(series.name, series.index),
+      source: series.source,
+      confidence: series.confidence,
+      from: "catalog",
+    });
   return out;
+}
+
+/** "Red Rising · 5": a series suggestion's value, which patchFor splits back into a name and a number. */
+export const seriesValue = (name: string, index?: number) => (index ? `${name} · ${index}` : name);
+
+/**
+ * The matched work's series. Open Library's own series records (search's
+ * series_name and series_position) come first, at the match's confidence:
+ * they were right for every book checked. Many books have none yet, so a
+ * book's English editions are read next, where a catalogue line like "Red
+ * Rising Series, Book 5" names it. Those lines are messy, so they're parsed
+ * strictly and offered unticked, unless the series is one this author's
+ * other books in the Library are already in, in which case its spelling is
+ * kept so the books sit together.
+ */
+export function seriesOf(m: Match, editions: unknown, known: string[]): SeriesFound | null {
+  const source = `Open Library, matched by ${m.by}`;
+  const same = (name: string) => known.find((k) => seriesKey(k) === seriesKey(name));
+  const name = m.doc.series_name?.[0]?.trim();
+  if (name) {
+    const index = Number(m.doc.series_position?.[0]);
+    return { name: same(name) ?? name, index: Number.isFinite(index) && index > 0 ? index : undefined, confidence: m.confidence, source };
+  }
+  const entries = ((editions as { entries?: { languages?: { key?: string }[]; series?: unknown }[] })?.entries ?? []).filter((e) =>
+    e.languages?.some((l) => l.key === "/languages/eng"),
+  );
+  const votes = new Map<string, { names: string[]; index: number; n: number }>();
+  for (const e of entries)
+    for (const line of Array.isArray(e.series) ? e.series : []) {
+      const p = typeof line === "string" ? parseSeriesLine(line) : null;
+      if (!p) continue;
+      const k = `${seriesKey(p.name)}|${p.index}`;
+      const v = votes.get(k) ?? { names: [], index: p.index, n: 0 };
+      v.names.push(p.name);
+      v.n++;
+      votes.set(k, v);
+    }
+  // Two lines that disagree on the number for the same series mean nothing is sure.
+  const best = [...votes.values()].sort((a, b) => b.n - a.n);
+  if (!best.length || best.some((v) => v !== best[0] && seriesKey(v.names[0]) === seriesKey(best[0].names[0]))) return null;
+  const kept = same(best[0].names[0]);
+  const spelled = best[0].names.find((n) => /[A-Z]/.test(n)) ?? best[0].names[0];
+  return {
+    name: kept ?? spelled,
+    index: best[0].index,
+    confidence: kept ? Math.min(m.confidence, 0.85) : 0.7,
+    source: `Open Library, from an edition's catalogue entry`,
+  };
+}
+
+export const editionsUrl = (key: string) => `${BASE}${key}/editions.json?limit=50`;
+
+const NUMBER_WORDS = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
+
+/**
+ * "Red Rising Series, Book 5", "Red Rising Saga #6", "Discworld (8)", "Lord of
+ * the rings -- v. 1", "A Song of Ice and Fire, Book Two" -> a name and a number.
+ * A line with no number (often a publisher's series, "Thorndike Press large
+ * print core") is no use and gives null.
+ */
+export function parseSeriesLine(line: string): { name: string; index: number } | null {
+  const s = line.replace(/^(half-title:|his|her)\s+/i, "").trim();
+  const m = s.match(/^(.*?)[\s,;:(-]*(?:#|\b(?:book|bk|v|vol|volume|no|number|part|bd)\.?\s*)?\(?(\d{1,3}|[a-z]+)\)?\.?$/i);
+  if (!m) return null;
+  const n = /^\d+$/.test(m[2]) ? Number(m[2]) : NUMBER_WORDS.indexOf(m[2].toLowerCase()) + 1;
+  const name = m[1].replace(/[\s,;:(#-]+$/, "").trim();
+  if (!n || n > 200 || !/\p{L}{2}/u.test(name) || /\b(press|library|classics|edition|print)\b/i.test(name)) return null;
+  return { name: name.replace(/\s+(saga|series|trilogy|tetralogy|quartet|sequence)$/i, ""), index: n };
+}
+
+/** "The Red Rising Saga" and "Red rising" are one series. */
+function seriesKey(name: string): string {
+  return fold(name)
+    .replace(/^the /, "")
+    .replace(/ (saga|series|trilogy|tetralogy|quartet|sequence)$/, "");
 }
 
 /** Fewer ratings than this say more about a few readers than about the book, so none is shown. */

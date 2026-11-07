@@ -26,7 +26,7 @@ export { patchFor } from "./suggestions.ts";
 export type InfoPatch = Partial<BookInfo> & { cover?: string };
 
 /** Fields a suggestion can fill: from the book's own pages (title, author) or a catalog lookup. */
-export type SuggestField = "title" | "authors" | "year" | "publisher" | "language" | "description" | "cover";
+export type SuggestField = "title" | "authors" | "year" | "publisher" | "language" | "description" | "cover" | "series";
 
 export interface Suggestion {
   field: SuggestField;

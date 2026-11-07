@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { unzipSync, zipSync, strFromU8 } from "fflate";
 import { createCore, patchFor, type CoreEvent } from "../src/index.ts";
+import { parseSeriesLine } from "../src/identify/catalog.ts";
 import { nodeHost } from "../../cli/src/node-host.ts";
 import { epub, jpeg, makeCalibre, page, pause, settle } from "./fixtures.ts";
 
@@ -1127,6 +1128,97 @@ test("Look Up Details finds the real cover for a book whose cover Magpie drew, a
   assert.ok(!took.report.suggestions.some((s) => s.field === "cover"));
   await core.call("history.undo");
   assert.equal((await core.call("books.get", { id: b.id })).report.coverMade, true, "undo puts the drawn cover back");
+});
+
+const brown = (title: string, series = "") =>
+  epub({
+    opfMeta: `<dc:identifier id="id">urn:uuid:${title}</dc:identifier><dc:title>${title}</dc:title><dc:creator>Pierce Brown</dc:creator><dc:language>en</dc:language><dc:date>2020</dc:date><dc:description>A long enough description of the book.</dc:description>${series}`,
+  });
+
+const RED_RISING = {
+  "title=Golden+Son&author=Pierce+Brown": {
+    docs: [{ key: "/works/OL2W", title: "Golden Son", author_name: ["Pierce Brown"], series_name: ["Red Rising"], series_position: ["2"] }],
+  },
+  "title=Dark+Age&author=Pierce+Brown": { docs: [{ key: "/works/OL5W", title: "Dark Age", author_name: ["Pierce Brown"] }] },
+  "/works/OL5W/editions.json": {
+    entries: [
+      { languages: [{ key: "/languages/eng" }], series: ["Red Rising Series, Book 5"] },
+      { languages: [{ key: "/languages/eng" }], series: ["Iron Gold Tetralogy"] },
+      { languages: [{ key: "/languages/spa" }], series: ["Amanecer rojo, 9"] },
+    ],
+  },
+  "title=Light+Bringer&author=Pierce+Brown": { docs: [{ key: "/works/OL6W", title: "Light Bringer", author_name: ["Pierce Brown"] }] },
+  "/works/OL6W/editions.json": { entries: [{ languages: [{ key: "/languages/eng" }], series: ["Thorndike Press large print core"] }] },
+};
+
+test("Fix fills in the series: Open Library's series record, or an edition's catalogue line for a series the author's other books are in", async () => {
+  const { core, file } = setup(RED_RISING);
+  await core.call("app.state");
+  await core.call("settings.set", { organize: false });
+  const inSeries = '<meta name="calibre:series" content="Red Rising Saga"/><meta name="calibre:series_index" content="4"/>';
+  await core.call("books.import", {
+    paths: [
+      file("iron.epub", brown("Iron Gold", inSeries)),
+      file("son.epub", brown("Golden Son")),
+      file("dark.epub", brown("Dark Age")),
+      file("light.epub", brown("Light Bringer")),
+    ],
+  });
+  await core.idle();
+  const byTitle = async () => Object.fromEntries((await core.call("books.list")).map((b) => [b.title, b]));
+  const books = await byTitle();
+  const job = await core.call("books.fix", { ids: [books["Golden Son"].id, books["Dark Age"].id, books["Light Bringer"].id] });
+  await core.idle();
+  const after = await byTitle();
+  // Open Library calls it "Red Rising"; Iron Gold is already on the shelf as "Red Rising Saga", so that spelling is kept.
+  assert.deepEqual([after["Golden Son"].series, after["Golden Son"].seriesIndex], ["Red Rising Saga", 2]);
+  assert.deepEqual([after["Dark Age"].series, after["Dark Age"].seriesIndex], ["Red Rising Saga", 5], "the Spanish edition's numbering is ignored");
+  assert.equal(after["Light Bringer"].series, undefined, "a publisher's series is not the book's");
+  const results = (await core.call("jobs.get", { id: job.id })).results;
+  assert.equal(results.find((r) => r.label === "Golden Son")?.message, "Filled in series.");
+  const dark = await core.call("books.get", { id: after["Dark Age"].id });
+  assert.match(strFromU8(unzipSync(readFileSync(dark.file))["content.opf"]), /calibre:series_index" content="5"/);
+});
+
+test("a series read only from an edition's catalogue line waits in Needs Review", async () => {
+  const { core, file } = setup(RED_RISING);
+  await core.call("app.state");
+  await core.call("settings.set", { organize: false });
+  await core.call("books.import", { paths: [file("dark.epub", brown("Dark Age"))] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  await core.call("books.fix", { ids: [b.id] });
+  await core.idle();
+  const d = await core.call("books.get", { id: b.id });
+  assert.equal(d.series, undefined);
+  assert.deepEqual(
+    d.report.suggestions.map((s) => [s.field, s.value, s.confidence]),
+    [["series", "Red Rising · 5", 0.7]],
+  );
+  await core.call("books.review", { decisions: [{ id: b.id, accept: patchFor(d.report.suggestions), dismiss: [] }] });
+  const took = await core.call("books.get", { id: b.id });
+  assert.deepEqual([took.series, took.seriesIndex], ["Red Rising", 5]);
+});
+
+test("series lines from Open Library's editions are read strictly", () => {
+  const cases: [string, { name: string; index: number } | null][] = [
+    ["Red Rising, 4", { name: "Red Rising", index: 4 }],
+    ["Red Rising Series, Book 5", { name: "Red Rising", index: 5 }],
+    ["Red Rising Saga #6", { name: "Red Rising", index: 6 }],
+    ["The red rising trilogy -- #2", { name: "The red rising", index: 2 }],
+    ["A Song of Ice and Fire, Book Two", { name: "A Song of Ice and Fire", index: 2 }],
+    ["Lord of the rings -- v. 1", { name: "Lord of the rings", index: 1 }],
+    ["Discworld (8)", { name: "Discworld", index: 8 }],
+    ["The Expanse Bd.1", { name: "The Expanse", index: 1 }],
+    ["Harry Potter, #2", { name: "Harry Potter", index: 2 }],
+    ["Red Rising Saga", null],
+    ["Iron Gold Tetralogy", null],
+    ["His The Lord of the Rings", null],
+    ["Thorndike Press large print core", null],
+    ["The Modern Library of the world's best books", null],
+    ["O Arquivo das Tempestades, I", null],
+  ];
+  for (const [line, want] of cases) assert.deepEqual(parseSeriesLine(line), want, line);
 });
 
 test("Fix puts in Open Library's cover for a book whose cover Magpie drew, and undoing it puts the drawn one back", async () => {

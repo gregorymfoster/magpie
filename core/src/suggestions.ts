@@ -12,7 +12,12 @@ export function patchFor(accepted: Suggestion[]): InfoPatch {
     if (s.field === "authors") out.authors = s.value.split(/\s+(?:&|and)\s+/);
     else if (s.field === "year") out.year = Number(s.value);
     else if (s.field === "cover") out.cover = s.value;
-    else out[s.field] = s.value;
+    else if (s.field === "series") {
+      // "Red Rising · 5": the name and its number go in together.
+      const m = s.value.match(/^(.*) · (\d+(?:\.\d+)?)$/);
+      out.series = m ? m[1] : s.value;
+      if (m) out.seriesIndex = Number(m[2]);
+    } else out[s.field] = s.value;
   }
   return out;
 }

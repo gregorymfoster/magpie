@@ -37,7 +37,8 @@ step() { echo; echo "== $* (+$(($(date +%s) - START))s)"; }
 
 echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' || die "usage: $0 X.Y.Z"
 [ "$(uname -s)" = Darwin ] || die "builds the Mac app, so run it on the Mac"
-cd "$(git rev-parse --show-toplevel)"
+# The checkout this copy of the script lives in (after the exec below, the release worktree).
+cd "$(dirname "$0")" && cd "$(git rev-parse --show-toplevel)"
 
 # Move into the release worktree at origin/main and run this script from there.
 WORKTREE="${MAGPIE_RELEASE_WORKTREE:-$HOME/.magpie-release}"

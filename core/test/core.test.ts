@@ -580,6 +580,22 @@ test("books fixed by an older engine are re-fixed and re-checked once when the L
   assert.equal((await again.call("app.state")).undo, null, "a refresh is not an undo step");
 });
 
+test("a removed book from an older engine waits in Removed instead of being checked every time the Library opens", async () => {
+  const { core, file, home } = setup();
+  await core.call("app.state");
+  await core.call("books.import", { paths: [file("emma.epub", epub())] });
+  await core.idle();
+  const [b] = await core.call("books.list");
+  await core.call("books.remove", { ids: [b.id] });
+  await core.close();
+  const db = new DatabaseSync(join(home, "Books/Magpie/library.db"));
+  const row = db.prepare("SELECT plan FROM books").get() as { plan: string };
+  db.prepare("UPDATE books SET plan = ?").run(JSON.stringify({ ...JSON.parse(row.plan), engine: 1 }));
+  db.close();
+  const again = createCore(nodeHost({ MAGPIE_HOME: home, MAGPIE_MODEL: NO_MODEL }));
+  assert.ok(!(await again.call("app.state")).jobs.some((j) => j.kind === "refresh"));
+});
+
 test("removing sends a book to Removed; undo and restore bring it back", async () => {
   const { core, file } = setup();
   await core.call("app.state");

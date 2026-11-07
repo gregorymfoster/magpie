@@ -360,9 +360,9 @@ export class Library {
     return { all: c.all ?? 0, clean: c.clean ?? 0, work: c.work ?? 0, review: c.review ?? 0, removed: c.removed ?? 0 };
   }
 
-  /** Books fixed by an older engine, which a refresh brings up to date. Locked books are never fixed, so never stale. */
+  /** Books fixed by an older engine, which a refresh brings up to date. Locked books are never fixed, so never stale; removed ones wait until they're restored. */
   async stale(): Promise<number[]> {
-    const rows = await this.db.all<{ id: number; plan: string }>("SELECT id, plan FROM books WHERE state != 'locked' ORDER BY id");
+    const rows = await this.db.all<{ id: number; plan: string }>("SELECT id, plan FROM books WHERE state != 'locked' AND removed_at IS NULL ORDER BY id");
     return rows.filter((r) => (JSON.parse(r.plan) as FixPlan).engine < ENGINE).map((r) => r.id);
   }
 

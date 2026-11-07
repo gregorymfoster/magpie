@@ -5,7 +5,8 @@ import { still } from "../motion.ts";
 import { useAction, useCall, useTransport } from "../api.tsx";
 import { Sheet } from "../components/Sheet.tsx";
 import { useToast } from "../components/Toasts.tsx";
-import { checkForUpdates, onUpdateStatus, restart, updateStatus, type UpdateStatus } from "../shell.ts";
+import { ago, checkForUpdates, restart } from "../shell.ts";
+import { useUpdate } from "../components/Updates.tsx";
 import { plural, tilde } from "../format.ts";
 
 export const SECTIONS = ["General", "Library", "Devices", "Privacy", "Updates"] as const;
@@ -231,29 +232,47 @@ function Privacy() {
   );
 }
 
+/** Settings › Updates, as in Argus: the version, what the last check found, Check Now or Restart to update, and what's new. */
 function Updates() {
-  const [st, setSt] = useState<UpdateStatus>(updateStatus);
-  useEffect(() => onUpdateStatus(setSt), []);
-  const label = {
-    off: "Updates are off in this build.",
-    idle: "Magpie checks quietly at launch and every six hours.",
-    checking: "Checking…",
-    downloading: `Downloading ${st.version}…`,
-    ready: `Version ${st.version} is ready. Restart to update.`,
-    current: "You have the latest version.",
-    error: "Couldn’t check for a new version. You can always download the latest from magpie.gmfoster.com.",
-  }[st.state];
+  const s = useUpdate();
+  const busy = s?.state === "checking" || s?.state === "downloading";
+  const line = !s
+    ? "Checking how this build updates…"
+    : {
+        off: "This build doesn’t update itself (a dev or local build). Get the latest from magpie.gmfoster.com.",
+        idle: "Magpie checks soon after launch and every six hours.",
+        checking: "Checking…",
+        downloading: `Downloading ${s.version}${s.total ? ` · ${Math.round((100 * s.done) / s.total)}%` : ""}. Keep working.`,
+        ready: `Magpie ${s.version} is installed. Restart to use it; your books are saved.`,
+        current: "You have the newest version.",
+        error: `Couldn’t check: ${s.error ?? "unknown error"}. You can always get the latest from magpie.gmfoster.com.`,
+      }[s.state];
   return (
-    <Row title="Updates" sub={label}>
-      {st.state === "ready" ? (
-        <button className="btn pri" onClick={() => void restart()}>
-          Restart
-        </button>
-      ) : (
-        <button className="btn" disabled={st.state === "checking" || st.state === "downloading"} onClick={() => void checkForUpdates()}>
-          Check Now
-        </button>
+    <>
+      <Row title={s?.current ? `Magpie ${s.current}` : "Magpie"} sub={line}>
+        {s?.state === "ready" ? (
+          <button className="btn pri" onClick={() => void restart()} data-testid="settings-update-restart">
+            Restart to Update
+          </button>
+        ) : (
+          <button className="btn" disabled={busy || !s || s.state === "off"} onClick={() => void checkForUpdates()} data-testid="settings-update-check">
+            Check Now
+          </button>
+        )}
+      </Row>
+      <Row title="Last checked" sub="Updates download in the background and wait for a restart. Nothing changes while you work.">
+        <span className="upd-when" data-testid="settings-update-checked">
+          {ago(s?.checked_at ?? null)}
+        </span>
+      </Row>
+      {s?.notes && s.notes.trim() !== `Magpie ${s.version}` && (s.state === "ready" || s.state === "downloading") && (
+        <div className="srow">
+          <div className="lab">
+            <b>What’s new in {s.version}</b>
+            <pre className="update-notes">{s.notes}</pre>
+          </div>
+        </div>
       )}
-    </Row>
+    </>
   );
 }

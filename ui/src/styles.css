@@ -2848,3 +2848,69 @@ textarea::placeholder {
   color: var(--fg2);
   font-size: 12.5px;
 }
+/* A toast with a second line (an update): the message, then what to do about it. */
+.toast.two {
+  max-width: 380px;
+  align-items: flex-start;
+}
+.toast.two > svg {
+  margin-top: 2px;
+}
+.toast.two b {
+  display: block;
+  font-weight: 500;
+}
+.toast.two b + span {
+  display: block;
+  opacity: 0.7;
+  font-size: 11.5px;
+  margin-top: 1px;
+}
+.toast.two button {
+  align-self: center;
+}
+/* The update, at the right of the Status bar: downloading with a thin bar, then Restart to update. */
+.status .upd {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fg2);
+}
+.status .upd .bar {
+  width: 56px;
+  height: 3px;
+}
+.status .upd .bar::after {
+  display: none;
+}
+.status button.upd {
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  font: inherit;
+  color: var(--fg);
+}
+.status button.upd svg {
+  color: var(--accent);
+}
+.status button.upd .ver {
+  color: var(--fg3);
+  font-variant-numeric: tabular-nums;
+}
+.status button.upd:hover span:first-of-type {
+  text-decoration: underline;
+}
+.update-notes {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: 12px/1.5 var(--ui);
+  color: var(--fg2);
+  white-space: pre-wrap;
+}
+.upd-when {
+  font-size: 12px;
+  color: var(--fg2);
+  font-variant-numeric: tabular-nums;
+}

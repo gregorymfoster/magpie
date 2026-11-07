@@ -6,12 +6,13 @@
 
 mod host;
 mod menu;
+mod updates;
 
 use host::{Dbs, Entry, RunResult, Statement};
 use serde::Serialize;
 use serde_json::{Map, Value as Json};
 use std::{io::Write, process::Command};
-use tauri::{ipc, State};
+use tauri::{ipc, Manager, State};
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -185,12 +186,22 @@ fn main() {
         .manage(Dbs::default())
         .setup(|app| {
             app.set_menu(menu::build(app.handle())?)?;
+            // Release builds update themselves (docs/release.md). Dev builds, and local builds
+            // without the release config's public key, skip it and say so in Settings › Updates.
+            let updater = app.config().plugins.0.get("updater");
+            let has_endpoint = updater.and_then(|u| u["endpoints"].as_array()).is_some_and(|e| !e.is_empty());
+            let has_key = updater.and_then(|u| u["pubkey"].as_str()).is_some_and(|k| !k.is_empty());
+            let enabled = !cfg!(debug_assertions) && has_endpoint && has_key;
+            app.manage(updates::Updates::new(app.package_info().version.to_string(), enabled));
+            if enabled {
+                updates::start(app.handle().clone());
+            }
             Ok(())
         })
         .on_menu_event(menu::handle)
         .invoke_handler(tauri::generate_handler![
             fs_read, fs_write, fs_copy, fs_exists, fs_list, fs_mkdir, fs_remove, fs_move, fs_free, db_open, db_all, db_run, db_batch, db_exec, db_close,
-            open_path, compose_mail, add_to_books, copy_text, host_env
+            open_path, compose_mail, add_to_books, copy_text, host_env, updates::update_status, updates::check_for_updates, updates::restart_to_update
         ])
         .run(tauri::generate_context!())
         .expect("Magpie failed to start");

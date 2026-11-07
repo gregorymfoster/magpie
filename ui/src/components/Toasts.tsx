@@ -11,6 +11,12 @@ interface Toast {
   action?: { label: string; run: () => void };
   /** Stays until its button is pressed. */
   sticky?: boolean;
+  /** A second, quieter line under the message. */
+  detail?: string;
+  /** How long it stays, when not the usual few seconds. */
+  seconds?: number;
+  /** A toast in the same slot takes this one's place instead of stacking (an update's progress). */
+  slot?: string;
   /** A rare moment worth marking (a Library milestone): the magpie stamp presses in, with a line under the message. */
   stamp?: { detail: string };
 }
@@ -29,7 +35,10 @@ export function Toasts({ children }: { children: ReactNode }) {
   const [list, setList] = useState<Toast[]>([]);
   const push = useCallback((t: Omit<Toast, "id">) => {
     const id = next++;
-    setList((l) => [...l.slice(-2), { ...t, id }]);
+    setList((l) => {
+      const rest = t.slot ? l.filter((x) => x.slot !== t.slot) : l;
+      return [...rest.slice(-2), { ...t, id }];
+    });
   }, []);
   const drop = (id: number) => setList((l) => l.filter((x) => x.id !== id));
   return (
@@ -37,7 +46,7 @@ export function Toasts({ children }: { children: ReactNode }) {
       {children}
       <div className="toasts" role="status">
         {list.map((t) => (
-          <div key={t.id} className={"toast" + (t.stamp ? " stamped" : "")}>
+          <div key={t.id} className={"toast" + (t.stamp ? " stamped" : t.detail ? " two" : "")}>
             {t.stamp ? (
               <>
                 <span className="stamp">
@@ -51,7 +60,14 @@ export function Toasts({ children }: { children: ReactNode }) {
             ) : (
               <>
                 {t.error ? <AlertCircle size={13} /> : <Check size={13} />}
-                {t.message}
+                {t.detail ? (
+                  <span>
+                    <b>{t.message}</b>
+                    <span>{t.detail}</span>
+                  </span>
+                ) : (
+                  t.message
+                )}
               </>
             )}
             {t.undo && (
@@ -65,7 +81,13 @@ export function Toasts({ children }: { children: ReactNode }) {
               </button>
             )}
             {t.action && <button onClick={t.action.run}>{t.action.label}</button>}
-            {!t.sticky && <i className="life" style={{ animationDuration: t.error || t.stamp ? "7s" : "4.2s" }} onAnimationEnd={() => drop(t.id)} />}
+            {!t.sticky && (
+              <i
+                className="life"
+                style={{ animationDuration: t.seconds ? `${t.seconds}s` : t.error || t.stamp || t.detail ? "7s" : "4.2s" }}
+                onAnimationEnd={() => drop(t.id)}
+              />
+            )}
           </div>
         ))}
       </div>

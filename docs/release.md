@@ -17,7 +17,7 @@ Measured on Greg's M4 Max (2026-10-27): a cold app build with the `.dmg` takes 1
 
 ## Updates
 
-Installed copies check `https://github.com/gregorymfoster/magpie/releases/latest/download/latest.json` 5 seconds after launch and every six hours, download a newer version in the background and then show "Magpie X is ready" with **Restart to update** (`ui/src/shell.ts`). Magpie › Check for Updates… and Settings › Updates check by hand. Updates use the signed `.app.tar.gz`, never the `.dmg`, which is only for first installs.
+Installed copies update the way Argus does (Greg, 2026-11-07), like Cursor and Claude. The app itself (`app/src-tauri/src/updates.rs`, not the window) checks `https://github.com/gregorymfoster/magpie/releases/latest/download/latest.json` 5 seconds after launch and every six hours, downloads and installs a newer version in the background with one quiet "Magpie X is downloading" toast and a thin progress bar at the right of the Status bar, then shows **Restart to update** there (with a "Magpie X is ready" toast once). Magpie › Check for Updates… checks by hand and says what it found in a toast; Settings › Updates shows the version, when it last checked, what's new and Check Now or Restart to Update (`ui/src/components/Updates.tsx`). Dev builds, and local builds without the release config's public key, don't update themselves and say so. In a browser, `?update=ready` (or `downloading`, `current`, `error`, `off`) fakes a state for screenshots and tests (`ui/e2e/updates.spec.ts`). Updates use the signed `.app.tar.gz`, never the `.dmg`, which is only for first installs.
 
 A Mac build of Apple silicon only means `latest.json` lists only `darwin-aarch64`. Intel copies stay where they are until a `--universal` release.
 

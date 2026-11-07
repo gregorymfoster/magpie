@@ -18,7 +18,8 @@ import { SendSheet } from "./sheets/SendSheet.tsx";
 import { EditSheet } from "./sheets/EditSheet.tsx";
 import { PreviewSheet } from "./sheets/PreviewSheet.tsx";
 import { SettingsSheet, type Section } from "./sheets/SettingsSheet.tsx";
-import { checkForUpdates, checkForUpdatesNowAndThen, onMenu, onUpdateStatus, restart } from "./shell.ts";
+import { checkForUpdates, onMenu } from "./shell.ts";
+import { UpdateItem, useUpdateToasts } from "./components/Updates.tsx";
 import { plural } from "./format.ts";
 import { settle } from "./motion.ts";
 import { Count, useLinger } from "./components/Motion.tsx";
@@ -118,6 +119,8 @@ function Window() {
   const [showInsp, setShowInsp] = useState(true);
   const searchRef = useRef<HTMLInputElement>(null);
   const lastClick = useRef<number | null>(null);
+  // Set by Check for Updates…, so its outcome gets a toast (components/Updates.tsx).
+  const askedUpdate = useRef(false);
 
   useEffect(() => {
     document.documentElement.dataset.palette = palette;
@@ -187,8 +190,9 @@ function Window() {
           case "settings":
             return setSheet({ type: "settings" });
           case "updates":
-            void checkForUpdates();
-            return setSheet({ type: "settings", section: "Updates" });
+            // Check for Updates… says what it found in a toast; Settings › Updates has the details.
+            askedUpdate.current = true;
+            return void checkForUpdates();
           case "edit":
             return ids.length === 1 && setSheet({ type: "edit", id: ids[0] });
           case "preview": {
@@ -263,17 +267,9 @@ function Window() {
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   }, [run, sheet]);
-  // Updates: checked quietly at launch and every six hours, downloaded in the background,
-  // then one toast that stays until Restart.
-  useEffect(() => checkForUpdatesNowAndThen(), []);
-  useEffect(
-    () =>
-      onUpdateStatus((s) => {
-        if (s.state === "ready")
-          toast({ message: `Magpie ${s.version} is ready`, action: { label: "Restart to update", run: () => void restart() }, sticky: true });
-      }),
-    [toast],
-  );
+  // Updates: the app checks at launch and every six hours and downloads in the background
+  // (components/Updates.tsx). The background checks stay quiet; Check for Updates… says what it found.
+  useUpdateToasts(askedUpdate);
   useEffect(() => {
     // onMenu resolves later; if this effect is already cleaned up by then, drop the listener at once
     // instead of leaving a second one that runs every menu item twice.
@@ -593,6 +589,7 @@ function StatusBar({ books, state }: { books: BookSummary[]; state: NonNullable<
           <kbd>⌘Z</kbd>Undo {state.undo.toLowerCase()}
         </span>
       )}
+      <UpdateItem />
     </div>
   );
 }
